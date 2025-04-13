@@ -3,11 +3,14 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// Include configuration
+require_once 'config.php';
+
 // Ensure no output before headers
 ob_start();
 
-// Set CORS headers for localhost
-header('Access-Control-Allow-Origin: http://localhost');
+// Set CORS headers using environment variable
+header('Access-Control-Allow-Origin: ' . $allowed_origin);
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
 header('Access-Control-Allow-Credentials: true');
@@ -41,7 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-require_once 'config.php';
 require_once 'functions.php';
 
 // Start secure session

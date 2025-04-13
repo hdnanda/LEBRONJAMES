@@ -2,8 +2,11 @@
 // Ensure no output before headers
 ob_start();
 
-// Set CORS headers for localhost
-header('Access-Control-Allow-Origin: http://localhost');
+// Include configuration
+require_once 'config.php';
+
+// Set CORS headers using environment variable
+header('Access-Control-Allow-Origin: ' . $allowed_origin);
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
 header('Access-Control-Allow-Credentials: true');

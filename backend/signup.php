@@ -3,13 +3,17 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// Include configuration
+require_once 'config.php';
+
 // Log the request
 error_log("Signup request received: " . date('Y-m-d H:i:s'));
 
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Origin: ' . $allowed_origin);
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
+header('Access-Control-Allow-Credentials: true');
 
 // Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {

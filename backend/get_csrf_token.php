@@ -3,12 +3,11 @@
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
-// Get the origin
-$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
-if (strpos($origin, 'localhost') !== false) {
-    header('Access-Control-Allow-Origin: ' . $origin);
-}
+// Include configuration
+require_once 'config.php';
 
+// Set CORS headers using environment variable
+header('Access-Control-Allow-Origin: ' . $allowed_origin);
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
 header('Access-Control-Allow-Credentials: true');
@@ -19,7 +18,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-require_once 'config.php';
 require_once 'functions.php';
 
 try {
