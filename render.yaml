@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: financial-backend
+    env: docker
+    repo: https://github.com/hdnanda/LEBRONJAMES
+    branch: master
+    rootDir: backend
+    dockerfilePath: Dockerfile
+    plan: free 
