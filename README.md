@@ -1,59 +1,55 @@
-# TheMoneyOlympics
+# Financial Literacy App
 
-A financial literacy learning app that helps users learn financial concepts through interactive gameplay, similar to Duolingo but for finance.
+A gamified web application designed to teach financial literacy concepts through interactive lessons, quizzes, and challenges.
 
 ## Features
 
-- **Black and White Gradient Background**: Eye-appealing, neutral visual effect with dynamic gradient animations.
-- **Money-Related Color Scheme**: Aesthetic utilizing black, green, gold, and silver to create a financial theme.
-- **Interactive Animations**: Engaging animations when answering questions correctly or incorrectly.
-- **Streak Tracking**: System to track consecutive correct answers to encourage daily practice.
-- **Confetti Effects & Animated Feedback**: Celebration effects to reward correct answers and keep users motivated.
-- **Blur Effects**: Applied to inactive elements to direct user focus.
-- **Progress Bar**: Updates after every four correct answers to show advancement through a lesson.
-- **Smart Question Retry Mechanism**: Questions answered incorrectly are automatically scheduled to appear again later for better retention.
-- **Expanded Financial Questions Bank**: Extensive set of financial literacy questions with emojis for enhanced engagement.
-- **Centered Feedback**: Feedback appears in the center of the screen for immediate visibility.
-- **Emoji Integration**: Fun emojis throughout the app to boost user engagement and create a more personable experience.
+- **Interactive Learning Modules**: Covering basic banking, saving, budgeting, and investment concepts
+- **Gamification Elements**: Experience points (XP), levels, and achievements to motivate learning
+- **Progress Tracking**: Track your learning journey with detailed progress statistics
+- **Daily Streaks**: Maintain your learning momentum with daily streak rewards
+- **Responsive Design**: Works on desktop and mobile devices
 
-## Technical Implementation
+## Technologies Used
 
-The app is built using:
-- HTML5 for structure
-- CSS3 for styling with animations and effects
-- JavaScript for interactivity and game logic
-- LocalStorage for persistent streak tracking
+- **Frontend**: HTML, CSS, JavaScript
+- **Backend**: PHP, MySQL
+- **Authentication**: Secure session management with CSRF protection
 
-External libraries:
-- FontAwesome for icons
-- Canvas Confetti for celebration effects
+## Installation
 
-## How to Run
+1. Clone the repository:
+   ```
+   git clone https://github.com/hdnanda/LEBRONJAMES.git
+   ```
 
-Simply open the `index.html` file in your web browser to start using the app. No server is required as it's a client-side application.
+2. Set up a local web server (e.g., XAMPP, WAMP, or MAMP)
 
-## Usage
+3. Import the database schema:
+   - Navigate to the `backend` folder
+   - Run `setup_db.php` in your browser or import `schema.sql` directly
 
-1. Answer financial literacy questions by selecting one of the provided options.
-2. Receive instant feedback in a centered modal with animations and explanations.
-3. Build a streak by answering questions correctly and visiting daily.
-4. Complete lessons by answering four questions correctly.
-5. Learn from mistakes as incorrectly answered questions will reappear for reinforcement.
+4. Configure the database connection:
+   - Edit `backend/config.php` with your database credentials
 
-## Customization
+5. Access the application through your web browser:
+   ```
+   http://localhost/FinancialLiteracyApp-main/
+   ```
 
-You can easily customize the app by:
-- Adding more questions to the `questions.js` file
-- Modifying the styling in `styles.css` 
-- Adjusting animations in `animations.js`
-- Changing game parameters in `app.js`
+## Project Structure
 
-## Future Enhancements
+- `assets/`: Images, icons, and other static assets
+- `backend/`: PHP files for server-side logic and database operations
+- `css/`: Stylesheets for the application
+- `js/`: JavaScript files for client-side functionality
+- `index.html`: Main entry point of the application
 
-Potential improvements for future versions:
-- Add user accounts and cloud synchronization
-- Implement difficulty levels
-- Add more interactive elements and mini-games
-- Create a mobile app version
-- Expand question database with categories
-- Add social sharing capabilities for achievements 
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Financial education resources and content
+- Open-source libraries and frameworks 
