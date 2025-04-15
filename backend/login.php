@@ -23,7 +23,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 header('Content-Type: application/json');
 
 // Include required files
-require_once 'config.php';
 require_once 'functions.php';
 
 // Function to send JSON response and exit
