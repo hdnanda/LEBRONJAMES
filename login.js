@@ -209,13 +209,14 @@ async function handleLogin(event) {
         // Make login API call
         const response = await fetch(API_ENDPOINTS.LOGIN, {
             method: 'POST',
+            mode: 'cors',
             credentials: 'include',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Origin': 'https://hdnanda.github.io'
             },
             body: JSON.stringify({
                 username,
-                email,
                 password
             })
         });
@@ -342,7 +343,7 @@ async function handleSignup(event) {
  */
 function redirectToMainApp() {
     try {
-        window.location.href = 'index.html';
+        window.location.href = 'https://hdnanda.github.io/LEBRONJAMES/index.html';
     } catch (error) {
         console.error('Redirect error:', error);
         showError('Failed to redirect. Please try refreshing the page.');
