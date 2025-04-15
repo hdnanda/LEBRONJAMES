@@ -19,14 +19,4 @@ services:
       - key: DB_PASSWORD
         sync: false
       - key: ALLOWED_ORIGIN
-        value: https://hdnanda.github.io/FinancialLiteracyApp-main # GitHub Pages URL
-      - key: SMTP_HOST
-        sync: false
-      - key: SMTP_USERNAME
-        sync: false
-      - key: SMTP_PASSWORD
-        sync: false
-      - key: SMTP_PORT
-        value: "587"
-      - key: SMTP_ENCRYPTION
-        value: "tls" 
+        value: https://hdnanda.github.io/LEBRONJAMES # GitHub Pages URL 
