@@ -213,7 +213,8 @@ async function handleLogin(event) {
             method: 'GET',
             credentials: 'include',
             headers: {
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'Cache-Control': 'no-cache'
             }
         });
         
@@ -234,7 +235,8 @@ async function handleLogin(event) {
             credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfData.token
+                'X-CSRF-Token': csrfData.token,
+                'Cache-Control': 'no-cache'
             },
             body: JSON.stringify({
                 username,
