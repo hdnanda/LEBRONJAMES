@@ -701,7 +701,7 @@ function showWelcomeMessage(streak) {
 async function getTotalXP() {
     try {
         console.log('[Debug] Fetching total XP from backend...');
-        const response = await fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
+        const response = await fetch('https://financial-backend-gc54.onrender.com/xp_handler.php', {
             method: 'GET',
             credentials: 'include',
             headers: {

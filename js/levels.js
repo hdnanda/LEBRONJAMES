@@ -59,7 +59,7 @@ const levelSystem = {
     // Fetch user XP from the server
     async fetchUserXP() {
         try {
-            const response = await fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
+            const response = await fetch('https://financial-backend-gc54.onrender.com/xp_handler.php', {
                 method: 'GET',
                 credentials: 'include',
                 headers: {
