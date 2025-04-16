@@ -20,9 +20,9 @@ const AUTH_KEYS = {
 
 // API endpoints
 const API_ENDPOINTS = {
-    LOGIN: '/FinancialLiteracyApp-main/backend/login.php',
-    SIGNUP: '/FinancialLiteracyApp-main/backend/signup.php',
-    CSRF_TOKEN: '/FinancialLiteracyApp-main/backend/get_csrf_token.php'
+    LOGIN: 'https://financial-backend-gc54.onrender.com/login.php',
+    SIGNUP: 'https://financial-backend-gc54.onrender.com/signup.php',
+    CSRF_TOKEN: 'https://financial-backend-gc54.onrender.com/get_csrf_token.php'
 };
 
 // Event Listeners
@@ -208,12 +208,15 @@ async function handleLogin(event) {
     
     try {
         // Get CSRF token
+        console.log('Attempting to fetch CSRF token from:', API_ENDPOINTS.CSRF_TOKEN);
         const csrfResponse = await fetch(API_ENDPOINTS.CSRF_TOKEN);
+        console.log('CSRF Response status:', csrfResponse.status);
         if (!csrfResponse.ok) {
             throw new Error('Failed to get CSRF token');
         }
         
         const csrfData = await csrfResponse.json();
+        console.log('CSRF Response data:', csrfData);
         if (!csrfData.success) {
             throw new Error('Invalid CSRF token response');
         }
