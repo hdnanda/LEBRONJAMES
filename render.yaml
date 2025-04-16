@@ -4,6 +4,7 @@ services:
     env: docker
     repo: https://github.com/hdnanda/LEBRONJAMES
     branch: master
+    #rootDir: backend
     dockerfilePath: backend/Dockerfile
     plan: free
     envVars:
