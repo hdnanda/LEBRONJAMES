@@ -4,7 +4,9 @@ $allowed_origins = [
     'http://localhost',
     'http://localhost:3000',  // Common React dev server port
     'http://localhost:5000',  // Common dev server port
-    'https://hdnanda.github.io'
+    'https://hdnanda.github.io',
+    'https://financial-backend-qc54.onrender.com',  // Frontend URL
+    'https://financial-backend-gc54.onrender.com'   // Backend URL
 ];
 
 // Get the Origin header from the request
@@ -15,7 +17,7 @@ if (in_array($origin, $allowed_origins)) {
     header("Access-Control-Allow-Origin: $origin");
     header("Access-Control-Allow-Credentials: true");
     header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-CSRF-Token");
     // Cache preflight response for browsers
     header("Access-Control-Max-Age: 3600");
 }
