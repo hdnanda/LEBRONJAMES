@@ -12,20 +12,24 @@ $allowed_origins = [
 // Get the Origin header from the request
 $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
 
-// Check if the origin is allowed
+// Handle preflight requests first
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    // Always set CORS headers for preflight
+    header("Access-Control-Allow-Origin: $origin");
+    header("Access-Control-Allow-Credentials: true");
+    header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-CSRF-Token");
+    header("Access-Control-Max-Age: 3600");
+    http_response_code(200);
+    exit();
+}
+
+// For actual requests, check if the origin is allowed
 if (in_array($origin, $allowed_origins)) {
     header("Access-Control-Allow-Origin: $origin");
     header("Access-Control-Allow-Credentials: true");
     header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
     header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-CSRF-Token");
-    // Cache preflight response for browsers
-    header("Access-Control-Max-Age: 3600");
-}
-
-// Handle preflight requests
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
 }
 
 // Prevent caching of API responses
