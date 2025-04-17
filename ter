@@ -1,0 +1,15 @@
+[1mdiff --git a/render.yaml b/render.yaml[m
+[1mindex fc77958..5793278 100644[m
+[1m--- a/render.yaml[m
+[1m+++ b/render.yaml[m
+[36m@@ -4,8 +4,8 @@[m [mservices:[m
+     env: docker[m
+     repo: https://github.com/hdnanda/LEBRONJAMES[m
+     branch: master[m
+[31m-    rootDir: backend[m
+[31m-    dockerfilePath: Dockerfile[m
+[32m+[m[32m    #rootDir: backend[m
+[32m+[m[32m    dockerfilePath: backend/Dockerfile[m
+     plan: free[m
+     envVars:[m
+       - key: ENVIRONMENT[m
