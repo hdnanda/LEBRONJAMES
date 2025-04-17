@@ -1,4 +1,8 @@
 <?php
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 // List of allowed origins
 $allowed_origins = [
     'http://localhost',
@@ -7,31 +11,43 @@ $allowed_origins = [
     'https://hdnanda.github.io',
     'https://financial-backend-qc54.onrender.com',  // Frontend URL
     'https://financial-backend-gc54.onrender.com',   // Backend URL
-    'https://financial-literacy-app.onrender.com'
+    'https://financial-literacy-app.onrender.com',
+    'null'  // Allow requests from local files during development
 ];
+
+// Debug logging
+error_log('CORS Request Details: ' . json_encode([
+    'method' => $_SERVER['REQUEST_METHOD'],
+    'origin' => $_SERVER['HTTP_ORIGIN'] ?? 'none',
+    'headers' => getallheaders()
+]));
 
 // Get the Origin header from the request
 $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
 
 // Handle preflight requests first
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    if (in_array($origin, $allowed_origins)) {
+    if (in_array($origin, $allowed_origins) || $origin === '') {
         header("Access-Control-Allow-Origin: $origin");
         header("Access-Control-Allow-Credentials: true");
         header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-        header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-CSRF-Token");
+        header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-CSRF-Token, Cache-Control, Accept");
         header("Access-Control-Max-Age: 3600");
+        header("Access-Control-Expose-Headers: Content-Length, X-JSON");
+        header('Vary: Origin');
     }
     http_response_code(200);
     exit();
 }
 
 // For actual requests, check if the origin is allowed
-if (in_array($origin, $allowed_origins)) {
+if (in_array($origin, $allowed_origins) || $origin === '') {
     header("Access-Control-Allow-Origin: $origin");
     header("Access-Control-Allow-Credentials: true");
     header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-CSRF-Token");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-CSRF-Token, Cache-Control, Accept");
+    header("Access-Control-Expose-Headers: Content-Length, X-JSON");
+    header('Vary: Origin');
 }
 
 // Prevent caching of API responses
