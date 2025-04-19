@@ -33,6 +33,17 @@ RUN echo "error_reporting = E_ALL" >> /usr/local/etc/php/conf.d/docker-php-ext-s
     && echo "log_errors = On" >> /usr/local/etc/php/conf.d/docker-php-ext-sodium.ini \
     && echo "error_log = /var/log/php_errors.log" >> /usr/local/etc/php/conf.d/docker-php-ext-sodium.ini
 
+# Configure PHP session handling
+RUN echo "session.save_handler = files" >> /usr/local/etc/php/conf.d/docker-php-ext-sodium.ini \
+    && echo "session.save_path = \"/tmp\"" >> /usr/local/etc/php/conf.d/docker-php-ext-sodium.ini \
+    && echo "session.cookie_secure = 1" >> /usr/local/etc/php/conf.d/docker-php-ext-sodium.ini \
+    && echo "session.cookie_httponly = 1" >> /usr/local/etc/php/conf.d/docker-php-ext-sodium.ini \
+    && echo "session.use_only_cookies = 1" >> /usr/local/etc/php/conf.d/docker-php-ext-sodium.ini
+
+# Configure Apache for PHP
+RUN echo "AddType application/x-httpd-php .php" >> /etc/apache2/apache2.conf \
+    && echo "DirectoryIndex index.php index.html" >> /etc/apache2/apache2.conf
+
 # Create custom Apache configuration
 RUN echo '<VirtualHost *:80>\n\
     DocumentRoot /var/www/html\n\
