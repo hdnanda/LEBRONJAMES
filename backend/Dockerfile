@@ -12,19 +12,17 @@ RUN apt-get update && apt-get install -y \
     zip \
     && docker-php-ext-install zip
 
-# Create web root directory
-RUN mkdir -p /var/www/html
+# Create web root directory and set ownership
+RUN mkdir -p /var/www/html && \
+    chown -R www-data:www-data /var/www/html
 
 # Copy all backend files into the web root
 COPY . /var/www/html/
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html \
-    && chmod 644 /var/www/html/*.php \
-    && chmod 644 /var/www/html/*.sql \
-    && chmod 644 /var/www/html/*.md \
-    && chmod 644 /var/www/html/*.yaml
+# Set permissions (simplified version)
+RUN chown -R www-data:www-data /var/www/html && \
+    find /var/www/html -type d -exec chmod 755 {} \; && \
+    find /var/www/html -type f -exec chmod 644 {} \;
 
 # Enable .htaccess files
 RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
