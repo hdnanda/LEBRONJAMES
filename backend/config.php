@@ -1,6 +1,6 @@
 <?php
 // Database configuration
-$db_host = 'localhost';
+$db_host = getenv('DB_HOST') ?: 'localhost';
 $db_name = 'financial_literacy_db';
 $db_user = 'root';
 $db_pass = '';

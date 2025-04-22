@@ -20,9 +20,9 @@ const AUTH_KEYS = {
 
 // API endpoints
 const API_ENDPOINTS = {
-    LOGIN: '/FinancialLiteracyApp-main/backend/login.php',
-    SIGNUP: '/FinancialLiteracyApp-main/backend/signup.php',
-    CSRF_TOKEN: '/FinancialLiteracyApp-main/backend/get_csrf_token.php'
+    LOGIN: 'https://financial-backend-qc54.onrender.com/login.php',
+    SIGNUP: 'https://financial-backend-qc54.onrender.com/signup.php',
+    CSRF_TOKEN: 'https://financial-backend-qc54.onrender.com/get_csrf_token.php'
 };
 
 // Event Listeners
