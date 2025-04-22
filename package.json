@@ -1,0 +1,14 @@
+{
+  "name": "financial-literacy-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for Financial Literacy App",
+  "main": "index.js",
+  "scripts": {
+    "start": "http-server -p 3000",
+    "build": "echo 'Build completed'"
+  },
+  "dependencies": {
+    "http-server": "^14.1.1"
+  },
+  "devDependencies": {}
+} 
