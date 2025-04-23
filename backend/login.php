@@ -41,13 +41,21 @@ try {
     }
     
     // Verify CSRF token
-    $headers = getallheaders();
-    $csrf_token = $headers['X-CSRF-Token'] ?? '';
+    $csrf_token = '';
+    if (function_exists('getallheaders')) {
+        $headers = getallheaders();
+        $csrf_token = $headers['X-CSRF-Token'] ?? '';
+    } else {
+        // Fallback for environments where getallheaders() is not available
+        $csrf_token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    }
+    
+    error_log('CSRF Token Debug:');
+    error_log('Session token: ' . ($_SESSION['csrf_token'] ?? 'not set'));
+    error_log('Received token: ' . $csrf_token);
     
     if (empty($_SESSION['csrf_token']) || $csrf_token !== $_SESSION['csrf_token']) {
         error_log('CSRF token validation failed');
-        error_log('Session token: ' . ($_SESSION['csrf_token'] ?? 'not set'));
-        error_log('Received token: ' . $csrf_token);
         send_json_response(false, 'Invalid CSRF token', null, 403);
     }
     
@@ -78,8 +86,17 @@ try {
     
     // Get user from database
     $stmt = $conn->prepare("SELECT id, username, password_hash FROM users WHERE username = ?");
+    if (!$stmt) {
+        error_log('Failed to prepare statement: ' . $conn->error);
+        send_json_response(false, 'Database error', null, 500);
+    }
+    
     $stmt->bind_param("s", $username);
-    $stmt->execute();
+    if (!$stmt->execute()) {
+        error_log('Failed to execute statement: ' . $stmt->error);
+        send_json_response(false, 'Database error', null, 500);
+    }
+    
     $result = $stmt->get_result();
     
     if ($result->num_rows === 0) {
@@ -102,8 +119,16 @@ try {
     
     // Update last login time
     $stmt = $conn->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
+    if (!$stmt) {
+        error_log('Failed to prepare update statement: ' . $conn->error);
+        send_json_response(false, 'Database error', null, 500);
+    }
+    
     $stmt->bind_param("i", $user['id']);
-    $stmt->execute();
+    if (!$stmt->execute()) {
+        error_log('Failed to execute update statement: ' . $stmt->error);
+        send_json_response(false, 'Database error', null, 500);
+    }
     
     // Set session variables
     $_SESSION['user_id'] = $user['id'];
@@ -121,6 +146,10 @@ try {
     
 } catch (Exception $e) {
     error_log('Login error: ' . $e->getMessage());
+    error_log('Stack trace: ' . $e->getTraceAsString());
+    error_log('Request data: ' . print_r($_REQUEST, true));
+    error_log('Session data: ' . print_r($_SESSION, true));
+    error_log('Headers: ' . print_r(getallheaders(), true));
     send_json_response(false, 'An error occurred during login', null, 500);
 } finally {
     // Close database connection
@@ -145,8 +174,17 @@ function log_login_attempt($username, $success, $reason = '') {
         $user_id = null;
         if ($success) {
             $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
+            if (!$stmt) {
+                error_log('Failed to prepare user_id statement: ' . $conn->error);
+                return;
+            }
+            
             $stmt->bind_param("s", $username);
-            $stmt->execute();
+            if (!$stmt->execute()) {
+                error_log('Failed to execute user_id statement: ' . $stmt->error);
+                return;
+            }
+            
             $result = $stmt->get_result();
             if ($result->num_rows > 0) {
                 $user = $result->fetch_assoc();
@@ -158,8 +196,17 @@ function log_login_attempt($username, $success, $reason = '') {
         $email = null;
         if ($user_id) {
             $stmt = $conn->prepare("SELECT email FROM users WHERE id = ?");
+            if (!$stmt) {
+                error_log('Failed to prepare email statement: ' . $conn->error);
+                return;
+            }
+            
             $stmt->bind_param("i", $user_id);
-            $stmt->execute();
+            if (!$stmt->execute()) {
+                error_log('Failed to execute email statement: ' . $stmt->error);
+                return;
+            }
+            
             $result = $stmt->get_result();
             if ($result->num_rows > 0) {
                 $user = $result->fetch_assoc();
@@ -169,10 +216,18 @@ function log_login_attempt($username, $success, $reason = '') {
         
         $success_int = $success ? 1 : 0; // Convert boolean to integer
         $stmt = $conn->prepare("INSERT INTO login_logs (user_id, username, email, ip_address, user_agent, success, failure_reason) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        if (!$stmt) {
+            error_log('Failed to prepare log statement: ' . $conn->error);
+            return;
+        }
+        
         $stmt->bind_param("issssis", $user_id, $username, $email, $ip, $user_agent, $success_int, $reason);
-        $stmt->execute();
+        if (!$stmt->execute()) {
+            error_log('Failed to execute log statement: ' . $stmt->error);
+        }
     } catch (Exception $e) {
         error_log('Error logging login attempt: ' . $e->getMessage());
+        error_log('Stack trace: ' . $e->getTraceAsString());
     }
 }
 ?> 
