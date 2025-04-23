@@ -1,22 +1,28 @@
 services:
+  # Backend PHP Service
   - type: web
     name: financial-backend
-    env: docker
-    repo: https://github.com/hdnanda/LEBRONJAMES
-    branch: master
-    #rootDir: backend
-    dockerfilePath: backend/Dockerfile
-    plan: free
+    env: php
+    buildCommand: composer install
+    startCommand: vendor/bin/heroku-php-apache2 backend/
     envVars:
-      - key: ENVIRONMENT
-        value: production
       - key: DB_HOST
-        sync: false # Will be set manually in Render dashboard
+        sync: false
       - key: DB_NAME
         sync: false
       - key: DB_USER
         sync: false
-      - key: DB_PASSWORD
+      - key: DB_PASS
         sync: false
-      - key: ALLOWED_ORIGIN
-        value: https://hdnanda.github.io/LEBRONJAMES # GitHub Pages URL 
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        value: https://financial-frontend.onrender.com
+
+  # Frontend Static Site
+  - type: static
+    name: financial-frontend
+    staticPublishPath: .
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://financial-backend.onrender.com 
