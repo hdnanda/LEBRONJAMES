@@ -19,7 +19,7 @@ const AUTH_KEYS = {
 };
 
 // Base URL for API endpoints
-const BASE_URL = 'https://financial-backend1.onrender.com';
+const BASE_URL = 'http://localhost/FinancialLiteracyApp-main/backend';
 
 // API endpoints
 const API_ENDPOINTS = {
