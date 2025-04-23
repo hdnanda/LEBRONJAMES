@@ -1,107 +1,138 @@
 <?php
-// Enable error reporting
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// Ensure no output before headers
+ob_start();
 
 // Include CORS configuration
 require_once __DIR__ . '/cors.php';
-
-// Log the request
-error_log("Signup request received: " . date('Y-m-d H:i:s'));
 
 // Set JSON content type
 header('Content-Type: application/json');
 
 // Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    error_log("Handling OPTIONS request");
     http_response_code(200);
     exit();
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    error_log("Invalid method: " . $_SERVER['REQUEST_METHOD']);
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+// Include required files
+require_once 'config.php';
+require_once 'functions.php';
+
+// Function to send JSON response and exit
+function send_json_response($success, $message, $data = null, $status_code = 200) {
+    http_response_code($status_code);
+    echo json_encode([
+        'success' => $success,
+        'message' => $message,
+        'data' => $data
+    ]);
     exit();
 }
 
-// Log the raw input
-error_log("Raw input: " . file_get_contents('php://input'));
-
-// Database configuration
-$host = 'localhost';
-$dbname = 'financial_literacy_db';
-$db_username = 'root';  // Changed variable name to avoid conflict
-$db_password = '';      // Changed variable name to avoid conflict
-
 try {
-    // Get POST data
-    $data = json_decode(file_get_contents('php://input'), true);
-    error_log("Decoded data: " . print_r($data, true));
+    // Start secure session
+    secure_session_start();
+
+    // Initialize database connection
+    $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
+    if ($conn->connect_error) {
+        error_log('Database connection failed: ' . $conn->connect_error);
+        send_json_response(false, 'Database connection failed', null, 500);
+    }
     
-    if (!$data) {
-        throw new Exception('Invalid input data');
+    // Verify CSRF token
+    $headers = getallheaders();
+    $csrf_token = $headers['X-CSRF-Token'] ?? '';
+    
+    if (empty($_SESSION['csrf_token']) || $csrf_token !== $_SESSION['csrf_token']) {
+        error_log('CSRF token validation failed');
+        error_log('Session token: ' . ($_SESSION['csrf_token'] ?? 'not set'));
+        error_log('Received token: ' . $csrf_token);
+        send_json_response(false, 'Invalid CSRF token', null, 403);
     }
-
-    $username = $data['username'] ?? '';
-    $email = $data['email'] ?? '';
-    $password = $data['password'] ?? '';
-
-    error_log("Processing signup for username: " . $username);
-
-    // Validate input
-    if (empty($username) || empty($email) || empty($password)) {
-        throw new Exception('All fields are required');
+    
+    // Get and decode JSON data
+    $json = file_get_contents('php://input');
+    if (empty($json)) {
+        send_json_response(false, 'No input received', null, 400);
     }
-
+    
+    $data = json_decode($json, true);
+    if ($data === null) {
+        send_json_response(false, 'Invalid JSON data: ' . json_last_error_msg(), null, 400);
+    }
+    
+    // Validate required fields
+    if (empty($data['username']) || empty($data['email']) || empty($data['password'])) {
+        send_json_response(false, 'All fields are required', null, 400);
+    }
+    
+    // Sanitize input
+    $username = sanitize_input($data['username']);
+    $email = sanitize_input($data['email']);
+    $password = $data['password']; // Don't sanitize password before hashing
+    
+    // Validate email format
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        throw new Exception('Invalid email format');
+        send_json_response(false, 'Invalid email format', null, 400);
     }
-
-    if (strlen($password) < 8) {
-        throw new Exception('Password must be at least 8 characters long');
+    
+    // Validate password length
+    if (strlen($password) < PASSWORD_MIN_LENGTH) {
+        send_json_response(false, 'Password must be at least ' . PASSWORD_MIN_LENGTH . ' characters long', null, 400);
     }
-
-    // Connect to database
-    error_log("Attempting database connection");
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $db_username, $db_password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    error_log("Database connection successful");
-
+    
     // Check if username exists
-    $stmt = $pdo->prepare('SELECT id FROM users WHERE username = ?');
-    $stmt->execute([$username]);
-    if ($stmt->fetch()) {
-        error_log("Username already exists: " . $username);
-        echo json_encode(['success' => false, 'error' => 'username_exists', 'message' => 'Username already exists']);
-        exit;
+    $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
+        send_json_response(false, 'Username already exists', null, 409);
     }
-
+    
     // Check if email exists
-    $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ?');
-    $stmt->execute([$email]);
-    if ($stmt->fetch()) {
-        error_log("Email already exists: " . $email);
-        echo json_encode(['success' => false, 'error' => 'email_exists', 'message' => 'Email already exists']);
-        exit;
+    $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
+        send_json_response(false, 'Email already exists', null, 409);
     }
-
+    
     // Hash password
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-
+    
     // Insert new user
-    $stmt = $pdo->prepare('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)');
-    $stmt->execute([$username, $email, $hashedPassword]);
-    error_log("User created successfully: " . $username);
-
-    echo json_encode(['success' => true, 'message' => 'Account created successfully']);
-
-} catch (PDOException $e) {
-    error_log("Database error: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Database error occurred']);
+    $stmt = $conn->prepare("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)");
+    $stmt->bind_param("sss", $username, $email, $hashedPassword);
+    
+    if (!$stmt->execute()) {
+        throw new Exception('Failed to create user account');
+    }
+    
+    // Get the new user's ID
+    $user_id = $conn->insert_id;
+    
+    // Log the signup
+    log_activity($user_id, 'signup', 'User account created');
+    
+    // Generate new CSRF token
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    
+    // Return success response
+    send_json_response(true, 'Account created successfully', [
+        'username' => $username,
+        'email' => $email
+    ], 201);
+    
 } catch (Exception $e) {
-    error_log("Error: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    error_log('Signup error: ' . $e->getMessage());
+    send_json_response(false, 'An error occurred during signup', null, 500);
+} finally {
+    // Close database connection
+    if (isset($conn)) {
+        $conn->close();
+    }
+    // Clean output buffer
+    ob_end_flush();
 }
 ?> 
