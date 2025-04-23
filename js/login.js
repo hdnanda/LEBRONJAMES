@@ -212,11 +212,14 @@ async function handleLogin(event) {
             method: 'GET',
             credentials: 'include',
             headers: {
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'Origin': window.location.origin
             }
         });
         
         if (!csrfResponse.ok) {
+            const errorText = await csrfResponse.text();
+            console.error('CSRF Token Response:', errorText);
             throw new Error(`Failed to get CSRF token: ${csrfResponse.status}`);
         }
         
@@ -233,7 +236,8 @@ async function handleLogin(event) {
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': csrfData.token,
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'Origin': window.location.origin
             },
             body: JSON.stringify({
                 username,
