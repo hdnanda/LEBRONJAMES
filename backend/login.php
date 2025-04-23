@@ -167,8 +167,9 @@ function log_login_attempt($username, $success, $reason = '') {
             }
         }
         
+        $success_int = $success ? 1 : 0; // Convert boolean to integer
         $stmt = $conn->prepare("INSERT INTO login_logs (user_id, username, email, ip_address, user_agent, success, failure_reason) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("issssss", $user_id, $username, $email, $ip, $user_agent, $success, $reason);
+        $stmt->bind_param("issssis", $user_id, $username, $email, $ip, $user_agent, $success_int, $reason);
         $stmt->execute();
     } catch (Exception $e) {
         error_log('Error logging login attempt: ' . $e->getMessage());
