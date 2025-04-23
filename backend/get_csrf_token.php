@@ -32,25 +32,33 @@ function send_json_response($success, $message, $data = null, $status_code = 200
 try {
     // Start secure session
     secure_session_start();
+    
+    // Log session information for debugging
+    error_log('Session ID: ' . session_id());
+    error_log('Session Status: ' . session_status());
+    error_log('Current Session Data: ' . print_r($_SESSION, true));
 
-    // Generate a new token if one doesn't exist or is invalid
+    // Generate a new token if one doesn't exist
     if (!isset($_SESSION['csrf_token']) || empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-
-    // Verify the token is valid
-    if (!preg_match('/^[a-f0-9]{64}$/', $_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        error_log('Generated new CSRF token: ' . $_SESSION['csrf_token']);
+    } else {
+        error_log('Using existing CSRF token: ' . $_SESSION['csrf_token']);
     }
 
     // Return the token
-    send_json_response(true, 'CSRF token generated successfully', [
+    $response_data = [
         'token' => $_SESSION['csrf_token'],
-        'timestamp' => time()
-    ]);
+        'timestamp' => time(),
+        'session_id' => session_id()
+    ];
+    
+    error_log('Sending CSRF response: ' . print_r($response_data, true));
+    send_json_response(true, 'CSRF token generated successfully', $response_data);
 
 } catch (Exception $e) {
     error_log('CSRF Token Error: ' . $e->getMessage());
+    error_log('Stack trace: ' . $e->getTraceAsString());
     send_json_response(false, 'Failed to generate CSRF token', null, 500);
 } finally {
     // Clean output buffer
