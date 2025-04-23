@@ -1,12 +1,15 @@
 <?php
-// Allow specific origin
-$allowed_origin = 'https://financial-frontend-3xkp.onrender.com';
+// Allow specific origins
+$allowed_origins = [
+    'https://financial-frontend-3xkp.onrender.com',
+    'https://financial-backend1.onrender.com'
+];
 
 // Get the origin from the request
 $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
 
 // Check if the origin is allowed
-if ($origin === $allowed_origin) {
+if (in_array($origin, $allowed_origins)) {
     header("Access-Control-Allow-Origin: {$origin}");
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Max-Age: 86400');    // cache for 1 day
