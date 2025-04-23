@@ -22,7 +22,4 @@ services:
   # Frontend Static Site
   - type: static
     name: financial-frontend
-    staticPublishPath: .
-    envVars:
-      - key: REACT_APP_API_URL
-        value: https://financial-backend.onrender.com 
+    staticPublishPath: . 
