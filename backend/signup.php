@@ -3,13 +3,14 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// Include CORS configuration
+require_once __DIR__ . '/cors.php';
+
 // Log the request
 error_log("Signup request received: " . date('Y-m-d H:i:s'));
 
+// Set JSON content type
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST');
-header('Access-Control-Allow-Headers: Content-Type');
 
 // Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
