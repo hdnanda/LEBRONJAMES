@@ -18,11 +18,14 @@ const AUTH_KEYS = {
     LAST_LOGIN: 'lastLogin'
 };
 
+// Base URL for API endpoints
+const BASE_URL = 'https://financial-backend1.onrender.com';
+
 // API endpoints
 const API_ENDPOINTS = {
-    LOGIN: 'https://financial-backend1.onrender.com/login.php',
-    SIGNUP: 'https://financial-backend1.onrender.com/signup.php',
-    CSRF_TOKEN: 'https://financial-backend1.onrender.com/get_csrf_token.php'
+    LOGIN: `${BASE_URL}/login.php`,
+    SIGNUP: `${BASE_URL}/signup.php`,
+    CSRF_TOKEN: `${BASE_URL}/get_csrf_token.php`
 };
 
 // Event Listeners
@@ -223,7 +226,7 @@ async function handleLogin(event) {
         }
         
         const csrfData = await csrfResponse.json();
-        if (!csrfData.success || !csrfData.token) {
+        if (!csrfData.success || !csrfData.data?.token) {
             console.error('CSRF Response:', csrfData);
             throw new Error('Invalid CSRF token response');
         }
@@ -234,7 +237,7 @@ async function handleLogin(event) {
             credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfData.token,
+                'X-CSRF-Token': csrfData.data.token,
                 'Accept': 'application/json'
             },
             body: JSON.stringify({
