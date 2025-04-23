@@ -30,9 +30,6 @@ function send_json_response($success, $message, $data = null, $status_code = 200
 }
 
 try {
-    // Start secure session
-    secure_session_start();
-
     // Log request details
     error_log('Login request received');
     error_log('Request method: ' . $_SERVER['REQUEST_METHOD']);
