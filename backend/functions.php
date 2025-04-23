@@ -28,7 +28,6 @@ function is_logged_in() {
 function check_login_attempts($username, $conn) {
     try {
         $timeout_minutes = LOGIN_TIMEOUT_MINUTES;
-        $timeout_minutes_var = $timeout_minutes; // Create a variable to pass by reference
         
         $stmt = $conn->prepare("SELECT COUNT(*) as attempts FROM login_logs 
                                WHERE (username = ? OR email = ?) 
@@ -40,7 +39,7 @@ function check_login_attempts($username, $conn) {
             return false;
         }
         
-        $stmt->bind_param("ssi", $username, $username, $timeout_minutes_var);
+        $stmt->bind_param("ssi", $username, $username, $timeout_minutes);
         
         if (!$stmt->execute()) {
             error_log("Failed to execute statement: " . $stmt->error);
