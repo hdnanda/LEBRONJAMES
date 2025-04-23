@@ -1,11 +1,22 @@
 <?php
+// Ensure no output before headers
+ob_start();
+
+// Include CORS configuration
 require_once __DIR__ . '/cors.php';
-// Enable error reporting for debugging
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 
 // Set JSON content type
 header('Content-Type: application/json');
+
+// Handle preflight requests
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 // Start session directly if not already started
 if (session_status() === PHP_SESSION_NONE) {
