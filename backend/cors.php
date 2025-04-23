@@ -21,6 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) {
         header("Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization, Origin");
     }
+    
+    // Always return 200 for OPTIONS requests
+    http_response_code(200);
     exit(0);
 }
 
