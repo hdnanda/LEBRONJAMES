@@ -4,7 +4,8 @@ $allowed_origins = [
     'https://financial-frontend-3xkp.onrender.com',
     'https://financial-backend1.onrender.com',
     'http://localhost:80',
-    'http://localhost'
+    'http://localhost',
+    'http://localhost/FinancialLiteracyApp-main'
 ];
 
 // Get the origin from the request
