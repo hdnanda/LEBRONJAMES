@@ -45,6 +45,9 @@ try {
     $csrf_token = $headers['X-CSRF-Token'] ?? '';
     
     if (empty($_SESSION['csrf_token']) || $csrf_token !== $_SESSION['csrf_token']) {
+        error_log('CSRF token validation failed');
+        error_log('Session token: ' . ($_SESSION['csrf_token'] ?? 'not set'));
+        error_log('Received token: ' . $csrf_token);
         send_json_response(false, 'Invalid CSRF token', null, 403);
     }
     
