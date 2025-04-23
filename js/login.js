@@ -209,6 +209,7 @@ async function handleLogin(event) {
     try {
         // Get CSRF token
         const csrfResponse = await fetch(API_ENDPOINTS.CSRF_TOKEN, {
+            method: 'GET',
             credentials: 'include',
             headers: {
                 'Accept': 'application/json'
