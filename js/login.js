@@ -208,13 +208,20 @@ async function handleLogin(event) {
     
     try {
         // Get CSRF token
-        const csrfResponse = await fetch(API_ENDPOINTS.CSRF_TOKEN);
+        const csrfResponse = await fetch(API_ENDPOINTS.CSRF_TOKEN, {
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
         if (!csrfResponse.ok) {
-            throw new Error('Failed to get CSRF token');
+            throw new Error(`Failed to get CSRF token: ${csrfResponse.status}`);
         }
         
         const csrfData = await csrfResponse.json();
-        if (!csrfData.success) {
+        if (!csrfData.success || !csrfData.token) {
+            console.error('CSRF Response:', csrfData);
             throw new Error('Invalid CSRF token response');
         }
         
@@ -224,7 +231,8 @@ async function handleLogin(event) {
             credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfData.token
+                'X-CSRF-Token': csrfData.token,
+                'Accept': 'application/json'
             },
             body: JSON.stringify({
                 username,
