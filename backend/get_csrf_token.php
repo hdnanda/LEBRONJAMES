@@ -14,16 +14,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-// Enable error reporting for debugging
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// Include required files
+require_once 'config.php';
+require_once 'functions.php';
 
-// Start session directly if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+// Function to send JSON response and exit
+function send_json_response($success, $message, $data = null, $status_code = 200) {
+    http_response_code($status_code);
+    echo json_encode([
+        'success' => $success,
+        'message' => $message,
+        'data' => $data
+    ]);
+    exit();
 }
 
 try {
+    // Start secure session
+    secure_session_start();
+
     // Generate a new token if one doesn't exist or is invalid
     if (!isset($_SESSION['csrf_token']) || empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -35,19 +44,16 @@ try {
     }
 
     // Return the token
-    echo json_encode([
-        'success' => true,
+    send_json_response(true, 'CSRF token generated successfully', [
         'token' => $_SESSION['csrf_token'],
         'timestamp' => time()
     ]);
 
 } catch (Exception $e) {
     error_log('CSRF Token Error: ' . $e->getMessage());
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Failed to generate CSRF token',
-        'error' => $e->getMessage()
-    ]);
+    send_json_response(false, 'Failed to generate CSRF token', null, 500);
+} finally {
+    // Clean output buffer
+    ob_end_flush();
 }
 ?> 
