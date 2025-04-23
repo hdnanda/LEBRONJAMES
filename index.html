@@ -1475,6 +1475,21 @@
             Array.from(optionsContainer.children).forEach(button => {
                 button.disabled = true;
             });
+            
+            // Show and enable continue button
+            const continueBtn = document.getElementById('continue-btn');
+            if (continueBtn) {
+                continueBtn.style.display = 'inline-block';
+                continueBtn.style.opacity = '1';
+                continueBtn.style.pointerEvents = 'auto';
+                continueBtn.style.visibility = 'visible';
+                continueBtn.style.position = 'relative';
+                continueBtn.style.zIndex = '50';
+                continueBtn.onclick = handleContinue;
+            }
+            
+            // Reset processing flag
+            isProcessingQuestion = false;
         }
         
         // Update the handleContinue function
