@@ -212,8 +212,7 @@ async function handleLogin(event) {
             method: 'GET',
             credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'Origin': window.location.origin
+                'Accept': 'application/json'
             }
         });
         
@@ -236,8 +235,7 @@ async function handleLogin(event) {
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': csrfData.token,
-                'Accept': 'application/json',
-                'Origin': window.location.origin
+                'Accept': 'application/json'
             },
             body: JSON.stringify({
                 username,
