@@ -30,9 +30,6 @@ function send_json_response($success, $message, $data = null, $status_code = 200
 }
 
 try {
-    // Start secure session
-    secure_session_start();
-    
     // Log session information for debugging
     error_log('Session ID: ' . session_id());
     error_log('Session Status: ' . session_status());
