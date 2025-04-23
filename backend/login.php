@@ -33,6 +33,13 @@ try {
     // Start secure session
     secure_session_start();
 
+    // Log request details
+    error_log('Login request received');
+    error_log('Request method: ' . $_SERVER['REQUEST_METHOD']);
+    error_log('Request headers: ' . print_r(getallheaders(), true));
+    error_log('Session status: ' . session_status());
+    error_log('Session ID: ' . session_id());
+
     // Initialize database connection
     $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
     if ($conn->connect_error) {
