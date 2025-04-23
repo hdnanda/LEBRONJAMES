@@ -1,20 +1,18 @@
 <?php
-// Allow multiple origins
-$allowed_origins = [
-    'https://financial-frontend-3xkp.onrender.com',
-    'http://localhost:3000',  // for local development
-    'http://localhost'        // for XAMPP
-];
+// Allow specific origin
+$allowed_origin = 'https://financial-frontend-3xkp.onrender.com';
 
+// Get the origin from the request
 $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
 
-if (in_array($origin, $allowed_origins)) {
+// Check if the origin is allowed
+if ($origin === $allowed_origin) {
     header("Access-Control-Allow-Origin: {$origin}");
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Max-Age: 86400');    // cache for 1 day
 }
 
-// Access-Control headers are received during OPTIONS requests
+// Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) {
         header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
