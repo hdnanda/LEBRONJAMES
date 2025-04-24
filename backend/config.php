@@ -11,6 +11,12 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/error.log');
 
+// Log database configuration (without password)
+error_log("Database configuration:");
+error_log("Host: " . $db_host);
+error_log("Database: " . $db_name);
+error_log("User: " . $db_user);
+
 // Session configuration
 ini_set('session.cookie_httponly', 1);
 ini_set('session.cookie_secure', 1);
