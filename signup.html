@@ -383,10 +383,13 @@
                 }
                 
                 let csrfData;
+                const csrfText = await csrfResponse.text();
+                console.log('Raw CSRF response:', csrfText);
+                
                 try {
-                    csrfData = await csrfResponse.json();
+                    csrfData = JSON.parse(csrfText);
                 } catch (e) {
-                    console.error('Failed to parse CSRF response:', await csrfResponse.text());
+                    console.error('Failed to parse CSRF response:', csrfText);
                     throw new Error('Invalid CSRF token response format');
                 }
                 
@@ -414,13 +417,14 @@
                     })
                 });
                 
+                const responseText = await response.text();
+                console.log('Raw signup response:', responseText);
+                
                 let data;
                 try {
-                    const responseText = await response.text();
-                    console.log('Raw response:', responseText);
                     data = JSON.parse(responseText);
                 } catch (e) {
-                    console.error('Failed to parse response:', e);
+                    console.error('Failed to parse signup response:', responseText);
                     throw new Error('Invalid response format from server');
                 }
                 
