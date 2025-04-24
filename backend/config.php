@@ -19,11 +19,18 @@ if ($is_production) {
     $db_config = [
         'type' => 'pgsql',
         'host' => $db_params['host'],
-        'port' => $db_params['port'],
+        'port' => $db_params['port'] ?? '5432',  // Default PostgreSQL port if not specified
         'name' => ltrim($db_params['path'], '/'),
         'user' => $db_params['user'],
         'pass' => $db_params['pass']
     ];
+    
+    // Log the parsed URL components for debugging
+    error_log("Parsed database URL components:");
+    error_log("Host: " . $db_params['host']);
+    error_log("Port: " . ($db_params['port'] ?? '5432'));
+    error_log("Database: " . ltrim($db_params['path'], '/'));
+    error_log("User: " . $db_params['user']);
 } else {
     // Local environment - Use MySQL
     $db_config = [
