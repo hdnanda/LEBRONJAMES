@@ -46,17 +46,25 @@ try {
         error_log('Database connection failed: ' . $conn->connect_error);
         send_json_response(false, 'Database connection failed', null, 500);
     }
+
+    // Log database connection success
+    error_log('Database connection successful');
     
     // Get and decode JSON data first
     $json = file_get_contents('php://input');
+    error_log('Received JSON data: ' . $json);
+    
     if (empty($json)) {
         send_json_response(false, 'No input received', null, 400);
     }
     
     $data = json_decode($json, true);
     if ($data === null) {
+        error_log('JSON decode error: ' . json_last_error_msg());
         send_json_response(false, 'Invalid JSON data: ' . json_last_error_msg(), null, 400);
     }
+
+    error_log('Decoded JSON data: ' . print_r($data, true));
     
     // Verify CSRF token
     $headers = getallheaders();
@@ -72,9 +80,12 @@ try {
         error_log('Received token: ' . $csrf_token);
         send_json_response(false, 'Invalid CSRF token', null, 403);
     }
+
+    error_log('CSRF token validation successful');
     
     // Validate required fields
     if (empty($data['username']) || empty($data['email']) || empty($data['password'])) {
+        error_log('Missing required fields');
         send_json_response(false, 'All fields are required', null, 400);
     }
     
@@ -83,28 +94,50 @@ try {
     $email = sanitize_input($data['email']);
     $password = $data['password']; // Don't sanitize password before hashing
     
+    error_log('Input sanitization complete');
+    
     // Validate email format
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        error_log('Invalid email format: ' . $email);
         send_json_response(false, 'Invalid email format', null, 400);
     }
     
     // Validate password length
     if (strlen($password) < PASSWORD_MIN_LENGTH) {
+        error_log('Password too short');
         send_json_response(false, 'Password must be at least ' . PASSWORD_MIN_LENGTH . ' characters long', null, 400);
     }
     
     // Check if username exists
     $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
+    if (!$stmt) {
+        error_log('Failed to prepare username check statement: ' . $conn->error);
+        throw new Exception('Database error during username check');
+    }
+    
     $stmt->bind_param("s", $username);
-    $stmt->execute();
+    if (!$stmt->execute()) {
+        error_log('Failed to execute username check: ' . $stmt->error);
+        throw new Exception('Database error during username check');
+    }
+    
     if ($stmt->get_result()->num_rows > 0) {
         send_json_response(false, 'Username already exists', ['error' => 'username_exists'], 409);
     }
     
     // Check if email exists
     $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+    if (!$stmt) {
+        error_log('Failed to prepare email check statement: ' . $conn->error);
+        throw new Exception('Database error during email check');
+    }
+    
     $stmt->bind_param("s", $email);
-    $stmt->execute();
+    if (!$stmt->execute()) {
+        error_log('Failed to execute email check: ' . $stmt->error);
+        throw new Exception('Database error during email check');
+    }
+    
     if ($stmt->get_result()->num_rows > 0) {
         send_json_response(false, 'Email already exists', ['error' => 'email_exists'], 409);
     }
@@ -114,11 +147,18 @@ try {
     
     // Insert new user
     $stmt = $conn->prepare("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)");
-    $stmt->bind_param("sss", $username, $email, $hashedPassword);
+    if (!$stmt) {
+        error_log('Failed to prepare insert statement: ' . $conn->error);
+        throw new Exception('Database error during user creation');
+    }
     
+    $stmt->bind_param("sss", $username, $email, $hashedPassword);
     if (!$stmt->execute()) {
+        error_log('Failed to execute insert: ' . $stmt->error);
         throw new Exception('Failed to create user account');
     }
+    
+    error_log('User inserted successfully');
     
     // Get the new user's ID
     $user_id = $conn->insert_id;
@@ -128,6 +168,8 @@ try {
     
     // Generate new CSRF token
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    
+    error_log('Signup completed successfully');
     
     // Return success response
     send_json_response(true, 'Account created successfully', [
@@ -141,7 +183,7 @@ try {
     error_log('Request data: ' . print_r($_REQUEST, true));
     error_log('Session data: ' . print_r($_SESSION, true));
     error_log('Headers: ' . print_r(getallheaders(), true));
-    send_json_response(false, 'An error occurred during signup', null, 500);
+    send_json_response(false, 'An error occurred during signup: ' . $e->getMessage(), null, 500);
 } finally {
     // Close database connection
     if (isset($conn)) {
