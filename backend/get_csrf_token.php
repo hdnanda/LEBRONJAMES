@@ -36,18 +36,10 @@ try {
     error_log('Session ID: ' . session_id());
     error_log('Session Data: ' . print_r($_SESSION, true));
 
-    // Start secure session
-    secure_session_start();
-
     // Ensure we have a CSRF token
     if (!isset($_SESSION['csrf_token']) || empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         error_log('Generated new CSRF token: ' . $_SESSION['csrf_token']);
-    }
-
-    // Verify the token is valid
-    if (!preg_match('/^[a-f0-9]{64}$/', $_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
 
     // Return the token
