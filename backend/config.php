@@ -1,9 +1,40 @@
 <?php
 // Database configuration
-$db_host = getenv('DB_HOST') ?: 'localhost';
-$db_name = getenv('DB_NAME') ?: 'financial_literacy_db';
-$db_user = getenv('DB_USER') ?: 'root';
-$db_pass = getenv('DB_PASS') ?: '';
+$db_url = getenv('DATABASE_URL');
+$is_production = !empty($db_url);
+
+// Initialize database connection parameters
+$db_config = [
+    'type' => '',      // 'mysql' or 'pgsql'
+    'host' => '',
+    'port' => '',
+    'name' => '',
+    'user' => '',
+    'pass' => ''
+];
+
+if ($is_production) {
+    // Production environment (Render) - Use PostgreSQL
+    $db_params = parse_url($db_url);
+    $db_config = [
+        'type' => 'pgsql',
+        'host' => $db_params['host'],
+        'port' => $db_params['port'],
+        'name' => ltrim($db_params['path'], '/'),
+        'user' => $db_params['user'],
+        'pass' => $db_params['pass']
+    ];
+} else {
+    // Local environment - Use MySQL
+    $db_config = [
+        'type' => 'mysql',
+        'host' => 'localhost',
+        'port' => '3306',
+        'name' => 'financial_literacy_db',
+        'user' => 'root',  // Default XAMPP MySQL username
+        'pass' => ''       // Default XAMPP MySQL password
+    ];
+}
 
 // Error reporting (log errors instead of displaying them)
 error_reporting(E_ALL);
@@ -13,9 +44,38 @@ ini_set('error_log', __DIR__ . '/error.log');
 
 // Log database configuration (without password)
 error_log("Database configuration:");
-error_log("Host: " . $db_host);
-error_log("Database: " . $db_name);
-error_log("User: " . $db_user);
+error_log("Environment: " . ($is_production ? 'Production (Render)' : 'Local'));
+error_log("Database Type: " . $db_config['type']);
+error_log("Host: " . $db_config['host']);
+error_log("Port: " . $db_config['port']);
+error_log("Database: " . $db_config['name']);
+error_log("User: " . $db_config['user']);
+
+// Create database connection based on environment
+function get_db_connection() {
+    global $db_config;
+    
+    try {
+        if ($db_config['type'] === 'pgsql') {
+            // PostgreSQL connection
+            $dsn = "pgsql:host={$db_config['host']};port={$db_config['port']};dbname={$db_config['name']};user={$db_config['user']};password={$db_config['pass']}";
+            $conn = new PDO($dsn);
+            $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        } else {
+            // MySQL connection
+            $conn = new PDO(
+                "mysql:host={$db_config['host']};port={$db_config['port']};dbname={$db_config['name']};charset=utf8mb4",
+                $db_config['user'],
+                $db_config['pass'],
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+            );
+        }
+        return $conn;
+    } catch (PDOException $e) {
+        error_log("Database connection failed: " . $e->getMessage());
+        throw $e;
+    }
+}
 
 // Session configuration
 ini_set('session.cookie_httponly', 1);
@@ -26,7 +86,7 @@ ini_set('session.cookie_samesite', 'None');
 // Set timezone
 date_default_timezone_set('UTC');
 
-// Security headers for local development
+// Security headers
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
 header('X-XSS-Protection: 1; mode=block');
