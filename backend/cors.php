@@ -21,22 +21,36 @@ if (session_status() === PHP_SESSION_NONE) {
 $allowed_origins = [
     'https://financial-frontend-3xkp.onrender.com',
     'https://financial-backend1.onrender.com',
-    'http://localhost:80',  // Add local development
-    'http://localhost'      // Add local development
+    'http://localhost:80',
+    'http://localhost',
+    'http://localhost:3000',
+    'null'  // For local file testing
 ];
 
 // Get the origin from the request
 $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
 
+// For local testing, if origin is empty, allow localhost
+if (empty($origin) && isset($_SERVER['HTTP_HOST'])) {
+    $origin = 'http://' . $_SERVER['HTTP_HOST'];
+}
+
 // Log the request details for debugging
 error_log('CORS Request Details:');
 error_log('Origin: ' . $origin);
+error_log('HTTP_HOST: ' . ($_SERVER['HTTP_HOST'] ?? 'not set'));
+error_log('REMOTE_ADDR: ' . ($_SERVER['REMOTE_ADDR'] ?? 'not set'));
 error_log('Request Method: ' . $_SERVER['REQUEST_METHOD']);
 error_log('Session ID: ' . session_id());
 
 // Check if the origin is allowed
-if (in_array($origin, $allowed_origins)) {
-    header("Access-Control-Allow-Origin: {$origin}");
+if (in_array($origin, $allowed_origins) || empty($origin)) {
+    if (!empty($origin)) {
+        header("Access-Control-Allow-Origin: {$origin}");
+    } else {
+        // If no origin, allow localhost
+        header("Access-Control-Allow-Origin: http://localhost");
+    }
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Max-Age: 86400');    // cache for 1 day
     
