@@ -1,110 +1,115 @@
--- Create database if it doesn't exist
-CREATE DATABASE IF NOT EXISTS financial_literacy_db;
-USE financial_literacy_db;
+-- Create database is handled by Render
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    remember_token VARCHAR(255) DEFAULT NULL,
-    token_expiry DATETIME DEFAULT NULL,
+    remember_token VARCHAR(255),
+    token_expiry TIMESTAMP,
     email_verified BOOLEAN DEFAULT FALSE,
-    verification_token VARCHAR(255) DEFAULT NULL,
-    reset_token VARCHAR(255) DEFAULT NULL,
-    reset_token_expiry DATETIME DEFAULT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    last_login DATETIME DEFAULT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    INDEX idx_username (username),
-    INDEX idx_email (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    verification_token VARCHAR(255),
+    reset_token VARCHAR(255),
+    reset_token_expiry TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+CREATE INDEX idx_username ON users(username);
+CREATE INDEX idx_email ON users(email);
 
 -- Login logs table
 CREATE TABLE IF NOT EXISTS login_logs (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     username VARCHAR(50),
     email VARCHAR(100),
     ip_address VARCHAR(45) NOT NULL,
     user_agent VARCHAR(255),
-    login_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     success BOOLEAN DEFAULT FALSE,
-    failure_reason VARCHAR(255) DEFAULT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-    INDEX idx_user_id (user_id),
-    INDEX idx_login_time (login_time),
-    INDEX idx_ip_address (ip_address)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    failure_reason VARCHAR(255)
+);
+
+CREATE INDEX idx_login_user_id ON login_logs(user_id);
+CREATE INDEX idx_login_time ON login_logs(login_time);
+CREATE INDEX idx_ip_address ON login_logs(ip_address);
 
 -- Password reset requests table
 CREATE TABLE IF NOT EXISTS password_resets (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     token VARCHAR(255) NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    expires_at DATETIME NOT NULL,
-    used BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_token (token),
-    INDEX idx_expires_at (expires_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,
+    used BOOLEAN DEFAULT FALSE
+);
+
+CREATE INDEX idx_reset_token ON password_resets(token);
+CREATE INDEX idx_expires_at ON password_resets(expires_at);
 
 -- Activity logs table
 CREATE TABLE IF NOT EXISTS activity_logs (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     action VARCHAR(50) NOT NULL,
     details TEXT,
     ip_address VARCHAR(45),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-    INDEX idx_user_id (user_id),
-    INDEX idx_action (action),
-    INDEX idx_created_at (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_activity_user_id ON activity_logs(user_id);
+CREATE INDEX idx_action ON activity_logs(action);
+CREATE INDEX idx_activity_created_at ON activity_logs(created_at);
 
 -- Create user_progress table
 CREATE TABLE IF NOT EXISTS user_progress (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    total_xp INT DEFAULT 0,
-    current_level INT DEFAULT 1,
-    completed_levels LONGTEXT DEFAULT '[]',
-    completed_exams LONGTEXT DEFAULT '[]',
-    learning_progress LONGTEXT DEFAULT '{}',
-    last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_user_id (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    total_xp INTEGER DEFAULT 0,
+    current_level INTEGER DEFAULT 1,
+    completed_levels TEXT DEFAULT '[]',
+    completed_exams TEXT DEFAULT '[]',
+    learning_progress TEXT DEFAULT '{}',
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
--- Create triggers
-DELIMITER //
+CREATE INDEX idx_progress_user_id ON user_progress(user_id);
 
--- Update timestamp trigger for users table
-CREATE TRIGGER before_user_update 
+-- Create functions and triggers
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER before_user_update
     BEFORE UPDATE ON users
     FOR EACH ROW
-BEGIN
-    SET NEW.updated_at = CURRENT_TIMESTAMP;
-END//
+    EXECUTE FUNCTION update_updated_at();
 
--- Log failed login attempts trigger
-CREATE TRIGGER after_failed_login
-    AFTER INSERT ON login_logs
-    FOR EACH ROW
+CREATE OR REPLACE FUNCTION log_failed_login()
+RETURNS TRIGGER AS $$
 BEGIN
     IF NEW.success = FALSE THEN
         INSERT INTO activity_logs (user_id, action, details, ip_address)
         VALUES (NEW.user_id, 'failed_login', 
-                CONCAT('Failed login attempt from IP: ', NEW.ip_address), 
+                'Failed login attempt from IP: ' || NEW.ip_address, 
                 NEW.ip_address);
     END IF;
-END//
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
-DELIMITER ;
+CREATE TRIGGER after_failed_login
+    AFTER INSERT ON login_logs
+    FOR EACH ROW
+    EXECUTE FUNCTION log_failed_login();
 
 -- Create indexes for performance
 CREATE INDEX idx_user_email_pass ON users(email, password_hash);
@@ -120,8 +125,8 @@ SELECT
     u.username,
     u.email,
     COUNT(l.id) as total_logins,
-    SUM(CASE WHEN l.success = 1 THEN 1 ELSE 0 END) as successful_logins,
-    SUM(CASE WHEN l.success = 0 THEN 1 ELSE 0 END) as failed_logins,
+    COUNT(CASE WHEN l.success = true THEN 1 END) as successful_logins,
+    COUNT(CASE WHEN l.success = false THEN 1 END) as failed_logins,
     MAX(l.login_time) as last_login_attempt
 FROM users u
 LEFT JOIN login_logs l ON u.id = l.user_id
