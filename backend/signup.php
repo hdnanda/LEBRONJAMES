@@ -41,26 +41,12 @@ try {
     error_log('Session ID: ' . session_id());
     
     // Initialize database connection
-    error_log('Attempting database connection to ' . $db_host);
+    error_log('Attempting database connection');
     try {
-        mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT); // Enable error reporting
-        $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
-        
-        // Check connection
-        if ($conn->connect_error) {
-            error_log('Database connection failed: ' . $conn->connect_error);
-            throw new Exception('Database connection failed: ' . $conn->connect_error);
-        }
-        
-        // Set charset to ensure proper encoding
-        if (!$conn->set_charset("utf8mb4")) {
-            error_log('Error setting charset: ' . $conn->error);
-            throw new Exception('Error setting database charset');
-        }
-        
+        $conn = get_db_connection();
         error_log('Database connection successful');
-    } catch (mysqli_sql_exception $e) {
-        error_log('MySQL Error: ' . $e->getMessage());
+    } catch (PDOException $e) {
+        error_log('Database Error: ' . $e->getMessage());
         error_log('Error Code: ' . $e->getCode());
         error_log('Error File: ' . $e->getFile() . ' on line ' . $e->getLine());
         send_json_response(false, 'Database connection failed: ' . $e->getMessage(), null, 500);
@@ -125,36 +111,26 @@ try {
     }
     
     // Check if username exists
-    $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
+    $stmt = $conn->prepare("SELECT id FROM users WHERE username = :username");
     if (!$stmt) {
-        error_log('Failed to prepare username check statement: ' . $conn->error);
+        error_log('Failed to prepare username check statement');
         throw new Exception('Database error during username check');
     }
     
-    $stmt->bind_param("s", $username);
-    if (!$stmt->execute()) {
-        error_log('Failed to execute username check: ' . $stmt->error);
-        throw new Exception('Database error during username check');
-    }
-    
-    if ($stmt->get_result()->num_rows > 0) {
+    $stmt->execute(['username' => $username]);
+    if ($stmt->rowCount() > 0) {
         send_json_response(false, 'Username already exists', ['error' => 'username_exists'], 409);
     }
     
     // Check if email exists
-    $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+    $stmt = $conn->prepare("SELECT id FROM users WHERE email = :email");
     if (!$stmt) {
-        error_log('Failed to prepare email check statement: ' . $conn->error);
+        error_log('Failed to prepare email check statement');
         throw new Exception('Database error during email check');
     }
     
-    $stmt->bind_param("s", $email);
-    if (!$stmt->execute()) {
-        error_log('Failed to execute email check: ' . $stmt->error);
-        throw new Exception('Database error during email check');
-    }
-    
-    if ($stmt->get_result()->num_rows > 0) {
+    $stmt->execute(['email' => $email]);
+    if ($stmt->rowCount() > 0) {
         send_json_response(false, 'Email already exists', ['error' => 'email_exists'], 409);
     }
     
@@ -162,22 +138,22 @@ try {
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
     
     // Insert new user
-    $stmt = $conn->prepare("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)");
+    $stmt = $conn->prepare("INSERT INTO users (username, email, password_hash) VALUES (:username, :email, :password) RETURNING id");
     if (!$stmt) {
-        error_log('Failed to prepare insert statement: ' . $conn->error);
+        error_log('Failed to prepare insert statement');
         throw new Exception('Database error during user creation');
     }
     
-    $stmt->bind_param("sss", $username, $email, $hashedPassword);
-    if (!$stmt->execute()) {
-        error_log('Failed to execute insert: ' . $stmt->error);
-        throw new Exception('Failed to create user account');
-    }
+    $stmt->execute([
+        'username' => $username,
+        'email' => $email,
+        'password' => $hashedPassword
+    ]);
     
     error_log('User inserted successfully');
     
     // Get the new user's ID
-    $user_id = $conn->insert_id;
+    $user_id = $stmt->fetchColumn();
     
     // Log the signup
     log_activity($user_id, 'signup', 'User account created');
@@ -202,9 +178,7 @@ try {
     send_json_response(false, 'An error occurred during signup: ' . $e->getMessage(), null, 500);
 } finally {
     // Close database connection
-    if (isset($conn)) {
-        $conn->close();
-    }
+    $conn = null;
     // Clean output buffer
     ob_end_flush();
 }
