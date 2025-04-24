@@ -377,13 +377,25 @@
                 });
                 
                 if (!csrfResponse.ok) {
+                    const errorText = await csrfResponse.text();
+                    console.error('CSRF Error Response:', errorText);
                     throw new Error(`Failed to get CSRF token: ${csrfResponse.status} ${csrfResponse.statusText}`);
                 }
                 
-                const csrfData = await csrfResponse.json();
-                if (!csrfData.success) {
+                let csrfData;
+                try {
+                    csrfData = await csrfResponse.json();
+                } catch (e) {
+                    console.error('Failed to parse CSRF response:', await csrfResponse.text());
+                    throw new Error('Invalid CSRF token response format');
+                }
+                
+                if (!csrfData.success || !csrfData.token) {
+                    console.error('Invalid CSRF data:', csrfData);
                     throw new Error('Invalid CSRF token response');
                 }
+                
+                console.log('CSRF token received:', csrfData.token);
                 
                 // Then make the signup request
                 const response = await fetch('https://financial-backend1.onrender.com/signup.php', {
@@ -402,18 +414,28 @@
                     })
                 });
                 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Server response:', errorText);
-                    try {
-                        const errorData = JSON.parse(errorText);
-                        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-                    } catch (e) {
-                        throw new Error(`HTTP error! status: ${response.status}. Response: ${errorText}`);
-                    }
+                let data;
+                try {
+                    const responseText = await response.text();
+                    console.log('Raw response:', responseText);
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Failed to parse response:', e);
+                    throw new Error('Invalid response format from server');
                 }
                 
-                const data = await response.json();
+                if (!response.ok) {
+                    if (data.error === 'username_exists') {
+                        document.getElementById('username-error').textContent = 'Username already exists';
+                        document.getElementById('username-error').style.display = 'block';
+                    } else if (data.error === 'email_exists') {
+                        document.getElementById('email-error').textContent = 'Email already exists';
+                        document.getElementById('email-error').style.display = 'block';
+                    } else {
+                        throw new Error(data.message || `HTTP error! status: ${response.status}`);
+                    }
+                    return;
+                }
                 
                 if (data.success) {
                     document.getElementById('signup-success').textContent = 'Account created successfully! Redirecting to login...';
@@ -422,16 +444,8 @@
                         window.location.href = 'login.html';
                     }, 2000);
                 } else {
-                    if (data.error === 'username_exists') {
-                        document.getElementById('username-error').textContent = 'Username already exists';
-                        document.getElementById('username-error').style.display = 'block';
-                    } else if (data.error === 'email_exists') {
-                        document.getElementById('email-error').textContent = 'Email already exists';
-                        document.getElementById('email-error').style.display = 'block';
-                    } else {
-                        document.getElementById('signup-error').textContent = data.message || 'An error occurred. Please try again.';
-                        document.getElementById('signup-error').style.display = 'block';
-                    }
+                    document.getElementById('signup-error').textContent = data.message || 'An error occurred. Please try again.';
+                    document.getElementById('signup-error').style.display = 'block';
                 }
             } catch (error) {
                 console.error('Error:', error);
