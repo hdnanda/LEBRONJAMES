@@ -287,7 +287,7 @@
                     <div class="error-message" id="email-error"></div>
                 </div>
                 <div class="form-group">
-                    <input type="password" id="password" name="password" placeholder="Password" required>
+                    <input type="password" id="password" name="password" placeholder="Password" required autocomplete="new-password">
                     <i class="fas fa-lock"></i>
                     <div class="password-requirements">
                         Password must be at least 8 characters long and include numbers and special characters
@@ -295,7 +295,7 @@
                     <div class="error-message" id="password-error"></div>
                 </div>
                 <div class="form-group">
-                    <input type="password" id="confirm-password" name="confirm-password" placeholder="Confirm Password" required>
+                    <input type="password" id="confirm-password" name="confirm-password" placeholder="Confirm Password" required autocomplete="new-password">
                     <i class="fas fa-lock"></i>
                     <div class="error-message" id="confirm-password-error"></div>
                 </div>
@@ -372,11 +372,12 @@
                 // First, get CSRF token
                 const csrfResponse = await fetch('https://financial-backend1.onrender.com/get_csrf_token.php', {
                     method: 'GET',
-                    credentials: 'include'
+                    credentials: 'include',
+                    mode: 'cors'
                 });
                 
                 if (!csrfResponse.ok) {
-                    throw new Error('Failed to get CSRF token');
+                    throw new Error(`Failed to get CSRF token: ${csrfResponse.status} ${csrfResponse.statusText}`);
                 }
                 
                 const csrfData = await csrfResponse.json();
@@ -392,16 +393,24 @@
                         'X-CSRF-Token': csrfData.token
                     },
                     credentials: 'include',
+                    mode: 'cors',
                     body: JSON.stringify({
                         username,
                         email,
-                        password
+                        password,
+                        csrf_token: csrfData.token
                     })
                 });
                 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                    const errorText = await response.text();
+                    console.error('Server response:', errorText);
+                    try {
+                        const errorData = JSON.parse(errorText);
+                        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                    } catch (e) {
+                        throw new Error(`HTTP error! status: ${response.status}. Response: ${errorText}`);
+                    }
                 }
                 
                 const data = await response.json();
