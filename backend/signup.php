@@ -41,15 +41,31 @@ try {
     error_log('Session ID: ' . session_id());
     
     // Initialize database connection
-    $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
-    if ($conn->connect_error) {
-        error_log('Database connection failed: ' . $conn->connect_error);
-        send_json_response(false, 'Database connection failed', null, 500);
+    error_log('Attempting database connection to ' . $db_host);
+    try {
+        mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT); // Enable error reporting
+        $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
+        
+        // Check connection
+        if ($conn->connect_error) {
+            error_log('Database connection failed: ' . $conn->connect_error);
+            throw new Exception('Database connection failed: ' . $conn->connect_error);
+        }
+        
+        // Set charset to ensure proper encoding
+        if (!$conn->set_charset("utf8mb4")) {
+            error_log('Error setting charset: ' . $conn->error);
+            throw new Exception('Error setting database charset');
+        }
+        
+        error_log('Database connection successful');
+    } catch (mysqli_sql_exception $e) {
+        error_log('MySQL Error: ' . $e->getMessage());
+        error_log('Error Code: ' . $e->getCode());
+        error_log('Error File: ' . $e->getFile() . ' on line ' . $e->getLine());
+        send_json_response(false, 'Database connection failed: ' . $e->getMessage(), null, 500);
     }
 
-    // Log database connection success
-    error_log('Database connection successful');
-    
     // Get and decode JSON data first
     $json = file_get_contents('php://input');
     error_log('Received JSON data: ' . $json);
