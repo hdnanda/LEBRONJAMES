@@ -1,58 +1,435 @@
-<?php
-// Allow specific origins
-$allowed_origins = [
-    'https://financial-frontend-3xkp.onrender.com',
-    'https://financial-backend1.onrender.com',
-    'http://localhost:80',
-    'http://localhost',
-    'http://localhost/FinancialLiteracyApp-main'
-];
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TheMoneyOlympics - Smart Money Education</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #E8F5E9;
+            --text-color: #333;
+            --card-bg: white;
+            --header-bg: white;
+            --shadow-color: rgba(0,0,0,0.1);
+            --border-color: #ddd;
+            --primary-color: #2E7D32;
+            --primary-hover: #1B5E20;
+        }
 
-// Get the origin from the request
-$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --card-bg: #2d2d2d;
+            --header-bg: #2d2d2d;
+            --shadow-color: rgba(0,0,0,0.3);
+            --border-color: #404040;
+        }
 
-// Check if the origin is allowed
-if (in_array($origin, $allowed_origins)) {
-    header("Access-Control-Allow-Origin: {$origin}");
-} else {
-    // If origin is not in the list, allow the current origin
-    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
-}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
 
-// Always allow credentials
-header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Max-Age: 86400');    // cache for 1 day
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s, color 0.3s;
+        }
 
-// Handle preflight requests
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-    header("Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization, Origin, Accept");
-    http_response_code(200);
-    exit(0);
-}
+        .header {
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--header-bg);
+            box-shadow: 0 2px 4px var(--shadow-color);
+        }
 
-// Ensure session is started with proper configuration
-if (session_status() === PHP_SESSION_NONE) {
-    // Configure session
-    ini_set('session.cookie_samesite', 'None');
-    ini_set('session.cookie_secure', '1');
-    ini_set('session.cookie_httponly', '1');
-    
-    // Start session
-    session_start();
-    
-    // Set session cookie parameters
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path' => '/',
-        'domain' => '',
-        'secure' => true,
-        'httponly' => true,
-        'samesite' => 'None'
-    ]);
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
 
-    // Generate CSRF token if not exists
-    if (!isset($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-} 
+        .header-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--shadow-color);
+        }
+
+        .language-selector {
+            color: var(--text-color);
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            background-color: var(--card-bg);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            gap: 4rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .illustration {
+            max-width: 400px;
+            padding: 2rem;
+        }
+
+        .jumping-people {
+            width: 100%;
+            height: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .jumping-people:hover {
+            transform: scale(1.02);
+        }
+
+        .content {
+            text-align: center;
+            max-width: 500px;
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: var(--text-color);
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+
+        h1::before {
+            content: "📈 ";
+        }
+
+        .form-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 40px 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--card-bg);
+            color: var(--text-color);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 10px rgba(46, 125, 50, 0.2);
+            outline: none;
+        }
+
+        .form-group i {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-color);
+            opacity: 0.7;
+        }
+
+        .password-requirements {
+            font-size: 0.8rem;
+            color: var(--text-color);
+            opacity: 0.8;
+            margin-top: 5px;
+            text-align: left;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            max-width: 320px;
+            margin: 1rem auto;
+            padding: 1rem;
+            border-radius: 8px;
+            border: none;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-top: 5px;
+            display: none;
+            text-align: left;
+        }
+
+        .success-message {
+            color: var(--primary-color);
+            font-size: 0.9rem;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .login-link {
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        .login-link a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+                gap: 2rem;
+                padding: 1rem;
+            }
+
+            .illustration, .content {
+                width: 100%;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="#" class="logo">
+            <span>💰</span>
+            TheMoneyOlympics
+        </a>
+        <div class="header-controls">
+            <button class="theme-toggle" id="themeToggle">🌙</button>
+            <select class="language-selector">
+                <option value="en">ENGLISH</option>
+                <option value="es">ESPAÑOL</option>
+                <option value="fr">FRANÇAIS</option>
+            </select>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="illustration">
+            <img src="assets/images/Adobe Express - file.png" alt="Diverse group of young people jumping joyfully" class="jumping-people">
+        </div>
+        <div class="content">
+            <h1>Create Your Account</h1>
+            <form id="signupForm">
+                <div class="form-group">
+                    <input type="text" id="username" name="username" placeholder="Username" required>
+                    <i class="fas fa-user"></i>
+                    <div class="error-message" id="username-error"></div>
+                </div>
+                <div class="form-group">
+                    <input type="email" id="email" name="email" placeholder="Email" required>
+                    <i class="fas fa-envelope"></i>
+                    <div class="error-message" id="email-error"></div>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" name="password" placeholder="Password" required>
+                    <i class="fas fa-lock"></i>
+                    <div class="password-requirements">
+                        Password must be at least 8 characters long and include numbers and special characters
+                    </div>
+                    <div class="error-message" id="password-error"></div>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="confirm-password" name="confirm-password" placeholder="Confirm Password" required>
+                    <i class="fas fa-lock"></i>
+                    <div class="error-message" id="confirm-password-error"></div>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Account</button>
+                <div class="error-message" id="signup-error"></div>
+                <div class="success-message" id="signup-success"></div>
+            </form>
+            <div class="login-link">
+                Already have an account? <a href="login.html">Log in</a>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            html.setAttribute('data-theme', savedTheme);
+            themeToggle.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+        });
+
+        document.getElementById('signupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Reset error messages
+            document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
+            document.getElementById('signup-success').style.display = 'none';
+            
+            // Get form values
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            // Validate all fields are filled
+            if (!username || !email || !password || !confirmPassword) {
+                document.getElementById('signup-error').textContent = 'All fields are required';
+                document.getElementById('signup-error').style.display = 'block';
+                return;
+            }
+            
+            // Validate password
+            if (password.length < 8) {
+                document.getElementById('password-error').textContent = 'Password must be at least 8 characters long';
+                document.getElementById('password-error').style.display = 'block';
+                return;
+            }
+            
+            if (!/\d/.test(password) || !/[!@#$%^&*]/.test(password)) {
+                document.getElementById('password-error').textContent = 'Password must include numbers and special characters';
+                document.getElementById('password-error').style.display = 'block';
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                document.getElementById('confirm-password-error').textContent = 'Passwords do not match';
+                document.getElementById('confirm-password-error').style.display = 'block';
+                return;
+            }
+            
+            try {
+                // First, get CSRF token
+                const csrfResponse = await fetch('https://financial-backend1.onrender.com/get_csrf_token.php', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (!csrfResponse.ok) {
+                    throw new Error('Failed to get CSRF token');
+                }
+                
+                const csrfData = await csrfResponse.json();
+                if (!csrfData.success) {
+                    throw new Error('Invalid CSRF token response');
+                }
+                
+                // Then make the signup request
+                const response = await fetch('https://financial-backend1.onrender.com/signup.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfData.token
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        username,
+                        email,
+                        password
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('signup-success').textContent = 'Account created successfully! Redirecting to login...';
+                    document.getElementById('signup-success').style.display = 'block';
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    if (data.error === 'username_exists') {
+                        document.getElementById('username-error').textContent = 'Username already exists';
+                        document.getElementById('username-error').style.display = 'block';
+                    } else if (data.error === 'email_exists') {
+                        document.getElementById('email-error').textContent = 'Email already exists';
+                        document.getElementById('email-error').style.display = 'block';
+                    } else {
+                        document.getElementById('signup-error').textContent = data.message || 'An error occurred. Please try again.';
+                        document.getElementById('signup-error').style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('signup-error').textContent = error.message || 'Server connection error. Please try again.';
+                document.getElementById('signup-error').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html> 
