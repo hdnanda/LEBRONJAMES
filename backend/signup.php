@@ -33,6 +33,13 @@ try {
     // Start secure session
     secure_session_start();
 
+    // Log request details for debugging
+    error_log('Signup request received');
+    error_log('Request method: ' . $_SERVER['REQUEST_METHOD']);
+    error_log('Request headers: ' . print_r(getallheaders(), true));
+    error_log('Session status: ' . session_status());
+    error_log('Session ID: ' . session_id());
+    
     // Initialize database connection
     $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
     if ($conn->connect_error) {
@@ -40,18 +47,7 @@ try {
         send_json_response(false, 'Database connection failed', null, 500);
     }
     
-    // Verify CSRF token
-    $headers = getallheaders();
-    $csrf_token = $headers['X-CSRF-Token'] ?? '';
-    
-    if (empty($_SESSION['csrf_token']) || $csrf_token !== $_SESSION['csrf_token']) {
-        error_log('CSRF token validation failed');
-        error_log('Session token: ' . ($_SESSION['csrf_token'] ?? 'not set'));
-        error_log('Received token: ' . $csrf_token);
-        send_json_response(false, 'Invalid CSRF token', null, 403);
-    }
-    
-    // Get and decode JSON data
+    // Get and decode JSON data first
     $json = file_get_contents('php://input');
     if (empty($json)) {
         send_json_response(false, 'No input received', null, 400);
@@ -60,6 +56,21 @@ try {
     $data = json_decode($json, true);
     if ($data === null) {
         send_json_response(false, 'Invalid JSON data: ' . json_last_error_msg(), null, 400);
+    }
+    
+    // Verify CSRF token
+    $headers = getallheaders();
+    $csrf_token = $headers['X-CSRF-Token'] ?? '';
+    
+    error_log('CSRF Token Debug:');
+    error_log('Session token: ' . ($_SESSION['csrf_token'] ?? 'not set'));
+    error_log('Received token: ' . $csrf_token);
+    
+    if (empty($_SESSION['csrf_token']) || $csrf_token !== $_SESSION['csrf_token']) {
+        error_log('CSRF token validation failed');
+        error_log('Session token: ' . ($_SESSION['csrf_token'] ?? 'not set'));
+        error_log('Received token: ' . $csrf_token);
+        send_json_response(false, 'Invalid CSRF token', null, 403);
     }
     
     // Validate required fields
@@ -87,7 +98,7 @@ try {
     $stmt->bind_param("s", $username);
     $stmt->execute();
     if ($stmt->get_result()->num_rows > 0) {
-        send_json_response(false, 'Username already exists', null, 409);
+        send_json_response(false, 'Username already exists', ['error' => 'username_exists'], 409);
     }
     
     // Check if email exists
@@ -95,7 +106,7 @@ try {
     $stmt->bind_param("s", $email);
     $stmt->execute();
     if ($stmt->get_result()->num_rows > 0) {
-        send_json_response(false, 'Email already exists', null, 409);
+        send_json_response(false, 'Email already exists', ['error' => 'email_exists'], 409);
     }
     
     // Hash password
@@ -126,6 +137,10 @@ try {
     
 } catch (Exception $e) {
     error_log('Signup error: ' . $e->getMessage());
+    error_log('Stack trace: ' . $e->getTraceAsString());
+    error_log('Request data: ' . print_r($_REQUEST, true));
+    error_log('Session data: ' . print_r($_SESSION, true));
+    error_log('Headers: ' . print_r(getallheaders(), true));
     send_json_response(false, 'An error occurred during signup', null, 500);
 } finally {
     // Close database connection
