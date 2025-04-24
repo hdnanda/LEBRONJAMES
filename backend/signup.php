@@ -111,26 +111,26 @@ try {
     }
     
     // Check if username exists
-    $stmt = $conn->prepare("SELECT id FROM users WHERE username = :username");
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE LOWER(username) = LOWER(:username)");
     if (!$stmt) {
         error_log('Failed to prepare username check statement');
         throw new Exception('Database error during username check');
     }
     
     $stmt->execute(['username' => $username]);
-    if ($stmt->rowCount() > 0) {
+    if ($stmt->fetchColumn() > 0) {
         send_json_response(false, 'Username already exists', ['error' => 'username_exists'], 409);
     }
     
     // Check if email exists
-    $stmt = $conn->prepare("SELECT id FROM users WHERE email = :email");
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE LOWER(email) = LOWER(:email)");
     if (!$stmt) {
         error_log('Failed to prepare email check statement');
         throw new Exception('Database error during email check');
     }
     
     $stmt->execute(['email' => $email]);
-    if ($stmt->rowCount() > 0) {
+    if ($stmt->fetchColumn() > 0) {
         send_json_response(false, 'Email already exists', ['error' => 'email_exists'], 409);
     }
     
@@ -138,7 +138,12 @@ try {
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
     
     // Insert new user
-    $stmt = $conn->prepare("INSERT INTO users (username, email, password_hash) VALUES (:username, :email, :password) RETURNING id");
+    $stmt = $conn->prepare(
+        "INSERT INTO users (username, email, password_hash, created_at) 
+         VALUES (:username, :email, :password, CURRENT_TIMESTAMP) 
+         " . ($db_config['type'] === 'pgsql' ? "RETURNING id" : "")
+    );
+    
     if (!$stmt) {
         error_log('Failed to prepare insert statement');
         throw new Exception('Database error during user creation');
@@ -150,10 +155,14 @@ try {
         'password' => $hashedPassword
     ]);
     
-    error_log('User inserted successfully');
+    // Get the new user's ID (handle both MySQL and PostgreSQL)
+    if ($db_config['type'] === 'pgsql') {
+        $user_id = $stmt->fetchColumn();
+    } else {
+        $user_id = $conn->lastInsertId();
+    }
     
-    // Get the new user's ID
-    $user_id = $stmt->fetchColumn();
+    error_log('User inserted successfully with ID: ' . $user_id);
     
     // Log the signup
     log_activity($user_id, 'signup', 'User account created');
