@@ -22,7 +22,7 @@ error_log('GET CSRF Request Method: ' . $_SERVER['REQUEST_METHOD']);
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header('Access-Control-Allow-Origin: https://financial-frontend-3xkp.onrender.com');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization, Origin, Accept');
+    header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization, Origin, Accept, Cache-Control, Pragma, DNT');
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Max-Age: 86400');  // 24 hours cache for preflight
     http_response_code(204);
@@ -34,6 +34,7 @@ header_remove(); // Clear any existing headers
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: https://financial-frontend-3xkp.onrender.com');
 header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization, Origin, Accept, Cache-Control, Pragma, DNT');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 
