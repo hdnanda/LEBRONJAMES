@@ -193,18 +193,34 @@ async function fetchCSRFToken(retryCount = 3) {
             credentials: 'include',
             headers: {
                 'Accept': 'application/json',
-                'Cache-Control': 'no-cache'
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
             },
+            mode: 'cors',
             signal: controller.signal
         }).finally(() => clearTimeout(timeout));
+
+        console.log('CSRF Response Status:', response.status);
+        console.log('CSRF Response Headers:', Object.fromEntries(response.headers.entries()));
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
+        const responseText = await response.text();
+        console.log('Raw CSRF response:', responseText);
+
+        let data;
+        try {
+            data = JSON.parse(responseText);
+            console.log('Parsed CSRF data:', data);
+        } catch (e) {
+            console.error('Failed to parse CSRF response:', e);
+            throw new Error('Invalid CSRF token response format');
+        }
         
         if (!data.success || !data.data?.token) {
+            console.error('Invalid CSRF data:', data);
             throw new Error('Invalid CSRF token response format');
         }
 
