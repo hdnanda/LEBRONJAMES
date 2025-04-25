@@ -18,18 +18,30 @@ require_once __DIR__ . '/functions.php';
 error_log('GET CSRF Request Headers: ' . print_r(getallheaders(), true));
 error_log('GET CSRF Request Method: ' . $_SERVER['REQUEST_METHOD']);
 
-// Set headers - MUST be before any output
+// Handle preflight requests first
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    header('Access-Control-Allow-Origin: https://financial-frontend-3xkp.onrender.com');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization, Origin, Accept');
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Max-Age: 86400');  // 24 hours cache for preflight
+    http_response_code(204);
+    exit();
+}
+
+// Set headers for actual request
 header_remove(); // Clear any existing headers
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: https://financial-frontend-3xkp.onrender.com');
 header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization, Origin, Accept');
-header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
 
 try {
     // Start secure session
-    secure_session_start();
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
     
     // Log session details for debugging
     error_log('CSRF Token Request - Session Details:');
