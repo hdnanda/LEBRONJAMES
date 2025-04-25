@@ -17,26 +17,47 @@ require_once __DIR__ . '/functions.php';
 // Log request details
 error_log('GET CSRF Request Headers: ' . print_r(getallheaders(), true));
 error_log('GET CSRF Request Method: ' . $_SERVER['REQUEST_METHOD']);
+error_log('Origin: ' . ($_SERVER['HTTP_ORIGIN'] ?? 'not set'));
 
 // Handle preflight requests first
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    header('Access-Control-Allow-Origin: https://financial-frontend-3xkp.onrender.com');
-    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization, Origin, Accept, Cache-Control, Pragma, DNT');
-    header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Max-Age: 86400');  // 24 hours cache for preflight
+    error_log('Handling OPTIONS preflight request');
+    
+    // Set CORS headers for preflight
+    $corsHeaders = [
+        'Access-Control-Allow-Origin' => 'https://financial-frontend-3xkp.onrender.com',
+        'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers' => 'Content-Type, X-CSRF-Token, Authorization, Origin, Accept, Cache-Control, Pragma, DNT',
+        'Access-Control-Allow-Credentials' => 'true',
+        'Access-Control-Max-Age' => '86400'
+    ];
+    
+    foreach ($corsHeaders as $header => $value) {
+        header("$header: $value");
+        error_log("Setting preflight header - $header: $value");
+    }
+    
     http_response_code(204);
     exit();
 }
 
 // Set headers for actual request
 header_remove(); // Clear any existing headers
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: https://financial-frontend-3xkp.onrender.com');
-header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization, Origin, Accept, Cache-Control, Pragma, DNT');
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-header('Pragma: no-cache');
+error_log('Setting headers for actual request');
+
+$actualHeaders = [
+    'Content-Type' => 'application/json; charset=utf-8',
+    'Access-Control-Allow-Origin' => 'https://financial-frontend-3xkp.onrender.com',
+    'Access-Control-Allow-Credentials' => 'true',
+    'Access-Control-Allow-Headers' => 'Content-Type, X-CSRF-Token, Authorization, Origin, Accept, Cache-Control, Pragma, DNT',
+    'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+    'Pragma' => 'no-cache'
+];
+
+foreach ($actualHeaders as $header => $value) {
+    header("$header: $value");
+    error_log("Setting actual request header - $header: $value");
+}
 
 try {
     // Start secure session
