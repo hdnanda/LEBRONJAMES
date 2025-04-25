@@ -19,7 +19,7 @@ const AUTH_KEYS = {
 };
 
 // Base URL for API endpoints
-const BASE_URL = 'http://localhost/FinancialLiteracyApp-main/backend';
+const BASE_URL = 'https://financial-backend1.onrender.com';
 
 // API endpoints
 const API_ENDPOINTS = {
@@ -328,22 +328,34 @@ async function handleSignup(event) {
     
     try {
         // Get CSRF token
-        const csrfResponse = await fetch(API_ENDPOINTS.CSRF_TOKEN);
+        const csrfResponse = await fetch(API_ENDPOINTS.CSRF_TOKEN, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
         if (!csrfResponse.ok) {
-            throw new Error('Failed to get CSRF token');
+            const errorText = await csrfResponse.text();
+            console.error('CSRF Token Response:', errorText);
+            throw new Error(`Failed to get CSRF token: ${csrfResponse.status}`);
         }
         
         const csrfData = await csrfResponse.json();
-        if (!csrfData.success) {
+        console.log('CSRF Data:', csrfData);
+        if (!csrfData.success || !csrfData.data?.token) {
+            console.error('CSRF Response:', csrfData);
             throw new Error('Invalid CSRF token response');
         }
         
         // Make signup API call
         const response = await fetch(API_ENDPOINTS.SIGNUP, {
             method: 'POST',
+            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfData.token
+                'X-CSRF-Token': csrfData.data.token,
+                'Accept': 'application/json'
             },
             body: JSON.stringify({
                 name,
