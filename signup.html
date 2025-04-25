@@ -371,12 +371,24 @@
             try {
                 // First, get CSRF token
                 console.log('Fetching CSRF token...');
+                
+                // Create AbortController for timeout
+                const controller = new AbortController();
+                const timeout = setTimeout(() => {
+                    controller.abort();
+                }, 5000); // 5 second timeout
+
                 const csrfResponse = await fetch('https://financial-backend1.onrender.com/get_csrf_token.php', {
                     method: 'GET',
                     credentials: 'include',
                     headers: {
-                        'Accept': 'application/json'
-                    }
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    },
+                    signal: controller.signal
+                }).finally(() => {
+                    clearTimeout(timeout);
                 });
                 
                 console.log('CSRF Response Status:', csrfResponse.status);
