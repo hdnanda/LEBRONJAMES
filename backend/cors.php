@@ -1,10 +1,7 @@
 <?php
 // Start session first with proper configuration
 if (session_status() === PHP_SESSION_NONE) {
-    ini_set('session.cookie_samesite', 'None');
-    ini_set('session.cookie_secure', '1');
-    ini_set('session.cookie_httponly', '1');
-    
+    // Set session cookie parameters before starting session
     session_set_cookie_params([
         'lifetime' => 0,
         'path' => '/',
@@ -13,8 +10,11 @@ if (session_status() === PHP_SESSION_NONE) {
         'httponly' => true,
         'samesite' => 'None'
     ]);
-    
+
+    // Start session
     session_start();
+    
+    error_log('Session started with ID: ' . session_id());
 }
 
 // Allow specific origins
@@ -53,11 +53,11 @@ if (in_array($origin, $allowed_origins) || empty($origin)) {
     }
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Max-Age: 86400');    // cache for 1 day
+    header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization, Origin, Accept');
     
     // Handle preflight requests
     if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
         header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-        header("Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization, Origin");
         http_response_code(200);
         exit(0);
     }
