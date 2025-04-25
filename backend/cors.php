@@ -21,9 +21,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $allowed_origins = [
     'https://financial-frontend-3xkp.onrender.com',
     'https://financial-backend1.onrender.com',
-    'http://financial-backend1.onrender.com',  // Added HTTP version
     'http://localhost:80',
-    'http://localhost',
     'http://localhost:3000',
     'null'  // For local file testing
 ];
@@ -31,10 +29,8 @@ $allowed_origins = [
 // Get the origin from the request
 $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
 
-// For local testing, if origin is empty, allow localhost
-if (empty($origin) && isset($_SERVER['HTTP_HOST'])) {
-    $origin = 'http://' . $_SERVER['HTTP_HOST'];
-}
+// Log all headers for debugging
+error_log('All request headers: ' . print_r(getallheaders(), true));
 
 // Log the request details for debugging
 error_log('CORS Request Details:');
@@ -49,22 +45,26 @@ if (in_array($origin, $allowed_origins) || empty($origin)) {
     if (!empty($origin)) {
         header("Access-Control-Allow-Origin: {$origin}");
     } else {
-        // If no origin, allow localhost
-        header("Access-Control-Allow-Origin: http://localhost");
+        // If no origin, allow the frontend
+        header("Access-Control-Allow-Origin: https://financial-frontend-3xkp.onrender.com");
     }
+    
+    // Essential CORS headers
     header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
     header('Access-Control-Max-Age: 86400');    // cache for 1 day
     header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization, Origin, Accept');
     
     // Handle preflight requests
-    if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-        header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
         http_response_code(200);
-        exit(0);
+        exit();
     }
 } else {
     error_log('Origin not allowed: ' . $origin);
     error_log('Allowed origins: ' . print_r($allowed_origins, true));
+    
+    header('Content-Type: application/json');
     http_response_code(403);
     echo json_encode([
         'success' => false,
