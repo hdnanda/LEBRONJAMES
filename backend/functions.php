@@ -155,25 +155,6 @@ function is_valid_email($email) {
  */
 function secure_session_start() {
     if (session_status() === PHP_SESSION_NONE) {
-        // Set secure session parameters
-        $session_params = [
-            'lifetime' => 0,
-            'path' => '/',
-            'domain' => '',
-            'secure' => true,
-            'httponly' => true,
-            'samesite' => 'None'
-        ];
-        
-        // Set session cookie parameters
-        session_set_cookie_params($session_params);
-        
-        // Set additional security measures
-        ini_set('session.use_strict_mode', 1);
-        ini_set('session.use_only_cookies', 1);
-        ini_set('session.cookie_lifetime', 0);
-        ini_set('session.gc_maxlifetime', 3600);
-        
         // Start session
         session_start();
         
