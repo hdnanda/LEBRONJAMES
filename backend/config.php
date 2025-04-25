@@ -1,9 +1,11 @@
 <?php
 // Session configuration - MUST BE AT TOP OF FILE
+$session_domain = '.onrender.com'; // Allow cookies across *.onrender.com subdomains
+
 session_set_cookie_params([
     'lifetime' => 0,
     'path' => '/',
-    'domain' => '',
+    'domain' => $session_domain,
     'secure' => true,
     'httponly' => true,
     'samesite' => 'None'
@@ -14,6 +16,7 @@ ini_set('session.use_strict_mode', 1);
 ini_set('session.use_only_cookies', 1);
 ini_set('session.cookie_lifetime', 0);
 ini_set('session.gc_maxlifetime', 3600);
+ini_set('session.cookie_domain', $session_domain);
 
 // Database configuration
 $db_url = getenv('DATABASE_URL');
