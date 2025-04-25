@@ -36,14 +36,20 @@ try {
     error_log('Session ID: ' . session_id());
     error_log('Session Data: ' . print_r($_SESSION, true));
 
+    // Start session if not already started
+    if (session_status() === PHP_SESSION_NONE) {
+        error_log('Starting new session');
+        session_start();
+    }
+
     // Ensure we have a CSRF token
     if (!isset($_SESSION['csrf_token']) || empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         error_log('Generated new CSRF token: ' . $_SESSION['csrf_token']);
     }
 
-    // Return the token
-    $response = [
+    // Prepare response data
+    $responseData = [
         'success' => true,
         'message' => 'CSRF token retrieved successfully',
         'data' => [
@@ -52,21 +58,39 @@ try {
         ]
     ];
     
-    error_log('Sending response: ' . json_encode($response));
-    echo json_encode($response);
+    error_log('Preparing to send response: ' . json_encode($responseData));
+    
+    // Ensure headers are set correctly
+    if (!headers_sent()) {
+        header('Content-Type: application/json');
+    } else {
+        error_log('Headers already sent before JSON response');
+    }
+    
+    // Send response
+    echo json_encode($responseData);
+    error_log('Response sent successfully');
 
 } catch (Exception $e) {
     error_log('Error in get_csrf_token.php: ' . $e->getMessage());
     error_log('Stack trace: ' . $e->getTraceAsString());
     
-    http_response_code(500);
-    echo json_encode([
+    $errorResponse = [
         'success' => false,
         'message' => 'Failed to generate CSRF token',
         'error' => $e->getMessage()
-    ]);
+    ];
+    
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: application/json');
+    }
+    
+    echo json_encode($errorResponse);
 } finally {
-    // Clean output buffer
-    ob_end_flush();
+    // Clean output buffer if it's active
+    if (ob_get_level() > 0) {
+        ob_end_flush();
+    }
 }
 ?> 
