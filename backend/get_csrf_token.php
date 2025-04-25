@@ -1,22 +1,29 @@
 <?php
-// Ensure no output before headers
-ob_start();
+// Disable output buffering completely
+while (ob_get_level()) {
+    ob_end_clean();
+}
 
-// Include CORS configuration
+// Set error reporting
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// Include required files
 require_once __DIR__ . '/cors.php';
+require_once 'config.php';
+require_once 'functions.php';
 
-// Set JSON content type
+// Set JSON content type and other headers
 header('Content-Type: application/json');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Cache-Control: post-check=0, pre-check=0', false);
+header('Pragma: no-cache');
 
 // Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
-
-// Include required files
-require_once 'config.php';
-require_once 'functions.php';
 
 // Function to send JSON response and exit
 function send_json_response($success, $message, $data = null, $status_code = 200) {
@@ -30,26 +37,32 @@ function send_json_response($success, $message, $data = null, $status_code = 200
 }
 
 try {
-    // Log request details
-    error_log('GET CSRF Token Request:');
-    error_log('Headers: ' . print_r(getallheaders(), true));
-    error_log('Session ID: ' . session_id());
-    error_log('Session Data: ' . print_r($_SESSION, true));
-
     // Start session if not already started
     if (session_status() === PHP_SESSION_NONE) {
-        error_log('Starting new session');
+        // Set session cookie parameters
+        session_set_cookie_params([
+            'lifetime' => 0,
+            'path' => '/',
+            'domain' => '',
+            'secure' => true,
+            'httponly' => true,
+            'samesite' => 'None'
+        ]);
         session_start();
     }
 
-    // Ensure we have a CSRF token
+    // Log debugging information
+    error_log("Session status: " . session_status());
+    error_log("Session ID: " . session_id());
+    error_log("Session data: " . print_r($_SESSION, true));
+
+    // Generate new CSRF token if needed
     if (!isset($_SESSION['csrf_token']) || empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-        error_log('Generated new CSRF token: ' . $_SESSION['csrf_token']);
     }
 
-    // Prepare response data
-    $responseData = [
+    // Prepare response
+    $response = [
         'success' => true,
         'message' => 'CSRF token retrieved successfully',
         'data' => [
@@ -57,40 +70,30 @@ try {
             'session_id' => session_id()
         ]
     ];
-    
-    error_log('Preparing to send response: ' . json_encode($responseData));
-    
-    // Ensure headers are set correctly
-    if (!headers_sent()) {
-        header('Content-Type: application/json');
-    } else {
-        error_log('Headers already sent before JSON response');
-    }
-    
+
+    // Log the response for debugging
+    error_log("Sending response: " . json_encode($response));
+
     // Send response
-    echo json_encode($responseData);
-    error_log('Response sent successfully');
+    echo json_encode($response);
+    exit();
 
 } catch (Exception $e) {
-    error_log('Error in get_csrf_token.php: ' . $e->getMessage());
-    error_log('Stack trace: ' . $e->getTraceAsString());
-    
-    $errorResponse = [
+    error_log("Error in get_csrf_token.php: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
+
+    $error_response = [
         'success' => false,
         'message' => 'Failed to generate CSRF token',
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
+        'debug' => [
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ]
     ];
-    
-    if (!headers_sent()) {
-        http_response_code(500);
-        header('Content-Type: application/json');
-    }
-    
-    echo json_encode($errorResponse);
-} finally {
-    // Clean output buffer if it's active
-    if (ob_get_level() > 0) {
-        ob_end_flush();
-    }
+
+    http_response_code(500);
+    echo json_encode($error_response);
+    exit();
 }
 ?> 
