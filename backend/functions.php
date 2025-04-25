@@ -155,29 +155,33 @@ function is_valid_email($email) {
  */
 function secure_session_start() {
     if (session_status() === PHP_SESSION_NONE) {
-        $session_name = 'secure_session_id';
-        $secure = false;
-        $httponly = true;
+        // Set secure session parameters
+        $session_params = [
+            'lifetime' => 0,
+            'path' => '/',
+            'domain' => '',
+            'secure' => true,
+            'httponly' => true,
+            'samesite' => 'None'
+        ];
         
+        // Set session cookie parameters
+        session_set_cookie_params($session_params);
+        
+        // Set additional security measures
+        ini_set('session.use_strict_mode', 1);
         ini_set('session.use_only_cookies', 1);
         ini_set('session.cookie_lifetime', 0);
         ini_set('session.gc_maxlifetime', 3600);
         
-        $cookieParams = session_get_cookie_params();
-        session_set_cookie_params(
-            0,
-            '/',
-            '',
-            $secure,
-            $httponly
-        );
-        
-        session_name($session_name);
+        // Start session
         session_start();
         
+        // Regenerate session ID periodically
         if (!isset($_SESSION['created'])) {
             $_SESSION['created'] = time();
-        } else if (time() - $_SESSION['created'] > 3600) {
+        } else if (time() - $_SESSION['created'] > 1800) {
+            // Regenerate session ID every 30 minutes
             session_regenerate_id(true);
             $_SESSION['created'] = time();
         }
