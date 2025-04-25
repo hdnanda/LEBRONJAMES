@@ -1,4 +1,20 @@
 <?php
+// Session configuration - MUST BE AT TOP OF FILE
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'domain' => '',
+    'secure' => true,
+    'httponly' => true,
+    'samesite' => 'None'
+]);
+
+// Additional session security settings
+ini_set('session.use_strict_mode', 1);
+ini_set('session.use_only_cookies', 1);
+ini_set('session.cookie_lifetime', 0);
+ini_set('session.gc_maxlifetime', 3600);
+
 // Database configuration
 $db_url = getenv('DATABASE_URL');
 $is_production = !empty($db_url);
@@ -83,12 +99,6 @@ function get_db_connection() {
         throw $e;
     }
 }
-
-// Session configuration
-ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_secure', 1);
-ini_set('session.use_only_cookies', 1);
-ini_set('session.cookie_samesite', 'None');
 
 // Set timezone
 date_default_timezone_set('UTC');
