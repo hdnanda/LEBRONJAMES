@@ -56,7 +56,7 @@ try {
     echo json_encode($response);
 
 } catch (Exception $e) {
-    error_log('Error generating CSRF token: ' . $e->getMessage());
+    error_log('Error in get_csrf_token.php: ' . $e->getMessage());
     error_log('Stack trace: ' . $e->getTraceAsString());
     
     http_response_code(500);
