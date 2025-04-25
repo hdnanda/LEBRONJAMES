@@ -11,15 +11,21 @@ while (ob_get_level()) {
 }
 
 // Include required files
-require_once 'config.php';
-require_once 'functions.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/functions.php';
 
-// Set headers
-header('Content-Type: application/json');
+// Log request details
+error_log('GET CSRF Request Headers: ' . print_r(getallheaders(), true));
+error_log('GET CSRF Request Method: ' . $_SERVER['REQUEST_METHOD']);
+
+// Set headers - MUST be before any output
+header_remove(); // Clear any existing headers
+header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: https://financial-frontend-3xkp.onrender.com');
 header('Access-Control-Allow-Credentials: true');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization, Origin, Accept');
+header('Cache-Control: no-store, no-cache, must-revalidate');
 
 try {
     // Start secure session
@@ -29,7 +35,7 @@ try {
     error_log('CSRF Token Request - Session Details:');
     error_log('Session ID: ' . session_id());
     error_log('Session Status: ' . session_status());
-    error_log('Current Session Data: ' . print_r($_SESSION, true));
+    error_log('Session Data: ' . print_r($_SESSION, true));
     
     // Generate new token if it doesn't exist or is expired
     if (!isset($_SESSION['csrf_token']) || !isset($_SESSION['csrf_token_time']) || 
@@ -51,18 +57,29 @@ try {
         ]
     ];
     
-    error_log('Sending CSRF token response: ' . json_encode($response));
-    echo json_encode($response);
+    // Log response
+    error_log('Preparing CSRF response: ' . json_encode($response));
+    
+    // Ensure clean output
+    if (ob_get_length()) ob_clean();
+    
+    // Send response with proper JSON encoding
+    echo json_encode($response, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit();
     
 } catch (Exception $e) {
     error_log('CSRF Token Error: ' . $e->getMessage());
     error_log('Stack trace: ' . $e->getTraceAsString());
     
+    // Ensure clean output
+    if (ob_get_length()) ob_clean();
+    
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Failed to generate CSRF token',
+        'message' => 'Failed to generate CSRF token: ' . $e->getMessage(),
         'data' => null
-    ]);
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit();
 }
 ?> 
