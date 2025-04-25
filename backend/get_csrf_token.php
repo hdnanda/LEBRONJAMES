@@ -6,7 +6,8 @@ while (ob_get_level()) {
 
 // Set error reporting
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0); // Disable displaying errors directly
+ini_set('log_errors', 1); // Enable error logging
 
 // Include required files
 require_once __DIR__ . '/cors.php';
@@ -51,17 +52,16 @@ try {
         session_start();
     }
 
-    // Log debugging information
-    error_log("Session status: " . session_status());
-    error_log("Session ID: " . session_id());
-    error_log("Session data: " . print_r($_SESSION, true));
-
     // Generate new CSRF token if needed
     if (!isset($_SESSION['csrf_token']) || empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
 
-    // Prepare response
+    // Log session and token info
+    error_log("Session ID: " . session_id());
+    error_log("CSRF Token: " . $_SESSION['csrf_token']);
+
+    // Prepare and send response
     $response = [
         'success' => true,
         'message' => 'CSRF token retrieved successfully',
@@ -71,10 +71,6 @@ try {
         ]
     ];
 
-    // Log the response for debugging
-    error_log("Sending response: " . json_encode($response));
-
-    // Send response
     echo json_encode($response);
     exit();
 
@@ -85,11 +81,7 @@ try {
     $error_response = [
         'success' => false,
         'message' => 'Failed to generate CSRF token',
-        'error' => $e->getMessage(),
-        'debug' => [
-            'file' => $e->getFile(),
-            'line' => $e->getLine()
-        ]
+        'error' => $e->getMessage()
     ];
 
     http_response_code(500);
