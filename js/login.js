@@ -180,68 +180,84 @@ function validateForm() {
     return usernameValid && emailValid && passwordValid;
 }
 
+// CSRF token handling
+async function fetchCSRFToken(retryCount = 3) {
+    console.log('Fetching CSRF token, attempt:', 4 - retryCount);
+    
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch(API_ENDPOINTS.CSRF_TOKEN, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'Cache-Control': 'no-cache'
+            },
+            signal: controller.signal
+        }).finally(() => clearTimeout(timeout));
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data.success || !data.data?.token) {
+            throw new Error('Invalid CSRF token response format');
+        }
+
+        return data.data.token;
+    } catch (error) {
+        console.error('CSRF token fetch error:', error);
+        
+        if (retryCount > 1) {
+            console.log('Retrying CSRF token fetch...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return fetchCSRFToken(retryCount - 1);
+        }
+        
+        throw new Error('Failed to fetch CSRF token after multiple attempts');
+    }
+}
+
 /**
  * Handle login form submission
  */
 async function handleLogin(event) {
     event.preventDefault();
-    console.log('Login form submitted');
-    
-    // Disable submit button to prevent double submission
-    if (submitButton) {
-        submitButton.disabled = true;
-        submitButton.classList.add('disabled');
-    }
-    
-    // Get and trim values
-    const username = usernameInput.value.trim();
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-    
-    // Validate form
-    if (!validateForm()) {
-        console.log('Form validation failed');
-        showError('Please fix the errors in the form');
-        if (submitButton) {
-            submitButton.disabled = false;
-            submitButton.classList.remove('disabled');
-        }
-        return;
-    }
     
     try {
-        console.log('Fetching CSRF token from:', API_ENDPOINTS.CSRF_TOKEN);
-        // Get CSRF token
-        const csrfResponse = await fetch(API_ENDPOINTS.CSRF_TOKEN, {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
-        
-        console.log('CSRF Response status:', csrfResponse.status);
-        if (!csrfResponse.ok) {
-            const errorText = await csrfResponse.text();
-            console.error('CSRF Token Response:', errorText);
-            throw new Error(`Failed to get CSRF token: ${csrfResponse.status}`);
+        // Disable submit button
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.classList.add('disabled');
         }
-        
-        const csrfData = await csrfResponse.json();
-        console.log('CSRF Data:', csrfData);
-        if (!csrfData.success || !csrfData.data?.token) {
-            console.error('CSRF Response:', csrfData);
-            throw new Error('Invalid CSRF token response');
+
+        const username = usernameInput.value.trim();
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+
+        // Validate inputs
+        if (!username || !email || !password) {
+            throw new Error('Please fill in all fields');
         }
+
+        if (!isValidEmail(email)) {
+            throw new Error('Please enter a valid email address');
+        }
+
+        // Get CSRF token with retry mechanism
+        const csrfToken = await fetchCSRFToken();
         
         console.log('Making login request to:', API_ENDPOINTS.LOGIN);
-        // Make login API call
         const response = await fetch(API_ENDPOINTS.LOGIN, {
             method: 'POST',
             credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfData.data.token,
+                'X-CSRF-Token': csrfToken,
                 'Accept': 'application/json'
             },
             body: JSON.stringify({
@@ -250,30 +266,27 @@ async function handleLogin(event) {
                 password
             })
         });
-        
-        console.log('Login Response status:', response.status);
+
         const data = await response.json();
-        console.log('Login Response data:', data);
         
         if (!response.ok || !data.success) {
-            throw new Error(data.message || 'Invalid credentials, please check');
+            throw new Error(data.message || 'Login failed');
         }
-        
-        // Store minimal auth data only after successful backend authentication
+
+        // Store auth data
         localStorage.setItem(AUTH_KEYS.IS_LOGGED_IN, 'true');
         localStorage.setItem(AUTH_KEYS.USERNAME, username);
         localStorage.setItem(AUTH_KEYS.USER_EMAIL, email);
         localStorage.setItem(AUTH_KEYS.LAST_LOGIN, new Date().toISOString());
-        
-        console.log('Login successful');
-        playSuccessSound();
-        
+
         // Redirect to main app
-        console.log('Redirecting to main app...');
         redirectToMainApp();
+
     } catch (error) {
         console.error('Login error:', error);
-        showError(error.message || 'An error occurred during login. Please try again.');
+        showError(error.message || 'An error occurred during login');
+    } finally {
+        // Re-enable submit button
         if (submitButton) {
             submitButton.disabled = false;
             submitButton.classList.remove('disabled');
@@ -286,111 +299,69 @@ async function handleLogin(event) {
  */
 async function handleSignup(event) {
     event.preventDefault();
-    console.log('Signup form submitted');
-    
-    // Disable submit button to prevent double submission
-    if (signupButton) {
-        signupButton.disabled = true;
-        signupButton.classList.add('disabled');
-    }
-    
-    const name = document.getElementById('signupName').value.trim();
-    const email = document.getElementById('signupEmail').value.trim();
-    const password = document.getElementById('signupPassword').value.trim();
-    
-    // Validate inputs
-    if (!name || !email || !password) {
-        showError('Please fill in all fields', true);
-        if (signupButton) {
-            signupButton.disabled = false;
-            signupButton.classList.remove('disabled');
-        }
-        return;
-    }
-    
-    if (!isValidEmail(email)) {
-        showError('Please enter a valid email address', true);
-        if (signupButton) {
-            signupButton.disabled = false;
-            signupButton.classList.remove('disabled');
-        }
-        return;
-    }
-    
-    if (!validatePassword(password)) {
-        showError('Password must meet security requirements', true);
-        if (signupButton) {
-            signupButton.disabled = false;
-            signupButton.classList.remove('disabled');
-        }
-        return;
-    }
     
     try {
-        // Get CSRF token
-        const csrfResponse = await fetch(API_ENDPOINTS.CSRF_TOKEN, {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
-        if (!csrfResponse.ok) {
-            const errorText = await csrfResponse.text();
-            console.error('CSRF Token Response:', errorText);
-            throw new Error(`Failed to get CSRF token: ${csrfResponse.status}`);
+        // Disable submit button
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.classList.add('disabled');
         }
-        
-        const csrfData = await csrfResponse.json();
-        console.log('CSRF Data:', csrfData);
-        if (!csrfData.success || !csrfData.data?.token) {
-            console.error('CSRF Response:', csrfData);
-            throw new Error('Invalid CSRF token response');
+
+        const username = usernameInput.value.trim();
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+
+        // Validate inputs
+        if (!username || !email || !password) {
+            throw new Error('Please fill in all fields');
         }
+
+        if (!isValidEmail(email)) {
+            throw new Error('Please enter a valid email address');
+        }
+
+        // Get CSRF token with retry mechanism
+        const csrfToken = await fetchCSRFToken();
         
-        // Make signup API call
+        console.log('Making signup request to:', API_ENDPOINTS.SIGNUP);
         const response = await fetch(API_ENDPOINTS.SIGNUP, {
             method: 'POST',
             credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfData.data.token,
+                'X-CSRF-Token': csrfToken,
                 'Accept': 'application/json'
             },
             body: JSON.stringify({
-                name,
+                username,
                 email,
                 password
             })
         });
-        
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        
+
         const data = await response.json();
-        if (!data.success) {
+        
+        if (!response.ok || !data.success) {
             throw new Error(data.message || 'Signup failed');
         }
-        
-        // Store minimal auth data only after successful backend authentication
+
+        // Store auth data
         localStorage.setItem(AUTH_KEYS.IS_LOGGED_IN, 'true');
-        localStorage.setItem(AUTH_KEYS.USERNAME, data.user.username);
+        localStorage.setItem(AUTH_KEYS.USERNAME, username);
         localStorage.setItem(AUTH_KEYS.USER_EMAIL, email);
         localStorage.setItem(AUTH_KEYS.LAST_LOGIN, new Date().toISOString());
-        
-        console.log('Signup successful');
-        playSuccessSound();
-        
+
         // Redirect to main app
-        console.log('Redirecting to main app...');
         redirectToMainApp();
+
     } catch (error) {
         console.error('Signup error:', error);
-        showError(error.message || 'An error occurred during signup. Please try again.', true);
-        if (signupButton) {
-            signupButton.disabled = false;
-            signupButton.classList.remove('disabled');
+        showError(error.message || 'An error occurred during signup');
+    } finally {
+        // Re-enable submit button
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.classList.remove('disabled');
         }
     }
 }
