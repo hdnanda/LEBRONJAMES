@@ -188,13 +188,14 @@ async function fetchCSRFToken(retryCount = 3) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
 
+        // First, make a preflight request
+        console.log('Making preflight request to:', API_ENDPOINTS.CSRF_TOKEN);
+        
         const response = await fetch(API_ENDPOINTS.CSRF_TOKEN, {
             method: 'GET',
             credentials: 'include',
             headers: {
-                'Accept': 'application/json',
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
+                'Accept': 'application/json'
             },
             mode: 'cors',
             signal: controller.signal
@@ -204,6 +205,8 @@ async function fetchCSRFToken(retryCount = 3) {
         console.log('CSRF Response Headers:', Object.fromEntries(response.headers.entries()));
 
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
@@ -224,6 +227,7 @@ async function fetchCSRFToken(retryCount = 3) {
             throw new Error('Invalid CSRF token response format');
         }
 
+        console.log('Successfully retrieved CSRF token');
         return data.data.token;
     } catch (error) {
         console.error('CSRF token fetch error:', error);
