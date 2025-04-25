@@ -21,6 +21,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $allowed_origins = [
     'https://financial-frontend-3xkp.onrender.com',
     'https://financial-backend1.onrender.com',
+    'http://financial-backend1.onrender.com',  // Added HTTP version
     'http://localhost:80',
     'http://localhost',
     'http://localhost:3000',
