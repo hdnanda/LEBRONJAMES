@@ -10,7 +10,7 @@ while (ob_get_level()) {
     ob_end_clean();
 }
 
-// Include required files
+// Include required files - fix the paths to be relative to current directory
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/functions.php';
 
@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     
     // Set CORS headers for preflight
     $corsHeaders = [
-        'Access-Control-Allow-Origin' => 'https://financial-frontend-3xkp.onrender.com',
+        'Access-Control-Allow-Origin' => isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : 'https://financial-frontend-3xkp.onrender.com',
         'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers' => 'Content-Type, X-CSRF-Token, Authorization, Origin, Accept, Cache-Control, Pragma, DNT',
         'Access-Control-Allow-Credentials' => 'true',
@@ -47,7 +47,7 @@ error_log('Setting headers for actual request');
 
 $actualHeaders = [
     'Content-Type' => 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin' => 'https://financial-frontend-3xkp.onrender.com',
+    'Access-Control-Allow-Origin' => isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : 'https://financial-frontend-3xkp.onrender.com',
     'Access-Control-Allow-Credentials' => 'true',
     'Access-Control-Allow-Headers' => 'Content-Type, X-CSRF-Token, Authorization, Origin, Accept, Cache-Control, Pragma, DNT',
     'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
