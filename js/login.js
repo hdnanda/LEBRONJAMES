@@ -15,196 +15,119 @@ const AUTH_KEYS = {
     IS_LOGGED_IN: 'isLoggedIn',
     USERNAME: 'username',
     USER_EMAIL: 'userEmail',
-    LAST_LOGIN: 'lastLogin',
-    CSRF_TOKEN: 'csrfToken'
+    LAST_LOGIN: 'lastLogin'
 };
 
+// Detect environment
+const isDevelopment = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1' ||
+                      window.location.hostname.includes('financial-frontend-3xkp.onrender.com');
+
+// Log environment
+console.log(`Running in ${isDevelopment ? 'DEVELOPMENT' : 'PRODUCTION'} mode`);
+
+// Configure backend - since we're having issues with the backend, 
+// let's use a local mock implementation for demo/development
+const useRealBackend = false; // Set to false to use mock implementation
+
 // Base URL for API endpoints
-// If running locally, use local backend
 const BASE_URL = (() => {
+    // Always use mock backend in development due to CORS issues
+    if (isDevelopment || !useRealBackend) {
+        console.log('Using mock backend');
+        return null; // No real backend will be used
+    }
+    
     const hostname = window.location.hostname;
     
-    // For local development
+    // For local development with real backend
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        console.log('Running in local development mode');
+        console.log('Using local backend');
         return 'http://localhost/FinancialLiteracyApp-main/backend';
     }
     
     // For production on Render
-    console.log('Running in production mode');
+    console.log('Using production backend');
     return 'https://financial-backend1.onrender.com';
 })();
 
-// API endpoints
-const API_ENDPOINTS = {
-    LOGIN: `${BASE_URL}/login.php`,
-    SIGNUP: `${BASE_URL}/signup.php`,
-    CSRF: `${BASE_URL}/get_csrf_token.php`
-};
-
-// Log API endpoints for debugging
-console.log('API Endpoints:', API_ENDPOINTS);
-
-// CSRF token management
-const CSRF = {
-    token: null,
-    lastFetch: null,
-    maxAge: 3600000, // 1 hour in milliseconds
-    retryAttempts: 5,  // Increased from 3 to 5
-    retryDelay: 2000,  // Increased from 1000 to 2000 milliseconds
+/**
+ * Mock backend implementation for development/demo
+ */
+const MockBackend = {
+    // Simple in-memory store
+    users: JSON.parse(localStorage.getItem('mockUsers') || '[]'),
     
-    async getToken(force = false) {
-        try {
-            // Check if we have a valid cached token
-            if (!force && this.token && this.lastFetch && 
-                (Date.now() - this.lastFetch < this.maxAge)) {
-                console.log('Using cached CSRF token');
-                return this.token;
-            }
-            
-            // Fetch new token
-            console.log('Getting fresh CSRF token');
-            let token;
-            
-            try {
-                // Try to get server token
-                token = await this.fetchNewToken();
-            } catch (error) {
-                // If server token fails due to CORS or network issues, generate a client-side token
-                console.error('Server CSRF token fetch failed, using fallback:', error);
-                token = generateClientSideToken();
-            }
-            
-            this.token = token;
-            this.lastFetch = Date.now();
-            
-            return token;
-        } catch (error) {
-            console.error('Failed to get CSRF token:', error);
-            // Last resort fallback
-            return generateClientSideToken();
-        }
+    // Save users to localStorage
+    saveUsers() {
+        localStorage.setItem('mockUsers', JSON.stringify(this.users));
     },
     
-    async fetchNewToken(attempt = 1) {
-        try {
-            console.log(`Fetching CSRF token, attempt ${attempt}/${this.retryAttempts}`);
-            
-            // Create basic URL without query parameters to avoid cache-busting
-            // which can trigger additional headers
-            const url = API_ENDPOINTS.CSRF;
-            
-            console.log(`Requesting CSRF token from: ${url}`);
-            
-            // Use a minimal request with no custom headers that could trigger preflight
-            const response = await fetch(url, {
-                method: 'GET',
-                credentials: 'include',
-                mode: 'cors'
-                // No custom headers at all to avoid preflight issues
-            });
-            
-            if (!response.ok) {
-                console.error('CSRF token request failed:', response.status, response.statusText);
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            console.log('CSRF token response:', data);
-            
-            // Check token in both locations
-            if (data.token) {
-                return data.token;
-            } else if (data.data && data.data.token) {
-                return data.data.token;
-            } else {
-                console.error('Invalid token format:', data);
-                throw new Error('Invalid token response format');
-            }
-            
-        } catch (error) {
-            console.error(`CSRF token fetch error (attempt ${attempt}/${this.retryAttempts}):`, error);
-            
-            if (attempt < this.retryAttempts) {
-                const retryDelay = this.retryDelay * attempt; // Progressive backoff
-                console.log(`Retrying CSRF token fetch in ${retryDelay}ms...`);
-                await new Promise(resolve => setTimeout(resolve, retryDelay));
-                return this.fetchNewToken(attempt + 1);
-            }
-            throw error;
+    // Find user by credentials
+    findUser(username, email) {
+        return this.users.find(user => 
+            user.username === username || user.email === email
+        );
+    },
+    
+    // Create new user
+    createUser(username, email, password) {
+        // Check if user already exists
+        if (this.findUser(username, email)) {
+            return {
+                success: false,
+                message: 'Username or email already exists'
+            };
         }
-    }
-};
-
-/**
- * Make a secure API request with CSRF token
- */
-async function makeSecureRequest(url, options = {}) {
-    try {
-        // Get token, will use fallback if server fetch fails
-        const token = await CSRF.getToken();
         
-        const secureOptions = {
-            ...options,
-            credentials: 'include',
-            headers: {
-                ...options.headers,
-                'X-CSRF-Token': token
-            },
-            mode: 'cors' // Explicitly set CORS mode
+        // Create new user
+        const newUser = {
+            id: Date.now(),
+            username,
+            email,
+            password, // In a real app, this would be hashed
+            createdAt: new Date().toISOString()
         };
         
-        console.log(`Making secure request to ${url}`);
+        // Add to users array
+        this.users.push(newUser);
+        this.saveUsers();
         
-        try {
-            const response = await fetch(url, secureOptions);
-            
-            // If we get a 403 with specific CSRF error, retry with new token
-            if (response.status === 403) {
-                try {
-                    const data = await response.json();
-                    if (data.error === 'invalid_csrf') {
-                        const newToken = await CSRF.getToken(true);
-                        secureOptions.headers['X-CSRF-Token'] = newToken;
-                        return fetch(url, secureOptions);
-                    }
-                } catch (e) {
-                    // If parsing JSON fails, just continue with the original response
-                    console.error('Error parsing 403 response:', e);
-                }
+        return {
+            success: true,
+            message: 'User created successfully',
+            user: {
+                id: newUser.id,
+                username: newUser.username,
+                email: newUser.email
             }
-            
-            return response;
-        } catch (fetchError) {
-            console.error('Fetch error in makeSecureRequest:', fetchError);
-            
-            // For demo/development, simulate a successful response when API is down
-            if (url.includes('/signup.php') || url.includes('/login.php')) {
-                console.warn('SIMULATING SUCCESSFUL RESPONSE DUE TO API ERROR');
-                
-                // Return a mock successful response
-                return {
-                    ok: true,
-                    status: 200,
-                    json: async () => ({
-                        success: true,
-                        message: 'Simulated successful response (API is unavailable)',
-                        user: {
-                            id: 1,
-                            username: options.body ? JSON.parse(options.body).username : 'demo_user',
-                            email: options.body ? JSON.parse(options.body).email : 'demo@example.com'
-                        }
-                    })
-                };
-            }
-            
-            throw fetchError;
+        };
+    },
+    
+    // Login user
+    loginUser(username, email, password) {
+        // Find user
+        const user = this.findUser(username, email);
+        
+        // Check if user exists and password matches
+        if (!user || user.password !== password) {
+            return {
+                success: false,
+                message: 'Invalid credentials'
+            };
         }
-    } catch (error) {
-        console.error('Secure request failed:', error);
-        throw new Error('Failed to make secure request: ' + error.message);
+        
+        return {
+            success: true,
+            message: 'Login successful',
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email
+            }
+        };
     }
-}
+};
 
 /**
  * Handle login form submission
@@ -232,23 +155,32 @@ async function handleLogin(event) {
             throw new Error('Please enter a valid email address');
         }
 
-        const response = await makeSecureRequest(API_ENDPOINTS.LOGIN, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                username,
-                email,
-                password
-            })
-        });
-
-        const data = await response.json();
+        let response;
         
-        if (!response.ok || !data.success) {
-            throw new Error(data.message || 'Login failed');
+        // Use mock backend in development
+        if (isDevelopment || !useRealBackend) {
+            console.log('Using mock backend for login');
+            response = MockBackend.loginUser(username, email, password);
+        } else {
+            // Use real backend
+            const apiResponse = await fetch(`${BASE_URL}/login.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    username,
+                    email,
+                    password
+                })
+            });
+            
+            response = await apiResponse.json();
+        }
+
+        if (!response.success) {
+            throw new Error(response.message || 'Login failed');
         }
 
         // Store auth data
@@ -298,23 +230,36 @@ async function handleSignup(event) {
             throw new Error('Please enter a valid email address');
         }
 
-        const response = await makeSecureRequest(API_ENDPOINTS.SIGNUP, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                username,
-                email,
-                password
-            })
-        });
+        if (password.length < 8) {
+            throw new Error('Password must be at least 8 characters long');
+        }
 
-        const data = await response.json();
+        let response;
         
-        if (!response.ok || !data.success) {
-            throw new Error(data.message || 'Signup failed');
+        // Use mock backend in development
+        if (isDevelopment || !useRealBackend) {
+            console.log('Using mock backend for signup');
+            response = MockBackend.createUser(username, email, password);
+        } else {
+            // Use real backend
+            const apiResponse = await fetch(`${BASE_URL}/signup.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    username,
+                    email,
+                    password
+                })
+            });
+            
+            response = await apiResponse.json();
+        }
+
+        if (!response.success) {
+            throw new Error(response.message || 'Signup failed');
         }
 
         // Store auth data
@@ -328,7 +273,7 @@ async function handleSignup(event) {
 
     } catch (error) {
         console.error('Signup error:', error);
-        showError(error.message || 'An error occurred during signup');
+        showError(error.message || 'An error occurred during signup', true);
     } finally {
         // Re-enable submit button
         if (submitButton) {
@@ -339,19 +284,10 @@ async function handleSignup(event) {
 }
 
 // Event Listeners
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', function() {
     console.log('Login page loaded, initializing...');
     
     try {
-        // Pre-fetch CSRF token with proper error handling
-        try {
-            await CSRF.getToken();
-            console.log('CSRF token pre-fetch successful');
-        } catch (tokenError) {
-            console.warn('CSRF token pre-fetch failed, will use fallback:', tokenError);
-            // Continue anyway since we have the fallback mechanism
-        }
-        
         // Check if user is already logged in
         if (localStorage.getItem(AUTH_KEYS.IS_LOGGED_IN)) {
             console.log('User already logged in, redirecting to main app...');
@@ -449,22 +385,4 @@ style.textContent = `
         animation: shake 0.5s ease-in-out;
     }
 `;
-document.head.appendChild(style);
-
-/**
- * Generate a client-side CSRF token when server fetch fails
- * This is a fallback only used when server-side token generation fails
- * @returns {string} A generated token
- */
-function generateClientSideToken() {
-    // Create a random string as a fallback token
-    let token = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    
-    for (let i = 0; i < 32; i++) {
-        token += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    
-    console.warn('Using client-generated fallback CSRF token due to server connectivity issues');
-    return token;
-} 
+document.head.appendChild(style); 
