@@ -17,7 +17,7 @@ let isProcessingQuestion = false;
 let currentTopic = null;
 let currentSubLevel = null;
 let currentLevel = null;
-let preloadedNextQuestion = null;8
+let preloadedNextQuestion = null;
 
 // XP System Constants
 const XP_SYSTEM = {
@@ -269,18 +269,8 @@ async function handleAnswer(selectedIndex, correctIndex) {
         
         // Calculate and award XP immediately for correct answer
         try {
-            // Get current level
-            let currentLevel = 1;
-            if (window.xpService) {
-                currentLevel = window.xpService.getCurrentLevel();
-            } else {
-                currentLevel = await getCurrentLevel();
-            }
-            
-            // Get base XP for current level
-            const baseXP = window.APP_CONFIG.XP_SYSTEM.LEVELS[currentLevel].baseXP;
-            
-            // Calculate bonuses
+            const currentLevel = await getCurrentLevel();
+            const baseXP = XP_SYSTEM.LEVELS[currentLevel].baseXP;
             const bonuses = {
                 streak: correctAnswers >= 3,
                 speed: currentQuestion.timeToAnswer && currentQuestion.timeToAnswer < 10
@@ -709,86 +699,125 @@ function showWelcomeMessage(streak) {
 
 // Get total XP from backend API
 async function getTotalXP() {
-    // Use xpService if available
-    if (window.xpService) {
-        return window.xpService.getCurrentXP();
-    }
-    
-    // Legacy fallback implementation
     try {
-        const response = await fetch(window.APP_CONFIG.API_ENDPOINTS.XP_HANDLER, {
+        console.log('[Debug] Fetching total XP from backend...');
+        const response = await fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
             method: 'GET',
-            credentials: 'include'
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json'
+            }
         });
         
+        console.log('[Debug] XP Response Status:', response.status);
+        console.log('[Debug] XP Response Headers:', [...response.headers.entries()]);
+        
         if (!response.ok) {
-            throw new Error('Failed to fetch XP');
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
-        return data.totalXP || 0;
+        console.log('[Debug] XP Response Data:', data);
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to fetch XP');
+        }
+        
+        // Update local storage and UI
+        if (data.xp !== undefined) {
+            localStorage.setItem('userXP', data.xp);
+            // Update all XP displays
+            ['totalXP', 'current-xp'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = data.xp;
+                }
+            });
+        }
+        
+        return data.xp || 0;
     } catch (error) {
-        console.error('Error fetching total XP:', error);
-        return 0;
+        console.error('[Error] Failed to fetch XP:', error);
+        // Fallback to localStorage
+        return parseInt(localStorage.getItem('userXP')) || 0;
     }
 }
 
 // Add XP with bonuses through backend API
 async function addXP(baseAmount, bonuses = {}) {
-    // Use xpService if available
-    if (window.xpService) {
-        return window.xpService.addXP(baseAmount, bonuses);
-    }
-    
-    // Legacy fallback implementation
     try {
-        console.log('Adding XP:', { baseAmount, bonuses });
+        console.log('[Debug] Adding XP - Base Amount:', baseAmount, 'Bonuses:', bonuses);
         
-        // Get CSRF token
-        const csrfResponse = await fetch(window.APP_CONFIG.API_ENDPOINTS.CSRF_TOKEN, {
-            method: 'GET',
-            credentials: 'include'
+        const currentLevel = await getCurrentLevel();
+        const levelMultiplier = 1 + (currentLevel - 1) * 0.1; // 10% increase per level
+        
+        let earnedXP = baseAmount * levelMultiplier;
+        
+        // Apply bonuses
+        if (bonuses.streak) earnedXP += XP_SYSTEM.BONUSES.STREAK;
+        if (bonuses.speed) earnedXP += XP_SYSTEM.BONUSES.SPEED;
+        if (bonuses.exam) earnedXP *= 1.5; // 50% bonus for exams
+        
+        // Round XP to nearest integer
+        earnedXP = Math.round(earnedXP);
+        
+        // Get current total XP
+        const currentTotalXP = await getTotalXP();
+        const newTotalXP = currentTotalXP + earnedXP;
+        
+        console.log('[Debug] XP Calculation:', {
+            currentXP: currentTotalXP,
+            earned: earnedXP,
+            newTotal: newTotalXP,
+            level: currentLevel
         });
         
-        if (!csrfResponse.ok) {
-            throw new Error('Failed to get CSRF token');
-        }
-        
-        const csrfData = await csrfResponse.json();
-        
-        // Calculate total XP
-        let totalXP = baseAmount;
-        if (bonuses.streak) totalXP += XP_SYSTEM.BONUSES.STREAK;
-        if (bonuses.speed) totalXP += XP_SYSTEM.BONUSES.SPEED;
-        if (bonuses.perfect) totalXP += XP_SYSTEM.BONUSES.PERFECT;
-        
         // Send XP update to backend
-        const response = await fetch(window.APP_CONFIG.API_ENDPOINTS.XP_HANDLER, {
+        const response = await fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
             method: 'POST',
             credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfData.token
+                'Accept': 'application/json'
             },
-            body: JSON.stringify({
-                xp: totalXP,
-                bonuses: bonuses
-            })
+            body: JSON.stringify({ xp: newTotalXP })
         });
         
+        console.log('[Debug] XP Update Response Status:', response.status);
+        
         if (!response.ok) {
-            throw new Error('Failed to update XP');
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
-        console.log('XP Update Response:', data);
+        console.log('[Debug] XP Update Response:', data);
         
-        // Show XP notification
-        showXPNotification(totalXP);
+        if (!data.success) {
+            throw new Error(data.error || 'XP update failed on server');
+        }
         
-        return totalXP;
+        // Update local storage and UI
+        localStorage.setItem('userXP', newTotalXP);
+        
+        // Update all XP displays
+        ['totalXP', 'current-xp'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = newTotalXP;
+            }
+        });
+        
+        // Show XP gain notification
+        showXPNotification(earnedXP);
+        
+        // Update progress display
+        await updateProgressDisplay();
+        
+        return earnedXP;
     } catch (error) {
-        console.error('Error adding XP:', error);
+        console.error('[Error] Failed to update XP:', error);
+        // Show error notification to user
+        showFeedback('Failed to update XP. Please try again.', false);
         return 0;
     }
 }
@@ -941,26 +970,5 @@ async function updateProgressDisplay() {
     } catch (error) {
         console.error('[Error] Failed to update progress display:', error);
         showFeedback('Failed to update progress display', false);
-    }
-}
-
-function showFeedback(message, isSuccess = true) {
-    const feedbackContainer = document.getElementById('feedback-container');
-    const feedbackText = document.getElementById('feedback-text');
-    
-    if (feedbackContainer && feedbackText) {
-        feedbackText.textContent = message;
-        feedbackContainer.classList.remove('hidden');
-        feedbackContainer.classList.add('visible');
-        
-        // Add success/error styling
-        feedbackContainer.classList.remove('success', 'error');
-        feedbackContainer.classList.add(isSuccess ? 'success' : 'error');
-        
-        // Auto-hide after 3 seconds
-        setTimeout(() => {
-            feedbackContainer.classList.remove('visible');
-            feedbackContainer.classList.add('hidden');
-        }, 3000);
     }
 } 
