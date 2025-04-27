@@ -17,7 +17,7 @@ let isProcessingQuestion = false;
 let currentTopic = null;
 let currentSubLevel = null;
 let currentLevel = null;
-let preloadedNextQuestion = null;
+let preloadedNextQuestion = null;8
 
 // XP System Constants
 const XP_SYSTEM = {
@@ -269,8 +269,18 @@ async function handleAnswer(selectedIndex, correctIndex) {
         
         // Calculate and award XP immediately for correct answer
         try {
-            const currentLevel = await getCurrentLevel();
-            const baseXP = XP_SYSTEM.LEVELS[currentLevel].baseXP;
+            // Get current level
+            let currentLevel = 1;
+            if (window.xpService) {
+                currentLevel = window.xpService.getCurrentLevel();
+            } else {
+                currentLevel = await getCurrentLevel();
+            }
+            
+            // Get base XP for current level
+            const baseXP = window.APP_CONFIG.XP_SYSTEM.LEVELS[currentLevel].baseXP;
+            
+            // Calculate bonuses
             const bonuses = {
                 streak: correctAnswers >= 3,
                 speed: currentQuestion.timeToAnswer && currentQuestion.timeToAnswer < 10
@@ -699,6 +709,12 @@ function showWelcomeMessage(streak) {
 
 // Get total XP from backend API
 async function getTotalXP() {
+    // Use xpService if available
+    if (window.xpService) {
+        return window.xpService.getCurrentXP();
+    }
+    
+    // Legacy fallback implementation
     try {
         const response = await fetch(window.APP_CONFIG.API_ENDPOINTS.XP_HANDLER, {
             method: 'GET',
@@ -719,6 +735,12 @@ async function getTotalXP() {
 
 // Add XP with bonuses through backend API
 async function addXP(baseAmount, bonuses = {}) {
+    // Use xpService if available
+    if (window.xpService) {
+        return window.xpService.addXP(baseAmount, bonuses);
+    }
+    
+    // Legacy fallback implementation
     try {
         console.log('Adding XP:', { baseAmount, bonuses });
         

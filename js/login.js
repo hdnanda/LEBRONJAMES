@@ -344,15 +344,19 @@ function showError(message, isSignup = false) {
 }
 
 /**
- * Redirect to main app
+ * Redirect to main app after successful login/signup
  */
 function redirectToMainApp() {
-    try {
-        window.location.href = 'index.html';
-    } catch (error) {
-        console.error('Redirect error:', error);
-        showError('Failed to redirect. Please try refreshing the page.');
+    console.log('Login successful, redirecting to main app');
+    
+    // Initialize XP service if available
+    if (window.xpService) {
+        console.log('Initializing XP service for user');
+        window.xpService.initialize();
     }
+    
+    // Redirect to index page
+    window.location.href = 'index.html';
 }
 
 // Add form styles

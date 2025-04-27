@@ -137,9 +137,14 @@ function handleExamSuccess() {
     completedExams.push(examState.currentLevel.topicId);
     localStorage.setItem('completedExams', JSON.stringify(completedExams));
     
-    // Add bonus XP for completing exam
-    const currentXP = parseInt(localStorage.getItem('totalXP') || '0');
-    localStorage.setItem('totalXP', currentXP + 200);
+    // Add bonus XP for completing exam using the XP service
+    if (window.xpService) {
+        window.xpService.addXP(200, { exam: true });
+    } else {
+        // Legacy fallback
+        const currentXP = parseInt(localStorage.getItem('totalXP') || '0');
+        localStorage.setItem('totalXP', currentXP + 200);
+    }
     
     // Redirect back to levels page
     window.location.href = 'levels.html';

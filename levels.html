@@ -675,6 +675,8 @@
     <script src="js/topics.js"></script>
     <script src="js/dailyStreakService.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/xpService.js"></script>
     <script src="js/levels.js"></script>
     <script>
         // Helper functions
@@ -749,6 +751,7 @@
 
         // Modal functions
         window.showAccount = function() {
+            populateAccountModal();
             const modal = document.getElementById('accountModal');
             modal.style.display = 'block';
         };
@@ -772,10 +775,41 @@
 
         // Main initialization
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('[Debug] DOM Content Loaded');
-            
-            // Initialize theme
+            // Call our various initialization functions
+            checkUserLogin();
             initializeTheme();
+            initializeBackButton();
+            
+            // Populate account modal with user data
+            function populateAccountModal() {
+                // Get username from localStorage
+                const username = localStorage.getItem('username') || 'Guest';
+                
+                // Get XP and level data from xpService if available
+                let xp = 0;
+                let level = 1;
+                if (window.xpService) {
+                    xp = window.xpService.getCurrentXP();
+                    level = window.xpService.getCurrentLevel();
+                } else {
+                    // Legacy fallback
+                    xp = localStorage.getItem('userXP') || 0;
+                    level = localStorage.getItem('userLevel') || 1;
+                }
+                
+                // Update modal elements
+                document.getElementById('modalTotalXP').textContent = xp;
+                document.getElementById('modalCurrentLevel').textContent = level;
+                
+                // Calculate XP needed for next level
+                const nextLevelXP = window.APP_CONFIG?.XP_SYSTEM?.LEVELS[level + 1]?.requirement || (level * 100);
+                const xpNeeded = nextLevelXP - xp;
+                document.getElementById('modalNextLevel').textContent = `${xpNeeded} XP needed`;
+                
+                // Count completed levels
+                const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
+                document.getElementById('modalCompletedLevels').textContent = completedLevels.length;
+            }
             
             // Initialize daily streak service
             if (window.dailyStreakService) {
@@ -870,8 +904,20 @@
 
             // First render with 0 XP to show something immediately
             renderTopicsWithXP(0);
+            
+            // Try to get XP from xpService first
+            if (window.xpService) {
+                window.xpService.initialize();
+                const xp = window.xpService.getCurrentXP();
+                const xpDisplay = document.getElementById('totalXP');
+                if (xpDisplay) {
+                    xpDisplay.textContent = xp;
+                }
+                renderTopicsWithXP(xp);
+                return; // No need to fetch from backend
+            }
 
-            // Then try to get the actual XP
+            // If no xpService, try to get the actual XP from backend
             fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
                 method: 'GET',
                 credentials: 'include',

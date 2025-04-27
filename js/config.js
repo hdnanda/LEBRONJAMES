@@ -16,9 +16,31 @@ const API_ENDPOINTS = {
     XP_HANDLER: `${BASE_URL}/xp_handler.php`
 };
 
+// Development mode settings
+const DEVELOPMENT_MODE = true; // Set to false to use actual backend when available
+
+// XP system configuration
+const XP_SYSTEM = {
+    LEVELS: {
+        1: { baseXP: 10, requirement: 0 },
+        2: { baseXP: 15, requirement: 100 },
+        3: { baseXP: 20, requirement: 250 },
+        4: { baseXP: 25, requirement: 450 },
+        5: { baseXP: 30, requirement: 700 }
+    },
+    BONUSES: {
+        STREAK: 5,
+        SPEED: 3,
+        PERFECT: 10,
+        EXAM: 20
+    }
+};
+
 // Export the configuration
 window.APP_CONFIG = {
     BASE_URL,
     API_ENDPOINTS,
-    isProduction
+    isProduction,
+    DEVELOPMENT_MODE,
+    XP_SYSTEM
 }; 

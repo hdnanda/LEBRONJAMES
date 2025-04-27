@@ -2038,3 +2038,111 @@ Stack trace:
 [24-Apr-2025 14:38:00 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 90
 [24-Apr-2025 14:38:00 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 91
 [24-Apr-2025 12:38:00 UTC] PHP Fatal error:  Cannot redeclare get_db_connection() (previously declared in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php:63) in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\functions.php on line 266
+[24-Apr-2025 14:43:33 Europe/Berlin] Database configuration:
+[24-Apr-2025 14:43:33 Europe/Berlin] Environment: Local
+[24-Apr-2025 14:43:33 Europe/Berlin] Database Type: mysql
+[24-Apr-2025 14:43:33 Europe/Berlin] Host: localhost
+[24-Apr-2025 14:43:33 Europe/Berlin] Port: 3306
+[24-Apr-2025 14:43:33 Europe/Berlin] Database: financial_literacy_db
+[24-Apr-2025 14:43:33 Europe/Berlin] User: root
+[24-Apr-2025 14:43:33 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 88
+[24-Apr-2025 14:43:33 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 89
+[24-Apr-2025 14:43:33 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 90
+[24-Apr-2025 14:43:33 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 91
+[24-Apr-2025 12:43:33 UTC] PHP Fatal error:  Cannot redeclare get_db_connection() (previously declared in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php:63) in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\functions.php on line 266
+[24-Apr-2025 14:43:34 Europe/Berlin] Database configuration:
+[24-Apr-2025 14:43:34 Europe/Berlin] Environment: Local
+[24-Apr-2025 14:43:34 Europe/Berlin] Database Type: mysql
+[24-Apr-2025 14:43:34 Europe/Berlin] Host: localhost
+[24-Apr-2025 14:43:34 Europe/Berlin] Port: 3306
+[24-Apr-2025 14:43:34 Europe/Berlin] Database: financial_literacy_db
+[24-Apr-2025 14:43:34 Europe/Berlin] User: root
+[24-Apr-2025 14:43:34 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 88
+[24-Apr-2025 14:43:34 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 89
+[24-Apr-2025 14:43:34 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 90
+[24-Apr-2025 14:43:34 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 91
+[24-Apr-2025 12:43:34 UTC] PHP Fatal error:  Cannot redeclare get_db_connection() (previously declared in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php:63) in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\functions.php on line 266
+[24-Apr-2025 14:43:34 Europe/Berlin] Database configuration:
+[24-Apr-2025 14:43:34 Europe/Berlin] Environment: Local
+[24-Apr-2025 14:43:34 Europe/Berlin] Database Type: mysql
+[24-Apr-2025 14:43:34 Europe/Berlin] Host: localhost
+[24-Apr-2025 14:43:34 Europe/Berlin] Port: 3306
+[24-Apr-2025 14:43:34 Europe/Berlin] Database: financial_literacy_db
+[24-Apr-2025 14:43:34 Europe/Berlin] User: root
+[24-Apr-2025 14:43:34 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 88
+[24-Apr-2025 14:43:34 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 89
+[24-Apr-2025 14:43:34 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 90
+[24-Apr-2025 14:43:34 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 91
+[24-Apr-2025 12:43:34 UTC] PHP Fatal error:  Cannot redeclare get_db_connection() (previously declared in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php:63) in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\functions.php on line 266
+[24-Apr-2025 14:43:34 Europe/Berlin] Database configuration:
+[24-Apr-2025 14:43:34 Europe/Berlin] Environment: Local
+[24-Apr-2025 14:43:34 Europe/Berlin] Database Type: mysql
+[24-Apr-2025 14:43:34 Europe/Berlin] Host: localhost
+[24-Apr-2025 14:43:34 Europe/Berlin] Port: 3306
+[24-Apr-2025 14:43:34 Europe/Berlin] Database: financial_literacy_db
+[24-Apr-2025 14:43:34 Europe/Berlin] User: root
+[24-Apr-2025 14:43:34 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 88
+[24-Apr-2025 14:43:34 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 89
+[24-Apr-2025 14:43:34 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 90
+[24-Apr-2025 14:43:34 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 91
+[24-Apr-2025 12:43:34 UTC] PHP Fatal error:  Cannot redeclare get_db_connection() (previously declared in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php:63) in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\functions.php on line 266
+[24-Apr-2025 14:43:34 Europe/Berlin] Database configuration:
+[24-Apr-2025 14:43:34 Europe/Berlin] Environment: Local
+[24-Apr-2025 14:43:34 Europe/Berlin] Database Type: mysql
+[24-Apr-2025 14:43:34 Europe/Berlin] Host: localhost
+[24-Apr-2025 14:43:34 Europe/Berlin] Port: 3306
+[24-Apr-2025 14:43:34 Europe/Berlin] Database: financial_literacy_db
+[24-Apr-2025 14:43:34 Europe/Berlin] User: root
+[24-Apr-2025 14:43:34 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 88
+[24-Apr-2025 14:43:34 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 89
+[24-Apr-2025 14:43:34 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 90
+[24-Apr-2025 14:43:34 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 91
+[24-Apr-2025 12:43:34 UTC] PHP Fatal error:  Cannot redeclare get_db_connection() (previously declared in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php:63) in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\functions.php on line 266
+[24-Apr-2025 14:43:35 Europe/Berlin] Database configuration:
+[24-Apr-2025 14:43:35 Europe/Berlin] Environment: Local
+[24-Apr-2025 14:43:35 Europe/Berlin] Database Type: mysql
+[24-Apr-2025 14:43:35 Europe/Berlin] Host: localhost
+[24-Apr-2025 14:43:35 Europe/Berlin] Port: 3306
+[24-Apr-2025 14:43:35 Europe/Berlin] Database: financial_literacy_db
+[24-Apr-2025 14:43:35 Europe/Berlin] User: root
+[24-Apr-2025 14:43:35 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 88
+[24-Apr-2025 14:43:35 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 89
+[24-Apr-2025 14:43:35 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 90
+[24-Apr-2025 14:43:35 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 91
+[24-Apr-2025 12:43:35 UTC] PHP Fatal error:  Cannot redeclare get_db_connection() (previously declared in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php:63) in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\functions.php on line 266
+[24-Apr-2025 14:43:35 Europe/Berlin] Database configuration:
+[24-Apr-2025 14:43:35 Europe/Berlin] Environment: Local
+[24-Apr-2025 14:43:35 Europe/Berlin] Database Type: mysql
+[24-Apr-2025 14:43:35 Europe/Berlin] Host: localhost
+[24-Apr-2025 14:43:35 Europe/Berlin] Port: 3306
+[24-Apr-2025 14:43:35 Europe/Berlin] Database: financial_literacy_db
+[24-Apr-2025 14:43:35 Europe/Berlin] User: root
+[24-Apr-2025 14:43:35 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 88
+[24-Apr-2025 14:43:35 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 89
+[24-Apr-2025 14:43:35 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 90
+[24-Apr-2025 14:43:35 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 91
+[24-Apr-2025 12:43:35 UTC] PHP Fatal error:  Cannot redeclare get_db_connection() (previously declared in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php:63) in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\functions.php on line 266
+[24-Apr-2025 14:58:43 Europe/Berlin] Database configuration:
+[24-Apr-2025 14:58:43 Europe/Berlin] Environment: Local
+[24-Apr-2025 14:58:43 Europe/Berlin] Database Type: mysql
+[24-Apr-2025 14:58:43 Europe/Berlin] Host: localhost
+[24-Apr-2025 14:58:43 Europe/Berlin] Port: 3306
+[24-Apr-2025 14:58:43 Europe/Berlin] Database: financial_literacy_db
+[24-Apr-2025 14:58:43 Europe/Berlin] User: root
+[24-Apr-2025 14:58:43 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 88
+[24-Apr-2025 14:58:43 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 89
+[24-Apr-2025 14:58:43 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 90
+[24-Apr-2025 14:58:43 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 91
+[24-Apr-2025 12:58:43 UTC] PHP Fatal error:  Cannot redeclare get_db_connection() (previously declared in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php:63) in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\functions.php on line 266
+[24-Apr-2025 14:59:33 Europe/Berlin] Database configuration:
+[24-Apr-2025 14:59:33 Europe/Berlin] Environment: Local
+[24-Apr-2025 14:59:33 Europe/Berlin] Database Type: mysql
+[24-Apr-2025 14:59:33 Europe/Berlin] Host: localhost
+[24-Apr-2025 14:59:33 Europe/Berlin] Port: 3306
+[24-Apr-2025 14:59:33 Europe/Berlin] Database: financial_literacy_db
+[24-Apr-2025 14:59:33 Europe/Berlin] User: root
+[24-Apr-2025 14:59:33 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 88
+[24-Apr-2025 14:59:33 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 89
+[24-Apr-2025 14:59:33 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 90
+[24-Apr-2025 14:59:33 Europe/Berlin] PHP Warning:  ini_set(): Session ini settings cannot be changed when a session is active in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php on line 91
+[24-Apr-2025 12:59:33 UTC] PHP Fatal error:  Cannot redeclare get_db_connection() (previously declared in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\config.php:63) in C:\xampp\htdocs\FinancialLiteracyApp-main\backend\functions.php on line 266

@@ -59,6 +59,23 @@ const levelSystem = {
     // Fetch user XP from the server
     async fetchUserXP() {
         try {
+            // Use xpService if available
+            if (window.xpService) {
+                this.userProgress.xp = window.xpService.getCurrentXP();
+                this.userProgress.currentLevel = window.xpService.getCurrentLevel();
+                
+                // Update XP display
+                const xpCounter = document.querySelector('.xp-counter');
+                if (xpCounter) {
+                    xpCounter.textContent = `XP: ${this.userProgress.xp}`;
+                }
+                
+                // Update level interface
+                this.updateLevelInterface();
+                return;
+            }
+            
+            // Legacy fallback implementation
             const response = await fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
                 method: 'GET',
                 credentials: 'include',
@@ -183,6 +200,25 @@ const levelSystem = {
     // Update XP on the server
     async updateXP(newXP) {
         try {
+            // Use xpService if available
+            if (window.xpService) {
+                // Calculate XP to add
+                const xpToAdd = newXP - this.userProgress.xp;
+                if (xpToAdd > 0) {
+                    await window.xpService.addXP(xpToAdd, { levelComplete: true });
+                    this.userProgress.xp = window.xpService.getCurrentXP();
+                    this.userProgress.currentLevel = window.xpService.getCurrentLevel();
+                    
+                    // Update XP display
+                    const xpCounter = document.querySelector('.xp-counter');
+                    if (xpCounter) {
+                        xpCounter.textContent = `XP: ${this.userProgress.xp}`;
+                    }
+                }
+                return true;
+            }
+            
+            // Legacy fallback implementation
             const response = await fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
                 method: 'POST',
                 credentials: 'include',
@@ -208,9 +244,12 @@ const levelSystem = {
                 if (xpCounter) {
                     xpCounter.textContent = `XP: ${this.userProgress.xp}`;
                 }
+                return true;
             }
+            return false;
         } catch (error) {
             console.error('Error updating XP:', error);
+            return false;
         }
     },
 
