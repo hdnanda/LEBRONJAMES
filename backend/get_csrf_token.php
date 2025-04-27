@@ -5,6 +5,9 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/error.log');
 
+// Set a longer execution time limit to prevent timeouts
+set_time_limit(30);
+
 // Clean any existing output buffers
 while (ob_get_level()) {
     ob_end_clean();
@@ -25,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     
     // Set CORS headers for preflight
     $corsHeaders = [
-        'Access-Control-Allow-Origin' => isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : 'https://financial-frontend-3xkp.onrender.com',
+        'Access-Control-Allow-Origin' => isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*',
         'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers' => 'Content-Type, X-CSRF-Token, Authorization, Origin, Accept, Cache-Control, Pragma, DNT',
         'Access-Control-Allow-Credentials' => 'true',
@@ -47,7 +50,7 @@ error_log('Setting headers for actual request');
 
 $actualHeaders = [
     'Content-Type' => 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin' => isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : 'https://financial-frontend-3xkp.onrender.com',
+    'Access-Control-Allow-Origin' => isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*',
     'Access-Control-Allow-Credentials' => 'true',
     'Access-Control-Allow-Headers' => 'Content-Type, X-CSRF-Token, Authorization, Origin, Accept, Cache-Control, Pragma, DNT',
     'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
@@ -85,6 +88,7 @@ try {
     $response = [
         'success' => true,
         'message' => 'CSRF token retrieved successfully',
+        'token' => $_SESSION['csrf_token'],
         'data' => [
             'token' => $_SESSION['csrf_token'],
             'session_id' => session_id()
