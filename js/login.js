@@ -15,17 +15,142 @@ const AUTH_KEYS = {
     IS_LOGGED_IN: 'isLoggedIn',
     USERNAME: 'username',
     USER_EMAIL: 'userEmail',
-    LAST_LOGIN: 'lastLogin'
+    LAST_LOGIN: 'lastLogin',
+    CSRF_TOKEN: 'csrfToken'
 };
 
 // Base URL for API endpoints
-const BASE_URL = 'https://financial-backend1.onrender.com';
+// If running locally, use local backend
+const BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? 'http://localhost/FinancialLiteracyApp-main/backend' 
+    : 'https://financial-backend1.onrender.com';
 
 // API endpoints
 const API_ENDPOINTS = {
     LOGIN: `${BASE_URL}/login.php`,
-    SIGNUP: `${BASE_URL}/signup.php`
+    SIGNUP: `${BASE_URL}/signup.php`,
+    CSRF: `${BASE_URL}/get_csrf_token.php`
 };
+
+// Log API endpoints for debugging
+console.log('API Endpoints:', API_ENDPOINTS);
+
+// CSRF token management
+const CSRF = {
+    token: null,
+    lastFetch: null,
+    maxAge: 3600000, // 1 hour in milliseconds
+    retryAttempts: 5,  // Increased from 3 to 5
+    retryDelay: 2000,  // Increased from 1000 to 2000 milliseconds
+    
+    async getToken(force = false) {
+        try {
+            // Check if we have a valid cached token
+            if (!force && this.token && this.lastFetch && 
+                (Date.now() - this.lastFetch < this.maxAge)) {
+                console.log('Using cached CSRF token');
+                return this.token;
+            }
+            
+            // Fetch new token
+            console.log('Getting fresh CSRF token');
+            const token = await this.fetchNewToken();
+            this.token = token;
+            this.lastFetch = Date.now();
+            
+            return token;
+        } catch (error) {
+            console.error('Failed to get CSRF token:', error);
+            throw new Error('Could not secure the request. Please try again.');
+        }
+    },
+    
+    async fetchNewToken(attempt = 1) {
+        try {
+            console.log(`Fetching CSRF token, attempt ${attempt}/${this.retryAttempts}`);
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased from 5000 to 15000 ms
+            
+            const response = await fetch(API_ENDPOINTS.CSRF, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache'
+                },
+                signal: controller.signal,
+                mode: 'cors' // Explicitly set CORS mode
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                console.error('CSRF token request failed:', response.status, response.statusText);
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('CSRF token response:', data);
+            
+            // Check token in both locations
+            if (data.token) {
+                return data.token;
+            } else if (data.data && data.data.token) {
+                return data.data.token;
+            } else {
+                console.error('Invalid token format:', data);
+                throw new Error('Invalid token response format');
+            }
+            
+        } catch (error) {
+            console.error(`CSRF token fetch error (attempt ${attempt}/${this.retryAttempts}):`, error);
+            
+            if (attempt < this.retryAttempts) {
+                const retryDelay = this.retryDelay * attempt; // Progressive backoff
+                console.log(`Retrying CSRF token fetch in ${retryDelay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                return this.fetchNewToken(attempt + 1);
+            }
+            throw error;
+        }
+    }
+};
+
+/**
+ * Make a secure API request with CSRF token
+ */
+async function makeSecureRequest(url, options = {}) {
+    try {
+        const token = await CSRF.getToken();
+        
+        const secureOptions = {
+            ...options,
+            credentials: 'include',
+            headers: {
+                ...options.headers,
+                'X-CSRF-Token': token
+            }
+        };
+        
+        const response = await fetch(url, secureOptions);
+        
+        // If we get a 403 with specific CSRF error, retry with new token
+        if (response.status === 403) {
+            const data = await response.json();
+            if (data.error === 'invalid_csrf') {
+                const newToken = await CSRF.getToken(true);
+                secureOptions.headers['X-CSRF-Token'] = newToken;
+                return fetch(url, secureOptions);
+            }
+        }
+        
+        return response;
+    } catch (error) {
+        console.error('Secure request failed:', error);
+        throw new Error('Failed to make secure request');
+    }
+}
 
 /**
  * Handle login form submission
@@ -52,9 +177,8 @@ async function handleLogin(event) {
         if (!isValidEmail(email)) {
             throw new Error('Please enter a valid email address');
         }
-        
-        console.log('Making login request to:', API_ENDPOINTS.LOGIN);
-        const response = await fetch(API_ENDPOINTS.LOGIN, {
+
+        const response = await makeSecureRequest(API_ENDPOINTS.LOGIN, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -119,9 +243,8 @@ async function handleSignup(event) {
         if (!isValidEmail(email)) {
             throw new Error('Please enter a valid email address');
         }
-        
-        console.log('Making signup request to:', API_ENDPOINTS.SIGNUP);
-        const response = await fetch(API_ENDPOINTS.SIGNUP, {
+
+        const response = await makeSecureRequest(API_ENDPOINTS.SIGNUP, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -162,10 +285,13 @@ async function handleSignup(event) {
 }
 
 // Event Listeners
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     console.log('Login page loaded, initializing...');
     
     try {
+        // Pre-fetch CSRF token
+        await CSRF.getToken();
+        
         // Check if user is already logged in
         if (localStorage.getItem(AUTH_KEYS.IS_LOGGED_IN)) {
             console.log('User already logged in, redirecting to main app...');
