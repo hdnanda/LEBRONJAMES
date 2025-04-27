@@ -1,7 +1,8 @@
 <?php
+echo "CSRF test";
 // Enable error logging
 error_reporting(E_ALL);
-ini_set('display_errors', 0);
+ini_set('display_errors', 1); // Set to 1 for debugging, 0 for production
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/error.log');
 
@@ -11,8 +12,8 @@ while (ob_get_level()) {
 }
 
 // Include required files
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/backend/config.php';
+require_once __DIR__ . '/backend/functions.php';
 
 // Set security headers
 header('Content-Type: application/json; charset=utf-8');
