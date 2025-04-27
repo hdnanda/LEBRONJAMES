@@ -22,25 +22,35 @@ error_log('GET CSRF Request Headers: ' . print_r(getallheaders(), true));
 error_log('GET CSRF Request Method: ' . $_SERVER['REQUEST_METHOD']);
 error_log('Origin: ' . ($_SERVER['HTTP_ORIGIN'] ?? 'not set'));
 
+// Allow specific origins
+$allowed_origins = [
+    'https://financial-frontend-3xkp.onrender.com',
+    'http://localhost',
+    'http://127.0.0.1'
+];
+
+// Get the origin header
+$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+
+// Check if the origin is allowed
+$allowed_origin = in_array($origin, $allowed_origins) ? $origin : '*';
+
 // Handle preflight requests first
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     error_log('Handling OPTIONS preflight request');
     
     // Set CORS headers for preflight
-    $corsHeaders = [
-        'Access-Control-Allow-Origin' => isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*',
-        'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers' => 'Content-Type, X-CSRF-Token, Authorization, Origin, Accept, Cache-Control, Pragma, DNT',
-        'Access-Control-Allow-Credentials' => 'true',
-        'Access-Control-Max-Age' => '86400'
-    ];
+    header('Access-Control-Allow-Origin: ' . $allowed_origin);
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Authorization, Origin, Accept, Cache-Control, Pragma, DNT');
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Max-Age: 86400'); // 24 hours cache
     
-    foreach ($corsHeaders as $header => $value) {
-        header("$header: $value");
-        error_log("Setting preflight header - $header: $value");
-    }
+    // Additional security headers
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: DENY');
     
-    http_response_code(204);
+    http_response_code(204); // No content response for OPTIONS
     exit();
 }
 
@@ -48,19 +58,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 header_remove(); // Clear any existing headers
 error_log('Setting headers for actual request');
 
-$actualHeaders = [
-    'Content-Type' => 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin' => isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*',
-    'Access-Control-Allow-Credentials' => 'true',
-    'Access-Control-Allow-Headers' => 'Content-Type, X-CSRF-Token, Authorization, Origin, Accept, Cache-Control, Pragma, DNT',
-    'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
-    'Pragma' => 'no-cache'
-];
-
-foreach ($actualHeaders as $header => $value) {
-    header("$header: $value");
-    error_log("Setting actual request header - $header: $value");
-}
+// Set response headers
+header('Content-Type: application/json; charset=utf-8');
+header('Access-Control-Allow-Origin: ' . $allowed_origin);
+header('Access-Control-Allow-Credentials: true');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
 
 try {
     // Start secure session
