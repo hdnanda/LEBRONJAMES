@@ -52,7 +52,20 @@ function checkAuthentication() {
         console.log('User not authenticated. Redirecting to login page...');
         window.location.href = 'login.html';
     } else {
-        // User is logged in, display user info in settings panel
+        // User is logged in
+        
+        // If on index.html without parameters, redirect to levels page
+        const currentPage = window.location.pathname.split('/').pop();
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        if ((currentPage === 'index.html' || currentPage === '') && 
+            !urlParams.has('topic') && !urlParams.has('sublevel')) {
+            console.log('No topic/sublevel specified. Redirecting to levels page...');
+            window.location.href = 'levels.html';
+            return;
+        }
+        
+        // Display user info in settings panel
         const username = localStorage.getItem('username');
         const userEmail = localStorage.getItem('userEmail');
         
