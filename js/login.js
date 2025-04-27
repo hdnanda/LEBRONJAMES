@@ -21,9 +21,19 @@ const AUTH_KEYS = {
 
 // Base URL for API endpoints
 // If running locally, use local backend
-const BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-    ? 'http://localhost/FinancialLiteracyApp-main/backend' 
-    : 'https://financial-backend1.onrender.com';
+const BASE_URL = (() => {
+    const hostname = window.location.hostname;
+    
+    // For local development
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        console.log('Running in local development mode');
+        return 'http://localhost/FinancialLiteracyApp-main/backend';
+    }
+    
+    // For production on Render
+    console.log('Running in production mode');
+    return 'https://financial-backend1.onrender.com';
+})();
 
 // API endpoints
 const API_ENDPOINTS = {
@@ -69,21 +79,28 @@ const CSRF = {
         try {
             console.log(`Fetching CSRF token, attempt ${attempt}/${this.retryAttempts}`);
             
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased from 5000 to 15000 ms
+            // Don't use AbortController for now - it can cause issues
+            // const controller = new AbortController();
+            // const timeoutId = setTimeout(() => controller.abort(), 15000);
             
-            const response = await fetch(API_ENDPOINTS.CSRF, {
+            // Create the request URL with a cache-busting parameter
+            const cacheBuster = new Date().getTime();
+            const url = `${API_ENDPOINTS.CSRF}?_=${cacheBuster}`;
+            
+            console.log(`Requesting CSRF token from: ${url}`);
+            
+            const response = await fetch(url, {
                 method: 'GET',
                 credentials: 'include',
                 headers: {
-                    'Accept': 'application/json',
-                    'Cache-Control': 'no-cache'
+                    'Accept': 'application/json'
                 },
-                signal: controller.signal,
-                mode: 'cors' // Explicitly set CORS mode
+                // Don't use signal or Cache-Control header for now
+                // signal: controller.signal,
+                mode: 'cors'
             });
             
-            clearTimeout(timeoutId);
+            // clearTimeout(timeoutId);
             
             if (!response.ok) {
                 console.error('CSRF token request failed:', response.status, response.statusText);
