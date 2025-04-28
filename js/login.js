@@ -30,8 +30,8 @@ console.log(`Running in ${isDevelopment ? 'DEVELOPMENT' : 'PRODUCTION'} mode`);
 // let's use a local mock implementation for demo/development
 const useRealBackend = false; // Set to false to use mock implementation
 
-// Base URL for API endpoints
-const BASE_URL = (() => {
+// API base URL configuration - ENSURE NO DUPLICATE DECLARATIONS
+const API_BASE_URL = (() => {
     // Always use mock backend in development due to CORS issues
     if (isDevelopment || !useRealBackend) {
         console.log('Using mock backend');
@@ -133,6 +133,7 @@ const MockBackend = {
  * Handle login form submission
  */
 async function handleLogin(event) {
+    // FIXED: Prevent default form submission to avoid exposing credentials in URL
     event.preventDefault();
     
     try {
@@ -163,7 +164,7 @@ async function handleLogin(event) {
             response = MockBackend.loginUser(username, email, password);
         } else {
             // Use real backend
-            const apiResponse = await fetch(`${BASE_URL}/login.php`, {
+            const apiResponse = await fetch(`${API_BASE_URL}/login.php`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -173,7 +174,9 @@ async function handleLogin(event) {
                     username,
                     email,
                     password
-                })
+                }),
+                // FIXED: Add timeout to prevent hanging requests
+                signal: AbortSignal.timeout(10000)
             });
             
             response = await apiResponse.json();
@@ -189,7 +192,7 @@ async function handleLogin(event) {
         localStorage.setItem(AUTH_KEYS.USER_EMAIL, email);
         localStorage.setItem(AUTH_KEYS.LAST_LOGIN, new Date().toISOString());
 
-        // Redirect to main app
+        // FIXED: Redirect to main app with clean URL
         redirectToMainApp();
 
     } catch (error) {
@@ -208,29 +211,30 @@ async function handleLogin(event) {
  * Handle signup form submission
  */
 async function handleSignup(event) {
+    // FIXED: Prevent default form submission to avoid exposing credentials in URL
     event.preventDefault();
     
     try {
         // Disable submit button
-        if (submitButton) {
-            submitButton.disabled = true;
-            submitButton.classList.add('disabled');
+        if (signupButton) {
+            signupButton.disabled = true;
+            signupButton.classList.add('disabled');
         }
 
-        const username = usernameInput.value.trim();
-        const email = emailInput.value.trim();
-        const password = passwordInput.value;
+        const signupName = document.getElementById('signupName').value.trim();
+        const signupEmail = document.getElementById('signupEmail').value.trim();
+        const signupPassword = document.getElementById('signupPassword').value;
 
         // Validate inputs
-        if (!username || !email || !password) {
+        if (!signupName || !signupEmail || !signupPassword) {
             throw new Error('Please fill in all fields');
         }
 
-        if (!isValidEmail(email)) {
+        if (!isValidEmail(signupEmail)) {
             throw new Error('Please enter a valid email address');
         }
 
-        if (password.length < 8) {
+        if (signupPassword.length < 8) {
             throw new Error('Password must be at least 8 characters long');
         }
 
@@ -239,20 +243,22 @@ async function handleSignup(event) {
         // Use mock backend in development
         if (isDevelopment || !useRealBackend) {
             console.log('Using mock backend for signup');
-            response = MockBackend.createUser(username, email, password);
+            response = MockBackend.createUser(signupName, signupEmail, signupPassword);
         } else {
             // Use real backend
-            const apiResponse = await fetch(`${BASE_URL}/signup.php`, {
+            const apiResponse = await fetch(`${API_BASE_URL}/signup.php`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify({
-                    username,
-                    email,
-                    password
-                })
+                    name: signupName,
+                    email: signupEmail,
+                    password: signupPassword
+                }),
+                // FIXED: Add timeout to prevent hanging requests
+                signal: AbortSignal.timeout(10000)
             });
             
             response = await apiResponse.json();
@@ -264,11 +270,11 @@ async function handleSignup(event) {
 
         // Store auth data
         localStorage.setItem(AUTH_KEYS.IS_LOGGED_IN, 'true');
-        localStorage.setItem(AUTH_KEYS.USERNAME, username);
-        localStorage.setItem(AUTH_KEYS.USER_EMAIL, email);
+        localStorage.setItem(AUTH_KEYS.USERNAME, signupName);
+        localStorage.setItem(AUTH_KEYS.USER_EMAIL, signupEmail);
         localStorage.setItem(AUTH_KEYS.LAST_LOGIN, new Date().toISOString());
 
-        // Redirect to main app
+        // FIXED: Redirect to main app with clean URL
         redirectToMainApp();
 
     } catch (error) {
@@ -276,14 +282,14 @@ async function handleSignup(event) {
         showError(error.message || 'An error occurred during signup', true);
     } finally {
         // Re-enable submit button
-        if (submitButton) {
-            submitButton.disabled = false;
-            submitButton.classList.remove('disabled');
+        if (signupButton) {
+            signupButton.disabled = false;
+            signupButton.classList.remove('disabled');
         }
     }
 }
 
-// Event Listeners
+// Event Listeners - FIXED: Removed duplicate event listeners since we're using onsubmit in HTML
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Login page loaded, initializing...');
     
@@ -295,18 +301,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Setup login form submission
-        if (loginForm) {
-            loginForm.addEventListener('submit', handleLogin);
-            console.log('Login form event listener attached');
-        }
-
-        // Setup signup form submission
-        if (signupForm) {
-            signupForm.addEventListener('submit', handleSignup);
-            console.log('Signup form event listener attached');
-        }
-        
+        // Add additional initialization if needed
         console.log('Initialization complete');
     } catch (error) {
         console.error('Initialization failed:', error);
