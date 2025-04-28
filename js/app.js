@@ -342,6 +342,9 @@ function loadQuestion() {
         console.log('Loading question. Current index:', currentQuestionIndex);
         console.log('Total questions available:', currentQuestions.length);
         
+        // CRITICAL FIX: Ensure clean state between questions
+        isProcessingQuestion = false;
+        
         // Reset any previous question state
         resetAnimations();
         
@@ -399,6 +402,7 @@ function loadQuestion() {
         
         // Clear previous options
         if (optionsContainer) {
+            // CRITICAL FIX: Be more thorough in cleaning up before creating new options
             optionsContainer.innerHTML = '';
             
             // Create a copy of options and shuffle them
@@ -408,20 +412,84 @@ function loadQuestion() {
             const correctAnswer = question.options[question.correctIndex];
             const newCorrectIndex = shuffledOptions.indexOf(correctAnswer);
             
+            // CRITICAL FIX: Reliably track if the options have been created successfully
+            let optionsCreated = 0;
+            
             // Create and add new options
             shuffledOptions.forEach((option, index) => {
-                const button = document.createElement('button');
-                button.className = 'option-btn';
-                button.textContent = option;
-                button.addEventListener('click', () => handleAnswer(index, newCorrectIndex));
-                button.setAttribute('data-has-listener', 'true'); // Mark as having a listener
-                optionsContainer.appendChild(button);
+                try {
+                    const button = document.createElement('button');
+                    button.className = 'option-btn';
+                    button.textContent = option;
+                    
+                    // CRITICAL FIX: Create a closure to capture the current index and correctIndex
+                    const handleClick = (function(selectedIndex, correctIndex) {
+                        return function() {
+                            handleAnswer(selectedIndex, correctIndex);
+                        };
+                    })(index, newCorrectIndex);
+                    
+                    // Attach event listener
+                    button.addEventListener('click', handleClick);
+                    
+                    // Mark as having a listener
+                    button.setAttribute('data-has-listener', 'true');
+                    button.setAttribute('data-option-index', index);
+                    
+                    // Store the handler function on the button element for potential reattachment
+                    button._handleClick = handleClick;
+                    
+                    // Add to container
+                    optionsContainer.appendChild(button);
+                    optionsCreated++;
+                } catch (error) {
+                    console.error('Error creating option button:', error);
+                }
             });
-            console.log('DEBUG: Added', shuffledOptions.length, 'option buttons');
+            
+            console.log('DEBUG: Added', optionsCreated, 'option buttons');
             
             // CRITICAL FIX: Make sure options are visible
             optionsContainer.style.display = 'flex';
             optionsContainer.style.flexDirection = 'column';
+            
+            // CRITICAL FIX: Verify that options were created successfully
+            if (optionsCreated !== shuffledOptions.length) {
+                console.error(`Error: Created ${optionsCreated} options but expected ${shuffledOptions.length}`);
+                // Try to recover
+                setTimeout(() => {
+                    if (optionsContainer.children.length < shuffledOptions.length) {
+                        console.log('Attempting to recover missing options...');
+                        loadQuestion(); // Reload the question
+                    }
+                }, 500);
+            }
+            
+            // CRITICAL FIX: Double-check event listeners are attached
+            setTimeout(() => {
+                Array.from(optionsContainer.children).forEach(button => {
+                    if (!button.getAttribute('data-has-listener')) {
+                        console.warn('Found option without listener:', button.textContent);
+                        
+                        // Get the stored index
+                        const index = parseInt(button.getAttribute('data-option-index'));
+                        if (!isNaN(index)) {
+                            // Reattach the listener
+                            const handleClick = (function(selectedIndex, correctIndex) {
+                                return function() {
+                                    handleAnswer(selectedIndex, correctIndex);
+                                };
+                            })(index, newCorrectIndex);
+                            
+                            button.addEventListener('click', handleClick);
+                            button.setAttribute('data-has-listener', 'true');
+                            button._handleClick = handleClick;
+                            
+                            console.log('Reattached listener to option:', button.textContent);
+                        }
+                    }
+                });
+            }, 100);
         } else {
             console.error('Options container element not found!');
         }
@@ -433,6 +501,19 @@ function loadQuestion() {
         
         // Reset processing flag
         isProcessingQuestion = false;
+        
+        // Hide any visible continue button from previous questions
+        const continueBtn = document.getElementById('continue-btn');
+        if (continueBtn) {
+            continueBtn.style.display = 'none';
+        }
+        
+        // Hide any visible feedback container
+        const feedbackContainer = document.getElementById('feedback-container');
+        if (feedbackContainer) {
+            feedbackContainer.classList.add('hidden');
+            feedbackContainer.classList.remove('visible');
+        }
         
         // Animate new question appearance
         animateNewQuestion();
@@ -453,6 +534,9 @@ function loadQuestion() {
             refreshButton.addEventListener('click', () => window.location.reload());
             optionsContainer.appendChild(refreshButton);
         }
+        
+        // Reset processing flag even on error
+        isProcessingQuestion = false;
     }
 }
 
@@ -473,6 +557,14 @@ async function handleAnswer(selectedIndex, correctIndex) {
     console.log('[Debug] Setting isProcessingQuestion to true');
     isProcessingQuestion = true;
     
+    // Create a timeout to ensure flag is reset even if there's an unexpected error
+    const safetyTimeout = setTimeout(() => {
+        if (isProcessingQuestion) {
+            console.warn('[Debug] Safety timeout triggered! Forcing isProcessingQuestion to false');
+            isProcessingQuestion = false;
+        }
+    }, 3000); // 3 second safety valve
+    
     try {
         const isCorrect = selectedIndex === correctIndex;
         const selectedButton = optionsContainer.children[selectedIndex];
@@ -484,42 +576,59 @@ async function handleAnswer(selectedIndex, correctIndex) {
             
             // Calculate and award XP immediately for correct answer
             try {
-                const currentLevel = await getCurrentLevel();
-                const baseXP = XP_SYSTEM.LEVELS[currentLevel].baseXP;
-                const bonuses = {
-                    streak: correctAnswers >= 3,
-                    speed: currentQuestion.timeToAnswer && currentQuestion.timeToAnswer < 10
-                };
-                
-                // Award XP immediately
-                console.log('[Debug] About to award XP');
-                const earnedXP = await addXP(baseXP, bonuses);
-                console.log('[Debug] XP awarded successfully:', earnedXP);
+                // Use a timeout to prevent network call from blocking UI
+                setTimeout(async () => {
+                    try {
+                        const currentLevel = await getCurrentLevel();
+                        const baseXP = XP_SYSTEM.LEVELS[currentLevel].baseXP;
+                        const bonuses = {
+                            streak: correctAnswers >= 3,
+                            speed: currentQuestion.timeToAnswer && currentQuestion.timeToAnswer < 10
+                        };
+                        
+                        // Award XP in background, don't await here to prevent UI blocking
+                        addXP(baseXP, bonuses).then(earnedXP => {
+                            console.log('[Debug] XP awarded successfully:', earnedXP);
+                        }).catch(error => {
+                            console.error('[Error] Failed to award XP:', error);
+                        });
+                    } catch (error) {
+                        console.error('[Error] Error in XP processing:', error);
+                    }
+                }, 100);
                 
                 // Update streak through streak service
                 if (window.streakService && typeof window.streakService.handleStreakUpdate === 'function') {
                     window.streakService.handleStreakUpdate(true);
                 }
             } catch (error) {
-                console.error('[Error] Failed to award XP:', error);
+                console.error('[Error] Failed to initiate XP award:', error);
             }
             
-            // Check if this completes an exam
+            // Check if this completes an exam in a non-blocking way
             if (window.currentLevelData?.isExam && currentQuestionIndex === questionsPerLesson - 1) {
                 const passThreshold = 0.8; // 80% correct to pass
                 const progress = correctAnswers / questionsPerLesson;
                 const passed = progress >= passThreshold;
                 console.log(`[Debug] Exam completed. Progress: ${progress}, Passed: ${passed}`);
-                await handleExamCompletion(passed);
+                
+                // Don't await here, handle exam completion in background
+                setTimeout(() => {
+                    handleExamCompletion(passed).catch(error => {
+                        console.error('[Error] Failed to handle exam completion:', error);
+                    });
+                }, 200);
             }
         } else {
             window.animateIncorrectFeedback(selectedButton);
             const correctButton = optionsContainer.children[correctIndex];
             correctButton.classList.add('correct');
             
-            // Handle exam mode if active
+            // Handle exam mode if active (don't block UI thread)
             if (window.examManager && window.examManager.isExamActive) {
-                window.examManager.handleWrongAnswer();
+                setTimeout(() => {
+                    window.examManager.handleWrongAnswer();
+                }, 0);
             }
             
             // Update streak through streak service for incorrect answer
@@ -544,11 +653,17 @@ async function handleAnswer(selectedIndex, correctIndex) {
             continueBtn.style.visibility = 'visible';
             continueBtn.style.position = 'relative';
             continueBtn.style.zIndex = '50';
-            continueBtn.onclick = handleContinue;
+            
+            // CRITICAL FIX: Make sure we set onclick handler freshly each time
+            continueBtn.onclick = function() {
+                handleContinue();
+            };
         }
         
-        // Update progress
-        updateProgress();
+        // Update progress without blocking
+        setTimeout(() => {
+            updateProgress();
+        }, 0);
         
     } catch (error) {
         console.error('[Error] Error in handleAnswer:', error);
@@ -560,6 +675,7 @@ async function handleAnswer(selectedIndex, correctIndex) {
         // ALWAYS reset the flag, even if errors occur
         console.log('[Debug] Resetting isProcessingQuestion to false');
         isProcessingQuestion = false;
+        clearTimeout(safetyTimeout);
     }
 }
 
@@ -648,6 +764,15 @@ function showCompletionMessage() {
     const feedbackText = document.getElementById('feedback-text');
     const continueBtn = document.getElementById('continue-btn');
     
+    if (!feedbackContainer || !feedbackText || !continueBtn) {
+        console.error('Required elements not found for completion message!');
+        // As a fallback, redirect to levels page
+        setTimeout(() => {
+            window.location.href = 'levels.html';
+        }, 2000);
+        return;
+    }
+    
     // Reset any existing classes and prepare for completion animation
     feedbackContainer.classList.remove('hidden', 'visible');
     feedbackContainer.classList.add('completion');
@@ -698,29 +823,52 @@ function showCompletionMessage() {
         }
     }
     
+    // CRITICAL FIX: Ensure the continue button is fully visible and functional
+    continueBtn.textContent = "Return to Levels 🏠";
+    continueBtn.style.display = 'inline-block';
+    continueBtn.style.opacity = '1';
+    continueBtn.style.visibility = 'visible';
+    continueBtn.style.pointerEvents = 'auto';
+    
     // Show the completion message with animation
     requestAnimationFrame(() => {
         feedbackContainer.classList.remove('hidden');
         // Force a reflow
         void feedbackContainer.offsetWidth;
         feedbackContainer.classList.add('visible');
+        
+        // CRITICAL FIX: Make sure completion container is absolutely visible
+        feedbackContainer.style.display = 'flex';
+        feedbackContainer.style.flexDirection = 'column';
+        feedbackContainer.style.alignItems = 'center';
+        feedbackContainer.style.justifyContent = 'center';
+        feedbackContainer.style.zIndex = '100';
+        feedbackContainer.style.pointerEvents = 'auto';
     });
     
     // Update continue button to return to levels.html
-    continueBtn.textContent = "Return to Levels 🏠";
-    continueBtn.onclick = async () => {
+    continueBtn.onclick = function() {
         // Get the latest XP before redirecting
-        const currentXP = await getTotalXP();
-        console.log('[Debug] Final XP before redirect:', currentXP);
-        localStorage.setItem('lastEarnedXP', currentXP);
-        
-        // Add a fade-out animation before redirecting
-        feedbackContainer.style.transition = 'all 0.5s ease';
-        feedbackContainer.style.opacity = '0';
-        feedbackContainer.style.transform = 'translate(-50%, -50%) scale(0.8)';
-        setTimeout(() => {
-            window.location.href = 'levels.html';
-        }, 500);
+        getTotalXP().then(currentXP => {
+            console.log('[Debug] Final XP before redirect:', currentXP);
+            localStorage.setItem('lastEarnedXP', currentXP);
+            
+            // Add a fade-out animation before redirecting
+            feedbackContainer.style.transition = 'all 0.5s ease';
+            feedbackContainer.style.opacity = '0';
+            feedbackContainer.style.transform = 'translate(-50%, -50%) scale(0.8)';
+            
+            // Redirect after animation completes
+            setTimeout(() => {
+                window.location.href = 'levels.html';
+            }, 500);
+        }).catch(error => {
+            console.error('[Error] Failed to get total XP before redirect:', error);
+            // Redirect anyway after a short delay
+            setTimeout(() => {
+                window.location.href = 'levels.html';
+            }, 500);
+        });
     };
 }
 
@@ -1069,62 +1217,50 @@ async function addXP(baseAmount, bonuses = {}) {
         // Show XP gain notification
         showXPNotification(earnedXP);
         
-        // Update progress display
-        await updateProgressDisplay();
+        // Update progress display (but make it non-blocking)
+        setTimeout(() => {
+            updateProgressDisplay().catch(error => {
+                console.warn('[Debug] Progress display update failed:', error);
+            });
+        }, 0);
         
-        // Only try server update if we're online
+        // Only try server update if we're online, but make it non-blocking
         if (navigator.onLine) {
-            try {
-                // Send XP update to backend
-                const response = await fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
+            // Use Promise.race with a timeout to avoid blocking on API call
+            Promise.race([
+                fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
                     method: 'POST',
                     credentials: 'include',
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ xp: newTotalXP }),
-                    // Add a timeout to prevent long waiting
-                    signal: AbortSignal.timeout(3000)
-                }).catch(error => {
-                    console.warn('[Debug] Server update failed:', error);
-                    return { ok: false };
-                });
-                
-                console.log('[Debug] XP Update Response Status:', response.status);
-                
+                    body: JSON.stringify({ xp: newTotalXP })
+                }),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('XP update timeout')), 2000)
+                )
+            ]).then(response => {
                 if (response.ok) {
-                    try {
-                        const data = await response.json();
-                        console.log('[Debug] XP Update Response:', data);
-                    } catch (parseError) {
-                        console.warn('[Debug] Failed to parse response, but XP was stored locally', parseError);
-                    }
-                } else {
-                    console.warn('[Debug] Server response not OK, but XP was stored locally');
+                    return response.json();
                 }
-            } catch (serverError) {
-                console.warn('[Debug] Server update attempt failed, but XP was stored locally:', serverError);
-            }
+                throw new Error('Server response not OK');
+            }).then(data => {
+                console.log('[Debug] XP Update Response:', data);
+            }).catch(error => {
+                console.warn('[Debug] Server update failed (but XP stored locally):', error);
+                // Queue for later sync
+                window.pendingXPSync = true;
+            });
         } else {
             console.log('[Debug] Offline mode detected, skipping server update');
+            window.pendingXPSync = true;
         }
         
         return earnedXP;
     } catch (error) {
-        console.error('[Error] Failed in XP calculation:', error);
-        // Even in case of error, try to update localStorage with a minimal XP gain
-        try {
-            const currentXP = parseInt(localStorage.getItem('userXP')) || 0;
-            // Minimal XP gain as fallback
-            const minimalXP = Math.round(baseAmount);
-            localStorage.setItem('userXP', currentXP + minimalXP);
-            showXPNotification(minimalXP);
-            return minimalXP;
-        } catch (storageError) {
-            console.error('[Error] Complete failure in XP update:', storageError);
-            return 0;
-        }
+        console.error('[Error] Error in addXP:', error);
+        return 0;
     }
 }
 
