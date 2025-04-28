@@ -74,10 +74,22 @@ function loadQuestionsForSubLevel(topicId, subLevelId) {
         window.startExamMode();
     }
 
-    // Check if questions are loaded
-    if (!window.questions || !Array.isArray(window.questions)) {
+    // Check if questions are loaded - add retry mechanism
+    if (!window.questions || !Array.isArray(window.questions) || window.questions.length === 0) {
         console.error('Questions not loaded properly. window.questions:', window.questions);
-        questionText.textContent = "Error: Questions not loaded. Please refresh the page.";
+        // Try to load questions.js again
+        let script = document.createElement('script');
+        script.src = 'js/questions.js';
+        script.onload = function() {
+            console.log('Questions.js loaded successfully via dynamic load');
+            // Once questions are loaded, try again
+            setTimeout(() => loadQuestionsForSubLevel(topicId, subLevelId), 500);
+        };
+        script.onerror = function() {
+            console.error('Failed to load questions.js dynamically');
+            questionText.textContent = "Error: Questions not loaded. Please refresh the page.";
+        };
+        document.head.appendChild(script);
         return;
     }
 
@@ -166,8 +178,33 @@ document.addEventListener('DOMContentLoaded', function() {
     const subLevelId = parseFloat(urlParams.get('sublevel'));
     
     if (topicId && subLevelId) {
-        // Load questions for the selected topic and sublevel
-        loadQuestionsForSubLevel(topicId, subLevelId);
+        // Ensure topics.js is loaded before trying to access topic data
+        if (!window.topicsData || !Array.isArray(window.topicsData) || window.topicsData.length === 0) {
+            console.warn('Topics data not loaded yet, loading dynamically...');
+            let topicsScript = document.createElement('script');
+            topicsScript.src = 'js/topics.js';
+            topicsScript.onload = function() {
+                console.log('Topics.js loaded successfully via dynamic load');
+                // Ensure questions.js is loaded too
+                if (!window.questions || !Array.isArray(window.questions)) {
+                    let questionsScript = document.createElement('script');
+                    questionsScript.src = 'js/questions.js';
+                    questionsScript.onload = function() {
+                        console.log('Questions.js loaded successfully via dynamic load');
+                        // Once both are loaded, proceed
+                        setTimeout(() => loadQuestionsForSubLevel(topicId, subLevelId), 500);
+                    };
+                    document.head.appendChild(questionsScript);
+                } else {
+                    // If questions already loaded, just load questions for sublevel
+                    loadQuestionsForSubLevel(topicId, subLevelId);
+                }
+            };
+            document.head.appendChild(topicsScript);
+        } else {
+            // Load questions for the selected topic and sublevel
+            loadQuestionsForSubLevel(topicId, subLevelId);
+        }
     } else {
         // If no topic/sublevel specified, redirect back to levels.html
         window.location.href = 'levels.html';
@@ -198,6 +235,19 @@ function loadQuestion() {
         // Reset any previous question state
         resetAnimations();
         
+        // Check if we have questions
+        if (!currentQuestions || !Array.isArray(currentQuestions) || currentQuestions.length === 0) {
+            console.error('No questions available in currentQuestions array');
+            // If we are on a specific topic/sublevel, try to reload them
+            if (currentTopic && currentSubLevel) {
+                console.log('Attempting to reload questions for topic/sublevel');
+                loadQuestionsForSubLevel(currentTopic, currentSubLevel);
+                return;
+            } else {
+                throw new Error('No questions available and cannot reload');
+            }
+        }
+        
         // Get the current question directly from currentQuestions array
         const question = currentQuestions[currentQuestionIndex];
         
@@ -214,8 +264,9 @@ function loadQuestion() {
             totalQuestions: currentQuestions.length
         });
         
-        // Update question text with emoji
-        questionText.textContent = `📈 ${question.question}`;
+        // Update question text with emoji (use original emoji if available)
+        const emoji = question.emoji || '📈';
+        questionText.textContent = `${emoji} ${question.question}`;
         
         // Clear previous options
         optionsContainer.innerHTML = '';
@@ -247,6 +298,14 @@ function loadQuestion() {
     } catch (error) {
         console.error('Error in loadQuestion:', error);
         questionText.textContent = "Error loading questions. Please refresh the page.";
+        
+        // Add a refresh button
+        optionsContainer.innerHTML = '';
+        const refreshButton = document.createElement('button');
+        refreshButton.className = 'option-btn refresh-btn';
+        refreshButton.textContent = 'Refresh and Try Again';
+        refreshButton.addEventListener('click', () => window.location.reload());
+        optionsContainer.appendChild(refreshButton);
     }
 }
 
