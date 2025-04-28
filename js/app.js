@@ -74,6 +74,15 @@ function loadQuestionsForSubLevel(topicId, subLevelId) {
         window.startExamMode();
     }
 
+    // Debug: Log the questions object state
+    console.log('DEBUG: window.questions state:', window.questions ? 'Exists' : 'Does not exist');
+    if (window.questions) {
+        console.log('DEBUG: window.questions type:', typeof window.questions);
+        console.log('DEBUG: window.questions isArray:', Array.isArray(window.questions));
+        console.log('DEBUG: Total questions loaded:', window.questions.length);
+        console.log('DEBUG: First 5 questions:', window.questions.slice(0, 5).map(q => ({id: q.id, topic: q.topicId, sublevel: q.subLevelId})));
+    }
+
     // Check if questions are loaded - add retry mechanism
     if (!window.questions || !Array.isArray(window.questions) || window.questions.length === 0) {
         console.error('Questions not loaded properly. window.questions:', window.questions);
@@ -108,6 +117,7 @@ function loadQuestionsForSubLevel(topicId, subLevelId) {
     );
     
     console.log('Questions matching topic and sublevel:', availableQuestions.length);
+    console.log('DEBUG: Matching question IDs:', availableQuestions.map(q => q.id).join(', '));
     
     // If not enough questions found, include questions from the same topic
     if (availableQuestions.length < questionsPerLesson) {
@@ -115,6 +125,7 @@ function loadQuestionsForSubLevel(topicId, subLevelId) {
         const topicQuestions = window.questions.filter(q => q.topicId === topicId);
         availableQuestions = [...new Set([...availableQuestions, ...topicQuestions])];
         console.log('Questions after including topic questions:', availableQuestions.length);
+        console.log('DEBUG: Topic question IDs:', topicQuestions.map(q => q.id).join(', '));
     }
     
     // If still not enough questions, include random questions
@@ -130,6 +141,7 @@ function loadQuestionsForSubLevel(topicId, subLevelId) {
     // Shuffle questions and take required number
     currentQuestions = shuffleArray(availableQuestions).slice(0, questionsPerLesson);
     console.log('Final number of questions selected:', currentQuestions.length);
+    console.log('DEBUG: Selected question IDs:', currentQuestions.map(q => q.id).join(', '));
     console.log('Questions per lesson setting:', questionsPerLesson);
     
     // Update progress text
@@ -234,6 +246,14 @@ function loadQuestion() {
         
         // Reset any previous question state
         resetAnimations();
+        
+        // Debug: Log current questions array details
+        console.log('DEBUG: Current questions array:', currentQuestions.map(q => ({
+            id: q.id, 
+            topic: q.topicId, 
+            sublevel: q.subLevelId,
+            question: q.question.substring(0, 20) + '...'
+        })));
         
         // Check if we have questions
         if (!currentQuestions || !Array.isArray(currentQuestions) || currentQuestions.length === 0) {
