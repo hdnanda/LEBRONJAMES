@@ -828,26 +828,49 @@ function showWelcomeMessage(streak) {
 async function getTotalXP() {
     try {
         console.log('[Debug] Fetching total XP from backend...');
+        
+        // First check if we're online - if not, use localStorage immediately
+        if (!navigator.onLine) {
+            console.log('[Debug] Offline mode detected, using localStorage');
+            return parseInt(localStorage.getItem('userXP')) || 0;
+        }
+        
+        // Try to fetch from backend
         const response = await fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
             method: 'GET',
             credentials: 'include',
             headers: {
                 'Accept': 'application/json'
-            }
+            },
+            // Add a timeout to prevent long waiting
+            signal: AbortSignal.timeout(3000)
+        }).catch(error => {
+            console.warn('[Debug] Fetch error:', error);
+            return { ok: false, status: 'network-error' };
         });
         
         console.log('[Debug] XP Response Status:', response.status);
-        console.log('[Debug] XP Response Headers:', [...response.headers.entries()]);
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            console.warn(`[Debug] HTTP error! status: ${response.status}, using localStorage fallback`);
+            // Use localStorage as fallback
+            return parseInt(localStorage.getItem('userXP')) || 0;
         }
         
-        const data = await response.json();
-        console.log('[Debug] XP Response Data:', data);
+        // Try to parse JSON response
+        let data;
+        try {
+            data = await response.json();
+            console.log('[Debug] XP Response Data:', data);
+        } catch (parseError) {
+            console.error('[Error] Failed to parse XP response:', parseError);
+            // Use localStorage as fallback if JSON parsing fails
+            return parseInt(localStorage.getItem('userXP')) || 0;
+        }
         
         if (!data.success) {
-            throw new Error(data.error || 'Failed to fetch XP');
+            console.warn('[Debug] Backend reported failure:', data.error || 'Unknown error');
+            return parseInt(localStorage.getItem('userXP')) || 0;
         }
         
         // Update local storage and UI
@@ -870,7 +893,7 @@ async function getTotalXP() {
     }
 }
 
-// Add XP with bonuses through backend API
+// Add XP with bonuses through backend API with improved local fallback
 async function addXP(baseAmount, bonuses = {}) {
     try {
         console.log('[Debug] Adding XP - Base Amount:', baseAmount, 'Bonuses:', bonuses);
@@ -888,7 +911,7 @@ async function addXP(baseAmount, bonuses = {}) {
         // Round XP to nearest integer
         earnedXP = Math.round(earnedXP);
         
-        // Get current total XP
+        // Get current total XP (this already uses localStorage fallback if needed)
         const currentTotalXP = await getTotalXP();
         const newTotalXP = currentTotalXP + earnedXP;
         
@@ -899,34 +922,10 @@ async function addXP(baseAmount, bonuses = {}) {
             level: currentLevel
         });
         
-        // Send XP update to backend
-        const response = await fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({ xp: newTotalXP })
-        });
-        
-        console.log('[Debug] XP Update Response Status:', response.status);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('[Debug] XP Update Response:', data);
-        
-        if (!data.success) {
-            throw new Error(data.error || 'XP update failed on server');
-        }
-        
-        // Update local storage and UI
+        // Always update localStorage first for reliability
         localStorage.setItem('userXP', newTotalXP);
         
-        // Update all XP displays
+        // Update all XP displays immediately
         ['totalXP', 'current-xp'].forEach(id => {
             const element = document.getElementById(id);
             if (element) {
@@ -940,12 +939,59 @@ async function addXP(baseAmount, bonuses = {}) {
         // Update progress display
         await updateProgressDisplay();
         
+        // Only try server update if we're online
+        if (navigator.onLine) {
+            try {
+                // Send XP update to backend
+                const response = await fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ xp: newTotalXP }),
+                    // Add a timeout to prevent long waiting
+                    signal: AbortSignal.timeout(3000)
+                }).catch(error => {
+                    console.warn('[Debug] Server update failed:', error);
+                    return { ok: false };
+                });
+                
+                console.log('[Debug] XP Update Response Status:', response.status);
+                
+                if (response.ok) {
+                    try {
+                        const data = await response.json();
+                        console.log('[Debug] XP Update Response:', data);
+                    } catch (parseError) {
+                        console.warn('[Debug] Failed to parse response, but XP was stored locally', parseError);
+                    }
+                } else {
+                    console.warn('[Debug] Server response not OK, but XP was stored locally');
+                }
+            } catch (serverError) {
+                console.warn('[Debug] Server update attempt failed, but XP was stored locally:', serverError);
+            }
+        } else {
+            console.log('[Debug] Offline mode detected, skipping server update');
+        }
+        
         return earnedXP;
     } catch (error) {
-        console.error('[Error] Failed to update XP:', error);
-        // Show error notification to user
-        showFeedback('Failed to update XP. Please try again.', false);
-        return 0;
+        console.error('[Error] Failed in XP calculation:', error);
+        // Even in case of error, try to update localStorage with a minimal XP gain
+        try {
+            const currentXP = parseInt(localStorage.getItem('userXP')) || 0;
+            // Minimal XP gain as fallback
+            const minimalXP = Math.round(baseAmount);
+            localStorage.setItem('userXP', currentXP + minimalXP);
+            showXPNotification(minimalXP);
+            return minimalXP;
+        } catch (storageError) {
+            console.error('[Error] Complete failure in XP update:', storageError);
+            return 0;
+        }
     }
 }
 
@@ -1160,4 +1206,75 @@ function forceCheckUIState() {
             forceCheckUIState();
         }
     }, 2000);
-} 
+}
+
+// Network status monitoring and XP sync functionality
+(function setupXPSync() {
+    // Create a variable to track online status
+    let isOnline = navigator.onLine;
+    console.log('[Debug] Initial network status:', isOnline ? 'Online' : 'Offline');
+    
+    // Function to attempt syncing XP with server when connection is restored
+    async function syncXPWithServer() {
+        if (!navigator.onLine) return;
+        
+        try {
+            console.log('[Debug] Network connection restored, attempting to sync XP');
+            
+            // Get local XP
+            const localXP = parseInt(localStorage.getItem('userXP')) || 0;
+            
+            // Send XP update to backend
+            const response = await fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ xp: localXP }),
+                signal: AbortSignal.timeout(5000)
+            }).catch(error => {
+                console.warn('[Debug] XP Sync failed:', error);
+                return { ok: false };
+            });
+            
+            if (response.ok) {
+                console.log('[Debug] XP Sync successful');
+                // Optional: Show a small notification
+                const syncNotification = document.createElement('div');
+                syncNotification.className = 'xp-notification';
+                syncNotification.innerHTML = `XP Synced ✓`;
+                syncNotification.style.backgroundColor = '#4CAF50';
+                document.body.appendChild(syncNotification);
+                
+                setTimeout(() => {
+                    syncNotification.classList.add('fade-out');
+                    setTimeout(() => syncNotification.remove(), 500);
+                }, 1500);
+            }
+        } catch (error) {
+            console.error('[Error] XP Sync error:', error);
+        }
+    }
+    
+    // Add event listeners for online/offline events
+    window.addEventListener('online', () => {
+        console.log('[Debug] Network connection restored');
+        isOnline = true;
+        syncXPWithServer();
+    });
+    
+    window.addEventListener('offline', () => {
+        console.log('[Debug] Network connection lost');
+        isOnline = false;
+    });
+    
+    // Try to sync on page load if online
+    if (isOnline) {
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(syncXPWithServer, 2000); // Give a short delay before sync attempt
+        });
+    }
+})(); 
