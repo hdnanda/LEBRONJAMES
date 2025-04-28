@@ -518,6 +518,26 @@
             box-shadow: 0 2px 10px rgba(0, 128, 0, 0.2);
         }
 
+        /* CRITICAL FIX: Special styling for completion button */
+        #continue-btn.completion-btn {
+            background: linear-gradient(45deg, #D4AF37, #FFD700);
+            color: black;
+            font-weight: bold;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            margin-top: 30px;
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+            animation: buttonPulse 2s infinite;
+            min-width: 250px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        @keyframes buttonPulse {
+            0% { transform: scale(1); box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 8px 25px rgba(212, 175, 55, 0.6); }
+            100% { transform: scale(1); box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4); }
+        }
+
         #feedback-text {
             font-size: 1.2rem;
             color: var(--text-color);
