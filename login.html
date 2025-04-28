@@ -219,6 +219,47 @@
                 font-size: 1.1rem;
             }
         }
+        
+        /* Error message styling */
+        .error-message {
+            display: none;
+            color: #ff4444;
+            background-color: rgba(255, 68, 68, 0.1);
+            border: 1px solid #ff4444;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+        
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        /* Form validation styling */
+        .invalid {
+            border-color: #ff4444 !important;
+            background-color: rgba(255, 68, 68, 0.1);
+        }
+        
+        .valid {
+            border-color: #00C851 !important;
+            background-color: rgba(0, 200, 81, 0.1);
+        }
+        
+        .disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -226,7 +267,7 @@
         <div class="logo">T</div>
         <h1 class="login-title">Welcome to TheMoneyOlympics</h1>
         
-        <form id="login-form" class="login-form">
+        <form id="login-form" class="login-form" method="POST" onsubmit="handleLogin(event)">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" required 
@@ -280,7 +321,7 @@
         <div class="logo">T</div>
         <h1 class="login-title">Create Account</h1>
         
-        <form id="signup-form" class="signup-form">
+        <form id="signup-form" class="signup-form" method="POST" onsubmit="handleSignup(event)">
             <div class="form-group">
                 <label for="signupName">Full Name</label>
                 <input type="text" id="signupName" name="name" required 
@@ -316,8 +357,6 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/config.js"></script>
-    <script src="js/xpService.js"></script>
     <script src="js/login.js"></script>
 </body>
 </html> 
