@@ -163,10 +163,27 @@ function loadQuestionsForSubLevel(topicId, subLevelId) {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DEBUG: DOMContentLoaded fired');
+    
     // Initialize audio system silently
     if (window.AudioManager) {
         window.AudioManager.initialize();
     }
+    
+    // CRITICAL FIX: Add multiple safeguards to check if content is loaded
+    const checkContentLoaded = () => {
+        const questionText = document.getElementById('question-text');
+        if (questionText && questionText.textContent.includes('Loading')) {
+            console.log('DEBUG: Content still loading, triggering force check');
+            forceCheckUIState();
+        }
+    };
+    
+    // Check multiple times to ensure content loads
+    setTimeout(checkContentLoaded, 1000);
+    setTimeout(checkContentLoaded, 2000);
+    setTimeout(checkContentLoaded, 3000);
+    setTimeout(checkContentLoaded, 5000);
     
     // Add click handler to options container for first interaction
     optionsContainer.addEventListener('click', function firstClick() {
@@ -287,50 +304,53 @@ function loadQuestion() {
             totalQuestions: currentQuestions.length
         });
         
-        // CRITICAL FIX: Hide loading screen if it exists
-        const loadingElement = document.querySelector('.loading-question, .loading');
-        if (loadingElement) {
-            console.log('DEBUG: Hiding loading screen');
-            loadingElement.style.display = 'none';
-        }
+        // Get direct references to the DOM elements we need to update
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const progressText = document.getElementById('progress-text');
         
-        // CRITICAL FIX: Make sure the question container is visible
-        const questionContainer = document.getElementById('question-container');
-        if (questionContainer) {
-            questionContainer.style.display = 'block';
+        // Force-clear any loading texts
+        if (questionText) {
+            // Update question text with emoji (use original emoji if available)
+            const emoji = question.emoji || '📈';
+            questionText.innerHTML = `${emoji} ${question.question}`;
+            console.log('DEBUG: Updated question text to:', questionText.textContent);
+        } else {
+            console.error('Question text element not found!');
         }
-        
-        // Update question text with emoji (use original emoji if available)
-        const emoji = question.emoji || '📈';
-        questionText.textContent = `${emoji} ${question.question}`;
-        console.log('DEBUG: Updated question text to:', questionText.textContent);
         
         // Clear previous options
-        optionsContainer.innerHTML = '';
-        
-        // Create a copy of options and shuffle them
-        const shuffledOptions = shuffleArray([...question.options]);
-        
-        // Find the new index of the correct answer after shuffling
-        const correctAnswer = question.options[question.correctIndex];
-        const newCorrectIndex = shuffledOptions.indexOf(correctAnswer);
-        
-        // Create and add new options
-        shuffledOptions.forEach((option, index) => {
-            const button = document.createElement('button');
-            button.className = 'option-btn';
-            button.textContent = option;
-            button.addEventListener('click', () => handleAnswer(index, newCorrectIndex));
-            optionsContainer.appendChild(button);
-        });
-        console.log('DEBUG: Added', shuffledOptions.length, 'option buttons');
-        
-        // CRITICAL FIX: Make sure options are visible
-        optionsContainer.style.display = 'flex';
-        optionsContainer.style.flexDirection = 'column';
+        if (optionsContainer) {
+            optionsContainer.innerHTML = '';
+            
+            // Create a copy of options and shuffle them
+            const shuffledOptions = shuffleArray([...question.options]);
+            
+            // Find the new index of the correct answer after shuffling
+            const correctAnswer = question.options[question.correctIndex];
+            const newCorrectIndex = shuffledOptions.indexOf(correctAnswer);
+            
+            // Create and add new options
+            shuffledOptions.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-btn';
+                button.textContent = option;
+                button.addEventListener('click', () => handleAnswer(index, newCorrectIndex));
+                optionsContainer.appendChild(button);
+            });
+            console.log('DEBUG: Added', shuffledOptions.length, 'option buttons');
+            
+            // CRITICAL FIX: Make sure options are visible
+            optionsContainer.style.display = 'flex';
+            optionsContainer.style.flexDirection = 'column';
+        } else {
+            console.error('Options container element not found!');
+        }
         
         // Update progress
-        updateProgress();
+        if (progressText) {
+            progressText.textContent = `${currentQuestionIndex + 1}/10 📊`;
+        }
         
         // Reset processing flag
         isProcessingQuestion = false;
@@ -339,15 +359,21 @@ function loadQuestion() {
         animateNewQuestion();
     } catch (error) {
         console.error('Error in loadQuestion:', error);
-        questionText.textContent = "Error loading questions. Please refresh the page.";
+        const questionText = document.getElementById('question-text');
+        if (questionText) {
+            questionText.textContent = "Error loading questions. Please refresh the page.";
+        }
         
         // Add a refresh button
-        optionsContainer.innerHTML = '';
-        const refreshButton = document.createElement('button');
-        refreshButton.className = 'option-btn refresh-btn';
-        refreshButton.textContent = 'Refresh and Try Again';
-        refreshButton.addEventListener('click', () => window.location.reload());
-        optionsContainer.appendChild(refreshButton);
+        const optionsContainer = document.getElementById('options-container');
+        if (optionsContainer) {
+            optionsContainer.innerHTML = '';
+            const refreshButton = document.createElement('button');
+            refreshButton.className = 'option-btn refresh-btn';
+            refreshButton.textContent = 'Refresh and Try Again';
+            refreshButton.addEventListener('click', () => window.location.reload());
+            optionsContainer.appendChild(refreshButton);
+        }
     }
 }
 
@@ -1080,26 +1106,58 @@ function forceCheckUIState() {
     
     // If we have questions but still showing loading screen, fix it
     if (window.questions && window.questions.length > 0) {
-        const loadingElement = document.querySelector('.loading-question, .loading');
-        if (loadingElement && loadingElement.style.display !== 'none') {
-            console.log('DEBUG: UI stuck on loading screen, force fixing');
+        // Target the actual loading text elements directly
+        const questionText = document.getElementById('question-text');
+        if (questionText && (questionText.textContent.includes('Loading') || questionText.textContent.trim() === '')) {
+            console.log('DEBUG: Question text still shows loading, forcing update');
             
-            // Hide loading screen
-            loadingElement.style.display = 'none';
-            
-            // Make sure question container is visible
-            const questionContainer = document.getElementById('question-container');
-            if (questionContainer) {
-                questionContainer.style.display = 'block';
-            }
-            
-            // If we have current questions loaded but not displayed, force load the first one
+            // If we have current questions loaded but loading text still shows, force display the first question
             if (currentQuestions && currentQuestions.length > 0) {
-                loadQuestion();
+                const question = currentQuestions[0];
+                if (question) {
+                    // Update question text directly
+                    const emoji = question.emoji || '📈';
+                    questionText.textContent = `${emoji} ${question.question}`;
+                    console.log('DEBUG: Forced question text update to:', questionText.textContent);
+                    
+                    // Clear and update options
+                    const optionsContainer = document.getElementById('options-container');
+                    if (optionsContainer) {
+                        // Clear any existing content
+                        optionsContainer.innerHTML = '';
+                        
+                        // Add options
+                        if (question.options && Array.isArray(question.options)) {
+                            question.options.forEach((option, index) => {
+                                const button = document.createElement('button');
+                                button.className = 'option-btn';
+                                button.textContent = option;
+                                button.addEventListener('click', () => handleAnswer(index, question.correctIndex));
+                                optionsContainer.appendChild(button);
+                            });
+                        }
+                        
+                        // Update progress text
+                        const progressText = document.getElementById('progress-text');
+                        if (progressText) {
+                            progressText.textContent = `1/10 📊`;
+                        }
+                    }
+                }
             } else if (currentTopic && currentSubLevel) {
                 // If we have topic and sublevel but no questions loaded, try loading again
+                console.log('DEBUG: Force reloading questions');
                 loadQuestionsForSubLevel(currentTopic, currentSubLevel);
             }
         }
     }
+    
+    // Check again in 2 seconds if we still see loading
+    setTimeout(() => {
+        const questionText = document.getElementById('question-text');
+        if (questionText && questionText.textContent.includes('Loading')) {
+            console.log('DEBUG: Still showing loading, trying again');
+            forceCheckUIState();
+        }
+    }, 2000);
 } 
