@@ -414,6 +414,7 @@ function loadQuestion() {
                 button.className = 'option-btn';
                 button.textContent = option;
                 button.addEventListener('click', () => handleAnswer(index, newCorrectIndex));
+                button.setAttribute('data-has-listener', 'true'); // Mark as having a listener
                 optionsContainer.appendChild(button);
             });
             console.log('DEBUG: Added', shuffledOptions.length, 'option buttons');
@@ -530,6 +531,8 @@ async function handleAnswer(selectedIndex, correctIndex) {
         // Disable all options after selection
         Array.from(optionsContainer.children).forEach(button => {
             button.disabled = true;
+            // Important: Remove the data-has-listener attribute once disabled
+            button.removeAttribute('data-has-listener');
         });
         
         // Show and enable continue button
@@ -549,6 +552,10 @@ async function handleAnswer(selectedIndex, correctIndex) {
         
     } catch (error) {
         console.error('[Error] Error in handleAnswer:', error);
+        // On error, make sure we re-enable option clicking
+        Array.from(optionsContainer.children).forEach(button => {
+            button.disabled = false;
+        });
     } finally {
         // ALWAYS reset the flag, even if errors occur
         console.log('[Debug] Resetting isProcessingQuestion to false');
@@ -570,13 +577,45 @@ function handleContinue() {
         window.AudioManager.playSound('whoosh');
     }
     
+    // CRITICAL FIX: Ensure flags and state are reset before moving on
+    isProcessingQuestion = false;
+    
+    // Hide the continue button properly
+    const continueBtn = document.getElementById('continue-btn');
+    if (continueBtn) {
+        continueBtn.style.display = 'none';
+        continueBtn.style.opacity = '0';
+        continueBtn.style.pointerEvents = 'none';
+    }
+    
+    // Ensure feedback is hidden
+    const feedbackContainer = document.getElementById('feedback-container');
+    if (feedbackContainer) {
+        feedbackContainer.classList.add('hidden');
+        feedbackContainer.classList.remove('visible');
+    }
+    
+    // Reset all option buttons
+    const optionsContainer = document.getElementById('options-container');
+    if (optionsContainer) {
+        Array.from(optionsContainer.children).forEach(button => {
+            button.disabled = false;
+            button.classList.remove('correct', 'incorrect');
+        });
+    }
+    
     currentQuestionIndex++;
     console.log('New question index after increment:', currentQuestionIndex);
     
     if (currentQuestionIndex < questionsPerLesson) {
         console.log('Loading next question...');
         resetAnimations();
-        loadQuestion();
+        
+        // CRITICAL FIX: Small delay before loading the next question 
+        // to ensure DOM is ready
+        setTimeout(() => {
+            loadQuestion();
+        }, 50);
     } else {
         console.log('All questions completed, showing completion message');
         showCompletionMessage();
@@ -785,6 +824,7 @@ function initApp(levelQuestions = null) {
                 button.className = 'option-btn';
                 button.textContent = option;
                 button.addEventListener('click', () => handleAnswer(index, newCorrectIndex));
+                button.setAttribute('data-has-listener', 'true'); // Mark as having a listener
                 optionsContainer.appendChild(button);
             });
             
@@ -1517,4 +1557,325 @@ function forceCheckUIState() {
     }
     
     console.log('%c[FLAG-MONITOR] Direct monitoring system installed successfully', 'color: blue; font-weight: bold');
+})();
+
+/* CRITICAL FIX: Monitor for unclickable options issue */
+(function addOptionDiagnostics() {
+    console.log('Setting up option diagnostic system...');
+    // Check for and fix option issues periodically
+    setInterval(() => {
+        // If we're in a quiz with options
+        const optionsContainer = document.getElementById('options-container');
+        if (optionsContainer && !isProcessingQuestion) {
+            const options = optionsContainer.querySelectorAll('.option-btn');
+            if (options.length > 0) {
+                // Check if options are properly clickable
+                let allHaveListeners = true;
+                options.forEach(option => {
+                    // If the option isn't disabled (meaning it should be clickable)
+                    if (!option.disabled) {
+                        // Test if it has any click listeners by checking a custom attribute we'll set
+                        if (!option.getAttribute('data-has-listener')) {
+                            allHaveListeners = false;
+                            console.warn('⚠️ Found option without click listener:', option.textContent);
+                        }
+                    }
+                });
+                
+                // If we found options without listeners, fix them
+                if (!allHaveListeners) {
+                    console.log('🔧 Fixing unclickable options...');
+                    reattachOptionHandlers();
+                }
+            }
+        }
+    }, 1000); // Check every second
+    
+    // Function to reattach event handlers to options
+    function reattachOptionHandlers() {
+        const optionsContainer = document.getElementById('options-container');
+        if (!optionsContainer) return;
+        
+        const options = optionsContainer.querySelectorAll('.option-btn:not([disabled])');
+        if (options.length === 0) return;
+        
+        // Get the current question to determine correct answer
+        const question = currentQuestions[currentQuestionIndex];
+        if (!question) return;
+        
+        // Try to identify the correct option
+        let correctOptionText = '';
+        let correctOptionIndex = -1;
+        
+        // First, check if we can identify the correct option
+        options.forEach((option, index) => {
+            if (option.classList.contains('correct')) {
+                correctOptionIndex = index;
+                correctOptionText = option.textContent;
+            }
+        });
+        
+        // If we couldn't identify it from the UI, try to get it from the question data
+        if (correctOptionIndex === -1 && question.options && question.correctIndex !== undefined) {
+            correctOptionText = question.options[question.correctIndex];
+            
+            // Now find this text in our current options
+            options.forEach((option, index) => {
+                if (option.textContent === correctOptionText) {
+                    correctOptionIndex = index;
+                }
+            });
+        }
+        
+        // Now reattach click handlers to all options
+        options.forEach((option, index) => {
+            // Remove existing listeners to avoid duplication
+            const newOption = option.cloneNode(true);
+            option.parentNode.replaceChild(newOption, option);
+            
+            // Add the new click listener
+            newOption.addEventListener('click', () => handleAnswer(index, correctOptionIndex));
+            
+            // Mark this option as having a listener
+            newOption.setAttribute('data-has-listener', 'true');
+            console.log(`🔄 Reattached click handler to option: ${newOption.textContent}`);
+        });
+        
+        console.log('✅ Fixed unclickable options!');
+    }
+})();
+
+// Add recovery button
+function addRecoveryButton() {
+    const app = document.querySelector('.app-container');
+    if (!app) return;
+    
+    // Create recovery button if it doesn't exist
+    if (!document.getElementById('recovery-btn')) {
+        const recoveryBtn = document.createElement('button');
+        recoveryBtn.id = 'recovery-btn';
+        recoveryBtn.className = 'recovery-btn';
+        recoveryBtn.textContent = '🔧 Fix Quiz';
+        recoveryBtn.style.position = 'fixed';
+        recoveryBtn.style.bottom = '10px';
+        recoveryBtn.style.right = '10px';
+        recoveryBtn.style.zIndex = '9999';
+        recoveryBtn.style.padding = '8px 12px';
+        recoveryBtn.style.borderRadius = '20px';
+        recoveryBtn.style.backgroundColor = '#ff9800';
+        recoveryBtn.style.color = 'white';
+        recoveryBtn.style.display = 'none';
+        recoveryBtn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.3)';
+        
+        recoveryBtn.addEventListener('click', () => {
+            console.log('🔧 Manual recovery triggered');
+            isProcessingQuestion = false;
+            const optionsContainer = document.getElementById('options-container');
+            if (optionsContainer) {
+                Array.from(optionsContainer.children).forEach(button => {
+                    button.disabled = false;
+                });
+            }
+            // Reload the current question
+            loadQuestion();
+            // Hide the button after use
+            recoveryBtn.style.display = 'none';
+        });
+        
+        app.appendChild(recoveryBtn);
+        
+        // Show the button after 5 seconds of inactivity
+        setInterval(() => {
+            const optionsContainer = document.getElementById('options-container');
+            if (optionsContainer && document.querySelectorAll('.option-btn').length > 0 && !isProcessingQuestion) {
+                // If there are questions but no user activity for 5 seconds, show the button
+                const lastActivityTime = window.lastUserActivity || 0;
+                if (Date.now() - lastActivityTime > 5000) {
+                    recoveryBtn.style.display = 'block';
+                }
+            } else {
+                recoveryBtn.style.display = 'none';
+            }
+        }, 5000);
+    }
+}
+
+// Track user activity
+document.addEventListener('click', () => {
+    window.lastUserActivity = Date.now();
+});
+
+// Call this function when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    addRecoveryButton();
+});
+
+/* Quiz Flow Diagnostics System */
+(function setupQuizFlowDiagnostics() {
+    console.log('%c[QUIZ-DIAGNOSTIC] Setting up comprehensive quiz flow monitoring', 'color: purple; font-weight: bold');
+    
+    // Track successful question loads
+    let successfulQuestionLoads = 0;
+    
+    // Track successful answers processed
+    let successfulAnswers = 0;
+    
+    // Track button click timestamps to detect delays
+    let lastButtonClickTime = 0;
+    
+    // Keep a history of actions for debugging
+    const actionHistory = [];
+    
+    function logAction(action, details) {
+        const timestamp = new Date().toISOString();
+        const entry = { timestamp, action, details };
+        actionHistory.push(entry);
+        
+        // Keep history to last 20 actions
+        if (actionHistory.length > 20) {
+            actionHistory.shift();
+        }
+        
+        console.log(`%c[QUIZ-DIAGNOSTIC] ${action}`, 'color: purple', details);
+    }
+    
+    // Check for stalled state periodically
+    setInterval(() => {
+        // If we're in a question but nothing's happened for 10 seconds
+        const now = Date.now();
+        if (lastButtonClickTime > 0 && (now - lastButtonClickTime) > 10000) {
+            console.warn('%c[QUIZ-DIAGNOSTIC] Potential stalled state detected - 10+ seconds since last action', 'color: orange; font-weight: bold');
+            
+            // Log diagnostic information
+            console.log('%c[QUIZ-DIAGNOSTIC] Recent action history:', 'color: purple', actionHistory);
+            console.log('%c[QUIZ-DIAGNOSTIC] isProcessingQuestion:', 'color: purple', isProcessingQuestion);
+            console.log('%c[QUIZ-DIAGNOSTIC] Current question index:', 'color: purple', currentQuestionIndex);
+            
+            // Check if options are disabled
+            const optionsContainer = document.getElementById('options-container');
+            if (optionsContainer) {
+                const options = optionsContainer.querySelectorAll('.option-btn');
+                const disabledCount = Array.from(options).filter(opt => opt.disabled).length;
+                console.log(`%c[QUIZ-DIAGNOSTIC] Options state: ${disabledCount}/${options.length} disabled`, 'color: purple');
+                
+                // If all options are disabled but continue button isn't visible, that's a problem
+                const continueBtn = document.getElementById('continue-btn');
+                if (disabledCount === options.length && continueBtn && 
+                    (continueBtn.style.display === 'none' || 
+                     continueBtn.style.visibility === 'hidden' || 
+                     continueBtn.style.opacity === '0')) {
+                    console.error('%c[QUIZ-DIAGNOSTIC] CRITICAL ERROR: All options disabled but continue button not visible!', 'color: red; font-weight: bold');
+                    
+                    // Try to auto-recover
+                    logAction('Auto-recovery initiated', { reason: 'Options disabled but continue button not visible' });
+                    continueBtn.style.display = 'inline-block';
+                    continueBtn.style.opacity = '1';
+                    continueBtn.style.visibility = 'visible';
+                }
+            }
+            
+            // Reset timer to avoid spamming the console
+            lastButtonClickTime = now;
+        }
+    }, 5000);
+    
+    // Hook into loadQuestion
+    const originalLoadQuestion = window.loadQuestion;
+    window.loadQuestion = function() {
+        logAction('Question load started', { index: currentQuestionIndex });
+        const result = originalLoadQuestion.apply(this, arguments);
+        
+        // After loading, check that options are truly interactive
+        setTimeout(() => {
+            const optionsContainer = document.getElementById('options-container');
+            if (optionsContainer) {
+                const options = optionsContainer.querySelectorAll('.option-btn');
+                logAction('Question loaded', { 
+                    index: currentQuestionIndex,
+                    optionsCount: options.length,
+                    disabled: Array.from(options).filter(opt => opt.disabled).length
+                });
+                
+                // Track successful load
+                successfulQuestionLoads++;
+                lastButtonClickTime = Date.now();
+            }
+        }, 100);
+        
+        return result;
+    };
+    
+    // Hook into handleAnswer
+    const originalHandleAnswer = window.handleAnswer;
+    window.handleAnswer = function() {
+        const selectedIndex = arguments[0];
+        const correctIndex = arguments[1];
+        
+        logAction('Answer selected', { selectedIndex, correctIndex });
+        lastButtonClickTime = Date.now();
+        
+        const result = originalHandleAnswer.apply(this, arguments);
+        
+        // Check if the continue button is properly visible after answering
+        setTimeout(() => {
+            const continueBtn = document.getElementById('continue-btn');
+            const isVisible = continueBtn && 
+                continueBtn.style.display !== 'none' && 
+                continueBtn.style.visibility !== 'hidden' &&
+                continueBtn.style.opacity !== '0';
+            
+            logAction('Answer processed', { 
+                continueButtonVisible: isVisible,
+                isProcessingQuestion: isProcessingQuestion
+            });
+            
+            // If continue button isn't visible after answering, that's a problem
+            if (!isVisible) {
+                console.error('%c[QUIZ-DIAGNOSTIC] ERROR: Continue button not visible after answering!', 'color: red; font-weight: bold');
+                // Try to fix it
+                if (continueBtn) {
+                    continueBtn.style.display = 'inline-block';
+                    continueBtn.style.opacity = '1';
+                    continueBtn.style.visibility = 'visible';
+                    logAction('Auto-fixed continue button', {});
+                }
+            } else {
+                // Track successful answer
+                successfulAnswers++;
+            }
+        }, 500);
+        
+        return result;
+    };
+    
+    // Hook into handleContinue
+    const originalHandleContinue = window.handleContinue;
+    window.handleContinue = function() {
+        logAction('Continue clicked', { 
+            from: currentQuestionIndex,
+            to: currentQuestionIndex + 1,
+            total: questionsPerLesson
+        });
+        lastButtonClickTime = Date.now();
+        
+        return originalHandleContinue.apply(this, arguments);
+    };
+    
+    // Add global status command for debugging
+    window.checkQuizStatus = function() {
+        const statusReport = {
+            currentQuestionIndex,
+            totalQuestions: questionsPerLesson,
+            successfulQuestionLoads,
+            successfulAnswers,
+            isProcessingQuestion,
+            actionHistory,
+            timeElapsedSinceLastAction: Date.now() - lastButtonClickTime
+        };
+        
+        console.log('%c[QUIZ-DIAGNOSTIC] Status Report:', 'color: blue; font-weight: bold', statusReport);
+        return statusReport;
+    };
+    
+    console.log('%c[QUIZ-DIAGNOSTIC] Quiz flow monitoring initialized successfully', 'color: purple; font-weight: bold');
 })(); 
