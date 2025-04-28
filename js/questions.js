@@ -1,4 +1,7 @@
 // Questions array for Financial Literacy App
+console.log('DEBUG: questions.js is being executed');
+console.log('DEBUG: Setting window.questions array');
+
 window.questions = [
     // Basic Banking - Account Types
     {
