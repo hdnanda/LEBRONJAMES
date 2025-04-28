@@ -1370,4 +1370,151 @@ function forceCheckUIState() {
             setTimeout(syncXPWithServer, 2000); // Give a short delay before sync attempt
         });
     }
+})();
+
+// Direct monitoring system - simpler approach
+(function() {
+    console.log('%c[FLAG-MONITOR] Installing direct flag monitor', 'color: blue; font-weight: bold');
+    
+    // Keep track of flag state
+    let lastKnownState = window.isProcessingQuestion || false;
+    let stuckSince = null;
+    let monitorStartTime = Date.now();
+    
+    // Add visible monitor element
+    const monitorEl = document.createElement('div');
+    monitorEl.style.position = 'fixed';
+    monitorEl.style.bottom = '10px';
+    monitorEl.style.left = '10px';
+    monitorEl.style.background = 'rgba(0,0,0,0.8)';
+    monitorEl.style.color = 'white';
+    monitorEl.style.padding = '8px';
+    monitorEl.style.borderRadius = '4px';
+    monitorEl.style.fontSize = '12px';
+    monitorEl.style.zIndex = '99999';
+    monitorEl.textContent = 'Flag Monitor: Starting...';
+    
+    // Add the monitor once DOM is ready
+    function addMonitor() {
+        if (document.body) {
+            document.body.appendChild(monitorEl);
+            console.log('%c[FLAG-MONITOR] Added visible monitor to page', 'color: green');
+        } else {
+            setTimeout(addMonitor, 100);
+        }
+    }
+    addMonitor();
+    
+    // Add direct reset button 
+    const resetBtn = document.createElement('button');
+    resetBtn.textContent = 'Reset Flag';
+    resetBtn.style.marginLeft = '8px';
+    resetBtn.style.padding = '4px 8px';
+    resetBtn.style.background = 'red';
+    resetBtn.style.color = 'white';
+    resetBtn.style.border = 'none';
+    resetBtn.style.borderRadius = '4px';
+    resetBtn.style.cursor = 'pointer';
+    resetBtn.onclick = function() {
+        console.log('%c[FLAG-MONITOR] Manual flag reset triggered', 'color: red; font-weight: bold');
+        window.isProcessingQuestion = false;
+        alert('Flag reset to FALSE. Try answering a question now.');
+    };
+    monitorEl.appendChild(resetBtn);
+    
+    // Update monitor every 2 seconds
+    setInterval(function() {
+        // Read the current flag state directly
+        const currentState = window.isProcessingQuestion;
+        
+        // Skip checks until the app has initialized
+        if (Date.now() - monitorStartTime < 5000) {
+            monitorEl.textContent = `Flag Monitor: Initializing...`;
+            return;
+        }
+        
+        // Check if state changed
+        if (currentState !== lastKnownState) {
+            console.log(`%c[FLAG-MONITOR] Flag changed: ${lastKnownState} → ${currentState}`, 
+                        'color: ' + (currentState ? 'red' : 'green'));
+            
+            if (currentState === true) {
+                // Flag just turned true
+                stuckSince = Date.now();
+            } else {
+                // Flag just turned false
+                stuckSince = null;
+            }
+            
+            lastKnownState = currentState;
+        }
+        
+        // Check for stuck state
+        if (currentState === true && stuckSince) {
+            const stuckDuration = Math.round((Date.now() - stuckSince) / 1000);
+            monitorEl.textContent = `isProcessingQuestion: TRUE for ${stuckDuration}s`;
+            monitorEl.style.background = stuckDuration > 5 ? 'rgba(255,0,0,0.8)' : 'rgba(255,165,0,0.8)';
+            
+            // Log warnings at specific thresholds
+            if (stuckDuration === 5) {
+                console.warn('%c[FLAG-MONITOR] WARNING: Flag has been TRUE for 5 seconds', 'color: orange; font-weight: bold');
+                console.warn('Current question index:', currentQuestionIndex);
+            }
+            
+            if (stuckDuration === 10) {
+                console.error('%c[FLAG-MONITOR] CRITICAL: Flag stuck in TRUE state for 10 seconds', 'color: red; font-size: 16px; font-weight: bold');
+                console.error('This is preventing option clicks! Current question:', currentQuestionIndex);
+                
+                // Create stack trace snapshot
+                console.error('Current stack:', new Error().stack);
+                
+                // Force snapshot of app state
+                console.table({
+                    'Current Question': currentQuestionIndex + 1,
+                    'Total Questions': questionsPerLesson,
+                    'Correct Answers': correctAnswers,
+                    'Processing Flag': currentState,
+                    'Stuck Duration': stuckDuration + 's',
+                    'Options Disabled': document.querySelector('.option-btn')?.disabled || 'unknown'
+                });
+            }
+        } else {
+            // Flag is false or just set
+            monitorEl.textContent = `isProcessingQuestion: ${currentState ? 'TRUE' : 'FALSE'}`;
+            monitorEl.style.background = currentState ? 'rgba(255,165,0,0.8)' : 'rgba(0,128,0,0.8)';
+        }
+    }, 1000);
+    
+    // Patch handleAnswer to add try-finally
+    const originalHandleAnswer = window.handleAnswer || handleAnswer;
+    
+    function patchedHandleAnswer(...args) {
+        console.log('%c[FLAG-MONITOR] handleAnswer called', 'color: blue');
+        
+        try {
+            return originalHandleAnswer.apply(this, args);
+        } catch (error) {
+            console.error('[FLAG-MONITOR] Error in handleAnswer:', error);
+            throw error;
+        } finally {
+            // Force flag reset
+            console.log('%c[FLAG-MONITOR] Forcing flag reset in finally block', 'color: orange');
+            setTimeout(() => {
+                window.isProcessingQuestion = false;
+            }, 100);
+        }
+    }
+    
+    // Apply the patch if possible
+    if (window.handleAnswer) {
+        window.handleAnswer = patchedHandleAnswer;
+        console.log('%c[FLAG-MONITOR] Successfully patched global handleAnswer', 'color: green');
+    } else if (typeof handleAnswer === 'function') {
+        window.handleAnswer = handleAnswer = patchedHandleAnswer;
+        console.log('%c[FLAG-MONITOR] Successfully patched local handleAnswer', 'color: green');
+    } else {
+        console.warn('%c[FLAG-MONITOR] Could not patch handleAnswer - not found', 'color: red');
+    }
+    
+    console.log('%c[FLAG-MONITOR] Direct monitoring system installed successfully', 'color: blue; font-weight: bold');
 })(); 
