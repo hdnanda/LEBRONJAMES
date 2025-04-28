@@ -1207,6 +1207,35 @@
             50% { box-shadow: 0 0 50px rgba(255, 0, 0, 0.7); }
             100% { box-shadow: 0 0 30px rgba(255, 0, 0, 0.5); }
         }
+
+        /* Styles for the recovery button */
+        .recovery-btn {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            z-index: 9999;
+            padding: 10px 15px;
+            border-radius: 30px;
+            background-color: #ff9800;
+            color: white;
+            font-weight: bold;
+            border: none;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            cursor: pointer;
+            animation: pulse 1.5s infinite;
+            transition: all 0.3s ease;
+        }
+
+        .recovery-btn:hover {
+            background-color: #f57c00;
+            transform: scale(1.05);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+            50% { transform: scale(1.05); box-shadow: 0 6px 12px rgba(0,0,0,0.5); }
+            100% { transform: scale(1); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+        }
     </style>
 </head>
 <body>
