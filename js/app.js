@@ -224,6 +224,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize settings panel
     initializeSettingsPanel();
+    
+    // Add a fallback timer to force check UI state after 3 seconds
+    setTimeout(forceCheckUIState, 3000);
 });
 
 /**
@@ -284,9 +287,23 @@ function loadQuestion() {
             totalQuestions: currentQuestions.length
         });
         
+        // CRITICAL FIX: Hide loading screen if it exists
+        const loadingElement = document.querySelector('.loading-question, .loading');
+        if (loadingElement) {
+            console.log('DEBUG: Hiding loading screen');
+            loadingElement.style.display = 'none';
+        }
+        
+        // CRITICAL FIX: Make sure the question container is visible
+        const questionContainer = document.getElementById('question-container');
+        if (questionContainer) {
+            questionContainer.style.display = 'block';
+        }
+        
         // Update question text with emoji (use original emoji if available)
         const emoji = question.emoji || '📈';
         questionText.textContent = `${emoji} ${question.question}`;
+        console.log('DEBUG: Updated question text to:', questionText.textContent);
         
         // Clear previous options
         optionsContainer.innerHTML = '';
@@ -306,6 +323,11 @@ function loadQuestion() {
             button.addEventListener('click', () => handleAnswer(index, newCorrectIndex));
             optionsContainer.appendChild(button);
         });
+        console.log('DEBUG: Added', shuffledOptions.length, 'option buttons');
+        
+        // CRITICAL FIX: Make sure options are visible
+        optionsContainer.style.display = 'flex';
+        optionsContainer.style.flexDirection = 'column';
         
         // Update progress
         updateProgress();
@@ -1049,5 +1071,35 @@ async function updateProgressDisplay() {
     } catch (error) {
         console.error('[Error] Failed to update progress display:', error);
         showFeedback('Failed to update progress display', false);
+    }
+}
+
+// Function to force check and fix UI state if stuck on loading
+function forceCheckUIState() {
+    console.log('DEBUG: Force checking UI state');
+    
+    // If we have questions but still showing loading screen, fix it
+    if (window.questions && window.questions.length > 0) {
+        const loadingElement = document.querySelector('.loading-question, .loading');
+        if (loadingElement && loadingElement.style.display !== 'none') {
+            console.log('DEBUG: UI stuck on loading screen, force fixing');
+            
+            // Hide loading screen
+            loadingElement.style.display = 'none';
+            
+            // Make sure question container is visible
+            const questionContainer = document.getElementById('question-container');
+            if (questionContainer) {
+                questionContainer.style.display = 'block';
+            }
+            
+            // If we have current questions loaded but not displayed, force load the first one
+            if (currentQuestions && currentQuestions.length > 0) {
+                loadQuestion();
+            } else if (currentTopic && currentSubLevel) {
+                // If we have topic and sublevel but no questions loaded, try loading again
+                loadQuestionsForSubLevel(currentTopic, currentSubLevel);
+            }
+        }
     }
 } 
