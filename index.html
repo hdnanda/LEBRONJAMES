@@ -1216,6 +1216,9 @@
         // to ensure options always remain clickable
         console.log("SUPER CRITICAL FIX: Installing option click override");
         
+        // Global flag to track processing state - explicitly initialized
+        window.isProcessingQuestion = false;
+        
         // Wait for DOM to be fully loaded
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DOM fully loaded, installing override");
@@ -1237,7 +1240,11 @@
                     button.parentNode.replaceChild(newButton, button);
                     
                     // Add new handler
-                    newButton.addEventListener('click', function() {
+                    newButton.addEventListener('click', function(e) {
+                        // Prevent default and stop propagation to ensure the event is handled
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
                         console.log("Option clicked:", this.textContent);
                         
                         // Check if this is a dividend question (based on text content)
@@ -1276,6 +1283,13 @@
                             btn.disabled = true;
                         });
                         
+                        // Show feedback container if it exists
+                        const feedbackContainer = document.getElementById('feedback-container');
+                        if (feedbackContainer) {
+                            feedbackContainer.classList.remove('hidden');
+                            feedbackContainer.classList.add('visible');
+                        }
+                        
                         // Show continue button
                         const continueBtn = document.getElementById('continue-btn');
                         if (continueBtn) {
@@ -1284,18 +1298,28 @@
                             continueBtn.style.visibility = 'visible';
                             
                             // Set continue button handler
-                            continueBtn.onclick = function() {
+                            continueBtn.onclick = function(e) {
+                                // Prevent default and stop propagation
+                                e.preventDefault();
+                                e.stopPropagation();
+                                
                                 console.log("Continue button clicked");
                                 moveToNextQuestion();
                             };
                         }
                         
-                        // Reset global flags
+                        // Reset global flags IMMEDIATELY
                         window.isProcessingQuestion = false;
+                        console.log("Reset isProcessingQuestion to false after option click");
+                        
+                        return false; // Prevent event bubbling
                     });
+                    
+                    // Mark button as having our custom handler
+                    newButton._hasCustomHandler = true;
                 });
                 
-                // Make sure all buttons are enabled
+                // Make sure all buttons are enabled and reset
                 optionButtons.forEach(button => {
                     button.disabled = false;
                     button.classList.remove('correct', 'incorrect');
@@ -1306,9 +1330,15 @@
             
             // Function to move to the next question
             function moveToNextQuestion() {
+                console.log("Moving to next question");
+                
+                // Ensure global flag is reset
+                window.isProcessingQuestion = false;
+                
                 // Hide any feedback
                 const feedbackContainer = document.getElementById('feedback-container');
                 if (feedbackContainer) {
+                    feedbackContainer.classList.remove('visible');
                     feedbackContainer.classList.add('hidden');
                 }
                 
@@ -1334,43 +1364,91 @@
                 // Add slight delay before setting up new buttons
                 setTimeout(function() {
                     setupOptionButtons();
+                    
+                    // Double check that processing flag is reset
+                    window.isProcessingQuestion = false;
+                    console.log("Verified isProcessingQuestion reset after new question setup");
+                    
+                    // Force enable all options after setup
+                    const optionsContainer = document.getElementById('options-container');
+                    if (optionsContainer) {
+                        Array.from(optionsContainer.children).forEach(btn => {
+                            btn.disabled = false;
+                        });
+                    }
                 }, 500);
             }
             
             // Setup initial option buttons
             setupOptionButtons();
             
+            // Override any app method that might be setting isProcessingQuestion
+            const originalHandleAnswer = window.handleAnswer;
+            if (typeof originalHandleAnswer === 'function') {
+                window.handleAnswer = function() {
+                    const result = originalHandleAnswer.apply(this, arguments);
+                    
+                    // Reset the flag after original handler completes
+                    setTimeout(() => {
+                        window.isProcessingQuestion = false;
+                        console.log("Reset isProcessingQuestion from handleAnswer override");
+                    }, 100);
+                    
+                    return result;
+                };
+            }
+            
             // Add periodic check to ensure buttons remain clickable
             setInterval(function() {
                 console.log("Running periodic check");
                 
-                // Reset global flags
+                // FORCE reset global flags
                 window.isProcessingQuestion = false;
                 
                 const optionsContainer = document.getElementById('options-container');
                 if (!optionsContainer) return;
                 
+                const optionButtons = optionsContainer.querySelectorAll('.option-btn');
                 const continueBtn = document.getElementById('continue-btn');
-                const allDisabled = Array.from(optionsContainer.children).every(btn => btn.disabled === true);
                 
-                // If continue button is visible, make sure it works
-                if (continueBtn && (continueBtn.style.display === 'inline-block' || continueBtn.style.visibility === 'visible')) {
-                    continueBtn.onclick = function() {
-                        console.log("Continue button clicked (from periodic check)");
-                        moveToNextQuestion();
-                    };
-                }
-                // If all buttons are disabled but continue button is not visible, re-enable them
-                else if (allDisabled) {
-                    console.log("All buttons disabled but continue button not visible, re-enabling");
-                    setupOptionButtons();
-                }
-                // Otherwise just check if buttons have proper handlers
+                // If any button has 'correct' or 'incorrect' class, the question has been answered
+                const hasAnswered = Array.from(optionButtons).some(btn => 
+                    btn.classList.contains('correct') || btn.classList.contains('incorrect'));
+                
+                // If the question has been answered, make sure continue button is visible and clickable
+                if (hasAnswered) {
+                    if (continueBtn) {
+                        continueBtn.style.display = 'inline-block';
+                        continueBtn.style.opacity = '1';
+                        continueBtn.style.visibility = 'visible';
+                        
+                        continueBtn.onclick = function(e) {
+                            // Prevent any default behavior
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            console.log("Continue button clicked (from periodic check)");
+                            moveToNextQuestion();
+                            return false;
+                        };
+                    }
+                } 
+                // If the question hasn't been answered yet, ensure buttons are clickable
                 else {
+                    // Check if all buttons are disabled
+                    const allDisabled = Array.from(optionButtons).every(btn => btn.disabled === true);
+                    
+                    // If all buttons are disabled but question not answered, re-enable them
+                    if (allDisabled) {
+                        console.log("All buttons disabled but question not answered, re-enabling");
+                        Array.from(optionButtons).forEach(btn => {
+                            btn.disabled = false;
+                        });
+                    }
+                    
                     // Check if any button lacks a click handler
                     let needsSetup = false;
-                    optionsContainer.querySelectorAll('.option-btn').forEach(btn => {
-                        // Check if button has our click handler
+                    optionButtons.forEach(btn => {
                         if (!btn._hasCustomHandler) {
                             needsSetup = true;
                         }
@@ -1381,7 +1459,7 @@
                         setupOptionButtons();
                     }
                 }
-            }, 3000);
+            }, 2000);
             
             // Add an extra button to restart in case everything else fails
             const appContainer = document.querySelector('.app-container');
@@ -1398,7 +1476,11 @@
                 restartButton.style.cursor = 'pointer';
                 restartButton.style.zIndex = '9999';
                 restartButton.textContent = 'Reset UI';
-                restartButton.onclick = function() {
+                restartButton.onclick = function(e) {
+                    // Prevent any default behavior
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
                     console.log("Manual reset triggered");
                     setupOptionButtons();
                     
@@ -1410,9 +1492,33 @@
                     
                     // Reset global flags
                     window.isProcessingQuestion = false;
+                    console.log("Reset isProcessingQuestion from manual reset");
+                    
+                    return false;
                 };
                 appContainer.appendChild(restartButton);
             }
+            
+            // Create global reset function
+            window.resetQuizUI = function() {
+                console.log("Global UI reset called");
+                window.isProcessingQuestion = false;
+                setupOptionButtons();
+                
+                const feedbackContainer = document.getElementById('feedback-container');
+                if (feedbackContainer) {
+                    feedbackContainer.classList.remove('visible');
+                    feedbackContainer.classList.add('hidden');
+                }
+            };
+            
+            // Call reset if page visibility changes (tab switch)
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    console.log("Page became visible again, resetting UI");
+                    window.resetQuizUI();
+                }
+            });
         });
     </script>
 
