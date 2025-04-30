@@ -48,7 +48,7 @@ const API_BASE_URL = (() => {
     
     // For production on Render
     console.log('Using production backend');
-    return 'https://financial-backend1.onrender.com';
+    return 'https://financial-backend1.onrender.com/backend';
 })();
 
 /**
@@ -346,8 +346,8 @@ function redirectToMainApp() {
     
     // Initialize XP service if available
     if (window.xpService) {
-        console.log('Initializing XP service for user');
-        window.xpService.initialize();
+        console.log('Initializing XP service');
+        window.xpService.init();
     }
     
     // Redirect to levels page
