@@ -884,7 +884,7 @@
             renderTopicsWithXP(0);
 
             // Then try to get the actual XP
-            fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
+            fetch('https://financial-backend1.onrender.com/backend/xp_handler.php', {
                 method: 'GET',
                 credentials: 'include',
                 headers: {
@@ -976,7 +976,7 @@
                 dbTestBtn.disabled = true;
                 
                 // Try to fetch from backend
-                fetch('backend/connection_test.php', {
+                fetch('https://financial-backend1.onrender.com/backend/connection_test.php', {
                     method: 'GET',
                     credentials: 'include',
                     headers: {
