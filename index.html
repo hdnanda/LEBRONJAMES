@@ -363,11 +363,19 @@
         #options-container {
             position: relative;
             z-index: 1;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            grid-gap: 15px;
             margin-top: 20px;
             width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Maintain grid even in .options-grid class which might be used elsewhere */
+        .options-grid {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 15px;
         }
 
         .option-btn {
@@ -1259,8 +1267,8 @@
         }
 
         @media (max-width: 600px) {
-            #options-container {
-                grid-template-columns: 1fr;
+            #options-container, .options-grid {
+                grid-template-columns: 1fr !important;
             }
         }
     </style>
