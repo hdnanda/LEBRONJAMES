@@ -364,6 +364,7 @@
             position: relative;
             z-index: 1;
             display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 15px;
             margin-top: 20px;
             width: 100%;
@@ -1255,6 +1256,12 @@
             0% { transform: scale(1); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
             50% { transform: scale(1.05); box-shadow: 0 6px 12px rgba(0,0,0,0.5); }
             100% { transform: scale(1); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+        }
+
+        @media (max-width: 600px) {
+            #options-container {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
