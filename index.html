@@ -1435,11 +1435,36 @@
 
         // Function to update progress display
         function updateProgressDisplay() {
-            const xp = localStorage.getItem('userXP') || 0;
-            const level = localStorage.getItem('userLevel') || 1;
-            
-            document.getElementById('current-xp').textContent = xp;
-            document.getElementById('current-level').textContent = level;
+            // Use xpService if available
+            if (window.xpService && window.xpService.initialized) {
+                const xp = window.xpService.getCurrentXP();
+                const level = window.xpService.getCurrentLevel();
+                
+                document.getElementById('current-xp').textContent = xp;
+                document.getElementById('current-level').textContent = level;
+            } else {
+                // Fallback to API call
+                fetch('https://financial-backend1.onrender.com/backend/dummy_xp.php', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Username': localStorage.getItem('username')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('current-xp').textContent = data.xp || 0;
+                        document.getElementById('current-level').textContent = data.level || 1;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching XP:', error);
+                    document.getElementById('current-xp').textContent = 0;
+                    document.getElementById('current-level').textContent = 1;
+                });
+            }
         }
 
         // Theme toggle functionality
@@ -1603,6 +1628,7 @@
         }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script src="js/xpService.js"></script>
     <script src="js/audio.js"></script>
     <script src="js/streakService.js"></script>
     <script src="js/animations.js"></script>
