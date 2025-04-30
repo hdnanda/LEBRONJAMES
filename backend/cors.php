@@ -1,20 +1,20 @@
 <?php
-// Allow from any origin
-if (isset($_SERVER['HTTP_ORIGIN'])) {
-    // Decide if the origin in $_SERVER['HTTP_ORIGIN'] is one you want to allow, and if so:
-    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
-    header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Max-Age: 86400');    // cache for 1 day
-}
+// CORS helper file to be included in all API endpoints
 
-// Access-Control headers are received during OPTIONS requests
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) {
-        header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-    }
-    
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) {
-        header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
-    }
-    exit(0);
-} 
+// We can't use * with credentials, so using the specific origin instead
+$allowed_origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '*';
+
+header("Access-Control-Allow-Origin: $allowed_origin");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Accept");
+header("Access-Control-Allow-Credentials: true");
+header("Access-Control-Max-Age: 1728000"); // 20 days
+header("Content-Type: application/json");
+
+// Handle preflight OPTIONS requests
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    // Just exit with 200 OK for OPTIONS requests
+    http_response_code(200);
+    exit();
+}
+?> 
