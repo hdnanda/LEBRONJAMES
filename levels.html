@@ -6,8 +6,6 @@
     <title>TheMoneyOlympics - Levels</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="js/config.js"></script>
-    <script src="js/xpService.js"></script>
     <style>
         :root {
             /* Light theme variables (default) */
@@ -669,6 +667,18 @@
                         <option value="fr">Français</option>
                     </select>
                 </div>
+                <div class="settings-option">
+                    <span>Database Connection</span>
+                    <button id="dbTestBtn" class="db-test-btn" style="
+                        background: var(--accent-color);
+                        color: white;
+                        border: none;
+                        padding: 0.5rem 1rem;
+                        border-radius: var(--border-radius);
+                        cursor: pointer;
+                        font-size: 0.9rem;
+                    ">Test Connection</button>
+                </div>
             </div>
         </div>
     </div>
@@ -955,6 +965,83 @@
                     event.target.style.display = 'none';
                 }
             };
+
+            // Add the database test function
+            function testDatabaseConnection() {
+                const dbTestBtn = document.getElementById('dbTestBtn');
+                const originalText = dbTestBtn.textContent;
+                
+                // Show loading state
+                dbTestBtn.textContent = 'Testing...';
+                dbTestBtn.disabled = true;
+                
+                // Try to fetch from backend
+                fetch('backend/connection_test.php', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    signal: AbortSignal.timeout(5000) // 5 second timeout
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        dbTestBtn.textContent = '✓ Connected';
+                        dbTestBtn.style.backgroundColor = '#4CAF50'; // Green
+                        
+                        // Create notification
+                        const notification = document.createElement('div');
+                        notification.className = 'xp-notification';
+                        notification.innerHTML = `Database Connected ✓`;
+                        notification.style.backgroundColor = '#4CAF50';
+                        document.body.appendChild(notification);
+                        
+                        setTimeout(() => {
+                            notification.classList.add('fade-out');
+                            setTimeout(() => notification.remove(), 500);
+                        }, 3000);
+                    } else {
+                        throw new Error(data.error || 'Unknown error');
+                    }
+                })
+                .catch(error => {
+                    console.error('[Error] Database test failed:', error);
+                    dbTestBtn.textContent = '✗ Failed';
+                    dbTestBtn.style.backgroundColor = '#FF5252'; // Red
+                    
+                    // Create error notification
+                    const notification = document.createElement('div');
+                    notification.className = 'xp-notification';
+                    notification.innerHTML = `Database Error: ${error.message || 'Connection failed'}`;
+                    notification.style.backgroundColor = '#FF5252';
+                    document.body.appendChild(notification);
+                    
+                    setTimeout(() => {
+                        notification.classList.add('fade-out');
+                        setTimeout(() => notification.remove(), 500);
+                    }, 3000);
+                })
+                .finally(() => {
+                    // Re-enable the button after 3 seconds
+                    setTimeout(() => {
+                        dbTestBtn.disabled = false;
+                        dbTestBtn.textContent = originalText;
+                        dbTestBtn.style.backgroundColor = 'var(--accent-color)';
+                    }, 3000);
+                });
+            }
+
+            // Add event listener to the DB test button
+            const dbTestBtn = document.getElementById('dbTestBtn');
+            if (dbTestBtn) {
+                dbTestBtn.addEventListener('click', testDatabaseConnection);
+            }
         });
     </script>
 </body>
