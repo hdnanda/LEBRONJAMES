@@ -1116,8 +1116,8 @@ async function getTotalXP() {
             return parseInt(localStorage.getItem('userXP')) || 0;
         }
         
-        // Try to fetch from backend
-        const response = await fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
+        // Try to fetch from backend - use a relative path to avoid issues
+        const response = await fetch('backend/xp_handler.php', {
             method: 'GET',
             credentials: 'include',
             headers: {
@@ -1203,8 +1203,9 @@ async function addXP(baseAmount, bonuses = {}) {
             level: currentLevel
         });
         
-        // Always update localStorage first for reliability
+        // Always update localStorage immediately for reliability
         localStorage.setItem('userXP', newTotalXP);
+        localStorage.setItem('pendingXpSync', 'true');
         
         // Update all XP displays immediately
         ['totalXP', 'current-xp'].forEach(id => {
@@ -1228,7 +1229,7 @@ async function addXP(baseAmount, bonuses = {}) {
         if (navigator.onLine) {
             // Use Promise.race with a timeout to avoid blocking on API call
             Promise.race([
-                fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
+                fetch('backend/xp_handler.php', {
                     method: 'POST',
                     credentials: 'include',
                     headers: {
@@ -1247,14 +1248,15 @@ async function addXP(baseAmount, bonuses = {}) {
                 throw new Error('Server response not OK');
             }).then(data => {
                 console.log('[Debug] XP Update Response:', data);
+                localStorage.removeItem('pendingXpSync');
             }).catch(error => {
                 console.warn('[Debug] Server update failed (but XP stored locally):', error);
-                // Queue for later sync
-                window.pendingXPSync = true;
+                // Mark for later sync
+                localStorage.setItem('pendingXpSync', 'true');
             });
         } else {
             console.log('[Debug] Offline mode detected, skipping server update');
-            window.pendingXPSync = true;
+            localStorage.setItem('pendingXpSync', 'true');
         }
         
         return earnedXP;
@@ -1487,14 +1489,22 @@ function forceCheckUIState() {
     async function syncXPWithServer() {
         if (!navigator.onLine) return;
         
+        // Check if we have pending sync
+        const pendingSync = localStorage.getItem('pendingXpSync') === 'true';
+        
+        if (!pendingSync) {
+            console.log('[Debug] No pending XP sync needed');
+            return;
+        }
+        
         try {
-            console.log('[Debug] Network connection restored, attempting to sync XP');
+            console.log('[Debug] Attempting to sync XP with server');
             
             // Get local XP
             const localXP = parseInt(localStorage.getItem('userXP')) || 0;
             
-            // Send XP update to backend
-            const response = await fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
+            // Send XP update to backend - use relative path
+            const response = await fetch('backend/xp_handler.php', {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
@@ -1510,6 +1520,8 @@ function forceCheckUIState() {
             
             if (response.ok) {
                 console.log('[Debug] XP Sync successful');
+                localStorage.removeItem('pendingXpSync');
+                
                 // Optional: Show a small notification
                 const syncNotification = document.createElement('div');
                 syncNotification.className = 'xp-notification';
@@ -1527,6 +1539,22 @@ function forceCheckUIState() {
         }
     }
     
+    // Check for local XP on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        // Update XP display from localStorage
+        const xp = localStorage.getItem('userXP') || 0;
+        
+        ['totalXP', 'current-xp'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = xp;
+            }
+        });
+        
+        // Try syncing after a short delay
+        setTimeout(syncXPWithServer, 1000);
+    });
+    
     // Add event listeners for online/offline events
     window.addEventListener('online', () => {
         console.log('[Debug] Network connection restored');
@@ -1539,13 +1567,12 @@ function forceCheckUIState() {
         isOnline = false;
     });
     
-    // Try to sync on page load if online
-    if (isOnline) {
-        // Wait for DOM to be ready
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(syncXPWithServer, 2000); // Give a short delay before sync attempt
-        });
-    }
+    // Try to sync every 5 minutes if we're online and have pending sync
+    setInterval(() => {
+        if (isOnline && localStorage.getItem('pendingXpSync') === 'true') {
+            syncXPWithServer();
+        }
+    }, 300000); // 5 minutes
 })();
 
 // Direct monitoring system - simpler approach
