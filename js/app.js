@@ -1116,8 +1116,8 @@ async function getTotalXP() {
             return parseInt(localStorage.getItem('userXP')) || 0;
         }
         
-        // Try to fetch from backend - use the Render backend URL
-        const response = await fetch('https://financial-backend1.onrender.com/backend/xp_handler.php', {
+        // Try to fetch from backend - use the Render backend URL with dummy endpoint
+        const response = await fetch('https://financial-backend1.onrender.com/backend/dummy_xp.php', {
             method: 'GET',
             credentials: 'include',
             headers: {
@@ -1229,7 +1229,7 @@ async function addXP(baseAmount, bonuses = {}) {
         if (navigator.onLine) {
             // Use Promise.race with a timeout to avoid blocking on API call
             Promise.race([
-                fetch('https://financial-backend1.onrender.com/backend/xp_handler.php', {
+                fetch('https://financial-backend1.onrender.com/backend/dummy_xp.php', {
                     method: 'POST',
                     credentials: 'include',
                     headers: {
@@ -1503,8 +1503,8 @@ function forceCheckUIState() {
             // Get local XP
             const localXP = parseInt(localStorage.getItem('userXP')) || 0;
             
-            // Send XP update to backend - use the Render backend URL
-            const response = await fetch('https://financial-backend1.onrender.com/backend/xp_handler.php', {
+            // Send XP update to backend - use the Render backend URL with dummy endpoint
+            const response = await fetch('https://financial-backend1.onrender.com/backend/dummy_xp.php', {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
