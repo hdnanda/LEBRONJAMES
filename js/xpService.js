@@ -90,9 +90,9 @@ const xpService = {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
             
-            const response = await fetch('https://financial-backend1.onrender.com/xp_handler.php', {
+            const response = await fetch('https://financial-backend1.onrender.com/backend/xp_handler.php', {
                 method: 'GET',
-                credentials: 'include',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 signal: controller.signal
             });
@@ -131,9 +131,9 @@ const xpService = {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
             
-            const response = await fetch('https://financial-backend1.onrender.com/xp_handler.php', {
+            const response = await fetch('https://financial-backend1.onrender.com/backend/xp_handler.php', {
                 method: 'POST',
-                credentials: 'include',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ xp: this.currentXP }),
                 signal: controller.signal
@@ -389,4 +389,72 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         document.head.appendChild(styleSheet);
     }
-}); 
+});
+
+// Get user's XP from server
+export async function getUserXP() {
+    try {
+        // First check if we're online
+        if (!navigator.onLine) {
+            console.log('Offline mode detected, using localStorage');
+            return parseInt(localStorage.getItem('userXP')) || 0;
+        }
+        
+        const response = await fetch('https://financial-backend1.onrender.com/backend/xp_handler.php', {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            localStorage.setItem('userXP', data.xp);
+            return data.xp;
+        } else {
+            throw new Error(data.message || 'Failed to get XP');
+        }
+    } catch (error) {
+        console.error('Error getting XP:', error);
+        // Fallback to localStorage
+        return parseInt(localStorage.getItem('userXP')) || 0;
+    }
+}
+
+// Update user's XP on the server
+export async function updateUserXP(xp) {
+    try {
+        // Always update localStorage first
+        localStorage.setItem('userXP', xp);
+        
+        // Then try to update server if online
+        if (!navigator.onLine) {
+            return { success: true, message: 'XP saved locally (offline)' };
+        }
+        
+        const response = await fetch('https://financial-backend1.onrender.com/backend/xp_handler.php', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ xp })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating XP:', error);
+        return { success: false, message: `Failed to update server: ${error.message}` };
+    }
+} 
