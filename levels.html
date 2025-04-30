@@ -686,6 +686,7 @@
     <!-- Load scripts at the end of body -->
     <script src="js/topics.js"></script>
     <script src="js/dailyStreakService.js"></script>
+    <script src="js/connection_helper.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/levels.js"></script>
     <script>
@@ -883,62 +884,26 @@
             // First render with 0 XP to show something immediately
             renderTopicsWithXP(0);
 
-            // Before trying to get XP, log in the test user
-            fetch('https://financial-backend1.onrender.com/backend/dummy_user.php', {
-                method: 'GET',
-                credentials: 'include',
-                headers: {
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => {
-                console.log('[Debug] Login Response:', response.status);
-                if (!response.ok) {
-                    throw new Error(`Login error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('[Debug] Login successful:', data);
-                
-                // Now fetch XP using the dummy endpoint
-                return fetch('https://financial-backend1.onrender.com/backend/dummy_xp.php', {
-                    method: 'GET',
-                    credentials: 'include',
-                    headers: {
-                        'Accept': 'application/json'
+            // Use ConnectionHelper to get user XP
+            ConnectionHelper.getUserXP()
+                .then(data => {
+                    console.log('[Debug] XP Data:', data);
+                    if (data && typeof data.xp !== 'undefined') {
+                        const xp = parseInt(data.xp) || 0;
+                        const xpDisplay = document.getElementById('totalXP');
+                        if (xpDisplay) {
+                            xpDisplay.textContent = xp;
+                        }
+                        renderTopicsWithXP(xp);
+                    } else {
+                        console.error('[Debug] Invalid XP data format:', data);
+                        // Keep the initial render with 0 XP
                     }
-                });
-            })
-            .then(response => {
-                console.log('[Debug] XP Response Status:', response.status);
-                console.log('[Debug] XP Response Headers:', [...response.headers.entries()]);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json().catch(err => {
-                    console.error('[Debug] JSON Parse Error:', err);
-                    throw new Error('Failed to parse XP response');
-                });
-            })
-            .then(data => {
-                console.log('[Debug] XP Data:', data);
-                if (data && typeof data.xp !== 'undefined') {
-                    const xp = parseInt(data.xp) || 0;
-                    const xpDisplay = document.getElementById('totalXP');
-                    if (xpDisplay) {
-                        xpDisplay.textContent = xp;
-                    }
-                    renderTopicsWithXP(xp);
-                } else {
-                    console.error('[Debug] Invalid XP data format:', data);
+                })
+                .catch(error => {
+                    console.error('[Error] Failed to fetch XP:', error);
                     // Keep the initial render with 0 XP
-                }
-            })
-            .catch(error => {
-                console.error('[Error] Failed to fetch XP:', error);
-                // Keep the initial render with 0 XP
-            });
+                });
 
             // Set up event listeners for settings
             document.getElementById('soundToggle').addEventListener('change', function(e) {
@@ -994,21 +959,8 @@
                 dbTestBtn.textContent = 'Testing...';
                 dbTestBtn.disabled = true;
                 
-                // Try to fetch from test endpoint for simple status check
-                fetch('https://financial-backend1.onrender.com/backend/connection_test.php', {
-                    method: 'GET',
-                    credentials: 'include',
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                    signal: AbortSignal.timeout(5000) // 5 second timeout
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
+                // Use ConnectionHelper to test connection
+                ConnectionHelper.testConnection()
                 .then(data => {
                     if (data.success) {
                         dbTestBtn.textContent = '✓ Connected';
@@ -1055,13 +1007,7 @@
                     }, 3000);
                 });
             }
-
-            // Add event listener to the DB test button
-            const dbTestBtn = document.getElementById('dbTestBtn');
-            if (dbTestBtn) {
-                dbTestBtn.addEventListener('click', testDatabaseConnection);
-            }
         });
     </script>
 </body>
-</html> 
+</html>
