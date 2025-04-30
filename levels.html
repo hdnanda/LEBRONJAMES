@@ -883,13 +883,32 @@
             // First render with 0 XP to show something immediately
             renderTopicsWithXP(0);
 
-            // Then try to get the actual XP
-            fetch('https://financial-backend1.onrender.com/backend/xp_handler.php', {
+            // Before trying to get XP, log in the test user
+            fetch('https://financial-backend1.onrender.com/backend/dummy_user.php', {
                 method: 'GET',
                 credentials: 'include',
                 headers: {
                     'Accept': 'application/json'
                 }
+            })
+            .then(response => {
+                console.log('[Debug] Login Response:', response.status);
+                if (!response.ok) {
+                    throw new Error(`Login error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('[Debug] Login successful:', data);
+                
+                // Now fetch XP using the dummy endpoint
+                return fetch('https://financial-backend1.onrender.com/backend/dummy_xp.php', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
             })
             .then(response => {
                 console.log('[Debug] XP Response Status:', response.status);
@@ -975,7 +994,7 @@
                 dbTestBtn.textContent = 'Testing...';
                 dbTestBtn.disabled = true;
                 
-                // Try to fetch from backend
+                // Try to fetch from test endpoint for simple status check
                 fetch('https://financial-backend1.onrender.com/backend/connection_test.php', {
                     method: 'GET',
                     credentials: 'include',
