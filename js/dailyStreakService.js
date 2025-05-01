@@ -10,9 +10,9 @@ const dailyStreakService = {
 
     initializeDailyStreak() {
         // Initialize DOM elements
-        this.streakBar = document.querySelector('.streak-progress');
-        this.streakFill = document.querySelector('.streak-bar');
-        this.streakText = document.querySelector('.streak-text span');
+        this.streakBar = document.querySelector('.streak-progress-bar');
+        this.streakFill = document.querySelector('.streak-fill');
+        this.streakText = document.getElementById('streak-count');
         
         // Load saved streak data
         const savedData = localStorage.getItem('dailyStreakData');
@@ -70,21 +70,28 @@ const dailyStreakService = {
         if (!this.streakFill || !this.streakText) return;
         
         // Update the streak counter
-        this.streakText.textContent = `${this.currentStreak}/10`;
+        this.streakText.textContent = this.currentStreak;
         
-        // Calculate width percentage (each day is 10%)
-        const widthPercentage = Math.min(this.currentStreak * 10, 100);
-        
-        // Update the progress bar width
-        this.streakFill.style.width = `${widthPercentage}%`;
-        
-        // Add special effects for high streaks
-        if (this.currentStreak >= 7) {
-            this.streakFill.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
-            this.streakFill.style.boxShadow = '0 0 15px rgba(76, 175, 80, 0.5)';
-        } else {
-            this.streakFill.style.background = '#58cc02';
-            this.streakFill.style.boxShadow = '0 0 10px rgba(88, 204, 2, 0.3)';
+        // Set up the streak fill bar
+        if (this.streakFill) {
+            // Update visual effects for the streak bar based on values
+            if (this.correctAnswerStreak > 0) {
+                // Use correctAnswerStreak for the current session progress
+                const streakWidthPercentage = Math.min(this.correctAnswerStreak * 10, 100);
+                this.streakFill.style.width = `${streakWidthPercentage}%`;
+            } else {
+                // Default width for new sessions
+                this.streakFill.style.width = '0%';
+            }
+            
+            // Add special effects for high streaks
+            if (this.correctAnswerStreak >= 7) {
+                this.streakFill.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
+                this.streakFill.style.boxShadow = '0 0 15px rgba(76, 175, 80, 0.5)';
+            } else {
+                this.streakFill.style.background = '#58cc02';
+                this.streakFill.style.boxShadow = '0 0 10px rgba(88, 204, 2, 0.3)';
+            }
         }
     },
 
@@ -201,26 +208,33 @@ const dailyStreakService = {
             // Increment the correct answer streak
             this.correctAnswerStreak++;
             
-            // Update streak display
-            const streakDisplay = document.querySelector('.streak-count');
+            // Update streak display in settings panel
+            const streakDisplay = document.getElementById('streak-count');
             if (streakDisplay) {
                 streakDisplay.textContent = this.correctAnswerStreak;
             }
             
-            // Update streak bar if it exists
-            if (this.streakFill) {
+            // Update streak bar in the top bar
+            const streakFill = document.querySelector('.streak-fill');
+            if (streakFill) {
                 // Calculate width percentage based on correct answer streak (max 10)
                 const streakWidthPercentage = Math.min(this.correctAnswerStreak * 10, 100);
-                this.streakFill.style.width = `${streakWidthPercentage}%`;
+                streakFill.style.width = `${streakWidthPercentage}%`;
                 
                 // Add special effects for high streaks
                 if (this.correctAnswerStreak >= 7) {
-                    this.streakFill.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
-                    this.streakFill.style.boxShadow = '0 0 15px rgba(76, 175, 80, 0.5)';
+                    streakFill.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
+                    streakFill.style.boxShadow = '0 0 15px rgba(76, 175, 80, 0.5)';
                 } else {
-                    this.streakFill.style.background = '#58cc02';
-                    this.streakFill.style.boxShadow = '0 0 10px rgba(88, 204, 2, 0.3)';
+                    streakFill.style.background = '#58cc02';
+                    streakFill.style.boxShadow = '0 0 10px rgba(88, 204, 2, 0.3)';
                 }
+            }
+            
+            // Show a small notification for streak milestones
+            if (this.correctAnswerStreak === 3 || this.correctAnswerStreak === 5 || 
+                this.correctAnswerStreak === 7 || this.correctAnswerStreak === 10) {
+                this.showStreakMilestoneNotification();
             }
             
             // Save streak data
@@ -229,20 +243,63 @@ const dailyStreakService = {
             // Reset the correct answer streak on wrong answers
             this.correctAnswerStreak = 0;
             
-            // Update streak display
-            const streakDisplay = document.querySelector('.streak-count');
+            // Update streak display in settings panel
+            const streakDisplay = document.getElementById('streak-count');
             if (streakDisplay) {
                 streakDisplay.textContent = this.correctAnswerStreak;
             }
             
             // Update streak bar
-            if (this.streakFill) {
-                this.streakFill.style.width = '0%';
+            const streakFill = document.querySelector('.streak-fill');
+            if (streakFill) {
+                streakFill.style.width = '0%';
             }
             
             // Save streak data
             this.saveStreakData();
         }
+    },
+    
+    // Show notification for streak milestones
+    showStreakMilestoneNotification() {
+        const notification = document.createElement('div');
+        notification.className = 'streak-milestone-notification';
+        notification.innerHTML = `${this.correctAnswerStreak} correct in a row! 🔥`;
+        
+        // Style the notification
+        notification.style.position = 'fixed';
+        notification.style.top = '60px';
+        notification.style.right = '20px';
+        notification.style.background = '#4CAF50';
+        notification.style.color = 'white';
+        notification.style.padding = '10px 20px';
+        notification.style.borderRadius = '4px';
+        notification.style.zIndex = '1000';
+        notification.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+        notification.style.animation = 'slide-in-right 0.5s forwards';
+        
+        // Add animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slide-in-right {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Add to document
+        document.body.appendChild(notification);
+        
+        // Remove after a delay
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => {
+                notification.remove();
+                style.remove();
+            }, 500);
+        }, 2000);
     },
 
     saveStreakData() {
