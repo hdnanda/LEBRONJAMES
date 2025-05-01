@@ -186,9 +186,12 @@ async function handleLogin(event) {
             throw new Error(response.message || 'Login failed');
         }
 
-        // Store auth data
+        // Store auth data - FIXED: Use the exact username provided, not just from response
+        const finalUsername = response.user?.username || username;
+        console.log(`[Login] Storing username in localStorage: ${finalUsername}`);
+        
         localStorage.setItem(AUTH_KEYS.IS_LOGGED_IN, 'true');
-        localStorage.setItem(AUTH_KEYS.USERNAME, username);
+        localStorage.setItem(AUTH_KEYS.USERNAME, finalUsername);
         localStorage.setItem(AUTH_KEYS.USER_EMAIL, email);
         localStorage.setItem(AUTH_KEYS.LAST_LOGIN, new Date().toISOString());
 
@@ -198,7 +201,7 @@ async function handleLogin(event) {
     } catch (error) {
         console.error('Login error:', error);
         showError(error.message || 'An error occurred during login');
-    } finally {
+        
         // Re-enable submit button
         if (submitButton) {
             submitButton.disabled = false;
@@ -211,30 +214,36 @@ async function handleLogin(event) {
  * Handle signup form submission
  */
 async function handleSignup(event) {
-    // FIXED: Prevent default form submission to avoid exposing credentials in URL
+    // Prevent default form submission
     event.preventDefault();
     
     try {
-        // Disable submit button
+        // Disable signup button
         if (signupButton) {
             signupButton.disabled = true;
             signupButton.classList.add('disabled');
         }
 
-        const signupName = document.getElementById('signupName').value.trim();
-        const signupEmail = document.getElementById('signupEmail').value.trim();
-        const signupPassword = document.getElementById('signupPassword').value;
+        const username = document.getElementById('signup-username').value.trim();
+        const email = document.getElementById('signup-email').value.trim();
+        const password = document.getElementById('signup-password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
 
         // Validate inputs
-        if (!signupName || !signupEmail || !signupPassword) {
+        if (!username || !email || !password || !confirmPassword) {
             throw new Error('Please fill in all fields');
         }
 
-        if (!isValidEmail(signupEmail)) {
+        if (password !== confirmPassword) {
+            throw new Error('Passwords do not match');
+        }
+
+        if (!isValidEmail(email)) {
             throw new Error('Please enter a valid email address');
         }
 
-        if (signupPassword.length < 8) {
+        // Simple password validation
+        if (password.length < 8) {
             throw new Error('Password must be at least 8 characters long');
         }
 
@@ -243,7 +252,7 @@ async function handleSignup(event) {
         // Use mock backend in development
         if (isDevelopment || !useRealBackend) {
             console.log('Using mock backend for signup');
-            response = MockBackend.createUser(signupName, signupEmail, signupPassword);
+            response = MockBackend.createUser(username, email, password);
         } else {
             // Use real backend
             const apiResponse = await fetch(`${API_BASE_URL}/signup.php`, {
@@ -253,11 +262,11 @@ async function handleSignup(event) {
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify({
-                    name: signupName,
-                    email: signupEmail,
-                    password: signupPassword
+                    username,
+                    email,
+                    password
                 }),
-                // FIXED: Add timeout to prevent hanging requests
+                // Add timeout
                 signal: AbortSignal.timeout(10000)
             });
             
@@ -268,20 +277,23 @@ async function handleSignup(event) {
             throw new Error(response.message || 'Signup failed');
         }
 
-        // Store auth data
+        // Store auth data - FIXED: Use the exact username provided, not just from response
+        const finalUsername = response.user?.username || username;
+        console.log(`[Signup] Storing username in localStorage: ${finalUsername}`);
+        
         localStorage.setItem(AUTH_KEYS.IS_LOGGED_IN, 'true');
-        localStorage.setItem(AUTH_KEYS.USERNAME, signupName);
-        localStorage.setItem(AUTH_KEYS.USER_EMAIL, signupEmail);
+        localStorage.setItem(AUTH_KEYS.USERNAME, finalUsername);
+        localStorage.setItem(AUTH_KEYS.USER_EMAIL, email);
         localStorage.setItem(AUTH_KEYS.LAST_LOGIN, new Date().toISOString());
 
-        // FIXED: Redirect to main app with clean URL
+        // Redirect to main app
         redirectToMainApp();
 
     } catch (error) {
         console.error('Signup error:', error);
         showError(error.message || 'An error occurred during signup', true);
-    } finally {
-        // Re-enable submit button
+        
+        // Re-enable signup button
         if (signupButton) {
             signupButton.disabled = false;
             signupButton.classList.remove('disabled');
