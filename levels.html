@@ -201,6 +201,17 @@
             gap: 0.5rem;
         }
 
+        .locked-topic {
+            opacity: 0.7;
+            position: relative;
+        }
+
+        .topic-locked-message {
+            font-size: 0.8rem;
+            color: #ff5252;
+            font-style: italic;
+        }
+
         .sub-levels-container {
             display: flex;
             flex-direction: column;
@@ -769,6 +780,34 @@
             });
         }
 
+        // Check if the final exam of a topic has been completed
+        function isTopicExamCompleted(topicId) {
+            topicId = parseInt(topicId);
+            
+            // Find the topic data
+            const topic = window.topicsData.find(t => parseInt(t.id) === topicId);
+            if (!topic) return false;
+            
+            // Find the final exam sublevel (should be the last one and have isExam flag)
+            const finalExam = topic.subLevels.find(sl => sl.isExam === true);
+            if (!finalExam) return false;
+            
+            // Check if this exam is completed
+            return isLevelCompleted(topicId, finalExam.id);
+        }
+
+        // Check if a topic should be unlocked
+        function isTopicUnlocked(topicId, totalXP) {
+            topicId = parseInt(topicId);
+            
+            // First topic is always unlocked
+            if (topicId === 1) return true;
+            
+            // For other topics, check if the previous topic's final exam is completed
+            const previousTopicId = topicId - 1;
+            return isTopicExamCompleted(previousTopicId);
+        }
+
         function createConnectingLines(container, cards) {
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.classList.add('connecting-line');
@@ -991,15 +1030,25 @@
                     const topicContainer = document.createElement('div');
                     topicContainer.className = 'topic-container';
 
+                    // Check if this topic is unlocked based on previous topic completion
+                    const isTopicLocked = !isTopicUnlocked(topic.id, totalXP);
+
                     // Create topic header
                     const topicHeader = document.createElement('div');
                     topicHeader.className = 'topic-header';
+                    
+                    // Add locked class if topic is locked
+                    if (isTopicLocked) {
+                        topicHeader.classList.add('locked-topic');
+                    }
+                    
                     topicHeader.innerHTML = `
                         <div class="level-content">
-                            <div class="topic-icon">${topic.icon}</div>
+                            <div class="topic-icon">${isTopicLocked ? '🔒' : topic.icon}</div>
                             <div class="topic-text">
                                 <div class="topic-number">Topic ${topic.id}</div>
                                 <div class="topic-title">${topic.title}</div>
+                                ${isTopicLocked ? '<div class="topic-locked-message">Complete previous topic\'s final exam to unlock</div>' : ''}
                             </div>
                         </div>
                     `;
@@ -1012,7 +1061,10 @@
 
                     topic.subLevels.forEach(subLevel => {
                         const subLevelCard = document.createElement('div');
-                        const isLocked = totalXP < subLevel.xpRequired;
+                        // A sublevel is locked if either:
+                        // 1. The entire topic is locked, or
+                        // 2. The user doesn't have enough XP for this specific sublevel
+                        const isLocked = isTopicLocked || totalXP < subLevel.xpRequired;
                         const isCompleted = isLevelCompleted(topic.id, subLevel.id);
 
                         subLevelCard.className = `sub-level-card ${isLocked ? 'locked' : ''} ${isCompleted ? 'completed' : ''} ${subLevel.isExam ? 'exam-card' : ''}`;
@@ -1026,7 +1078,11 @@
                         `;
 
                         if (isLocked) {
-                            tooltipContent += `<div class="tooltip-xp">XP Required: ${subLevel.xpRequired}</div>`;
+                            if (isTopicLocked) {
+                                tooltipContent += `<div class="tooltip-xp">Complete previous topic's final exam to unlock</div>`;
+                            } else {
+                                tooltipContent += `<div class="tooltip-xp">XP Required: ${subLevel.xpRequired}</div>`;
+                            }
                         }
 
                         tooltipContent += `</div>`;
