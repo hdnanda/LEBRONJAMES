@@ -1222,7 +1222,7 @@ async function addXP(baseAmount, bonuses = {}) {
             
             // Send XP update to server
             try {
-                await fetch('https://financial-backend1.onrender.com/backend/dummy_xp.php', {
+                await fetch('https://financial-backend1.onrender.com/xp_handler.php', {
                     method: 'POST',
                     credentials: 'include',
                     headers: {
