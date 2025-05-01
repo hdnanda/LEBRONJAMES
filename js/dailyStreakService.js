@@ -6,6 +6,7 @@ const dailyStreakService = {
     streakFill: null,
     streakText: null,
     rewardGiven: false,
+    correctAnswerStreak: 0, // Track correct answer streak within sessions
 
     initializeDailyStreak() {
         // Initialize DOM elements
@@ -20,6 +21,7 @@ const dailyStreakService = {
             this.currentStreak = data.currentStreak || 0;
             this.lastLoginDate = data.lastLoginDate ? new Date(data.lastLoginDate) : null;
             this.rewardGiven = data.rewardGiven || false;
+            this.correctAnswerStreak = data.correctAnswerStreak || 0; // Load correct answer streak
             
             // Check if streak should be maintained or reset
             if (this.lastLoginDate) {
@@ -59,6 +61,7 @@ const dailyStreakService = {
         this.currentStreak = 1;
         this.lastLoginDate = new Date();
         this.rewardGiven = false;
+        this.correctAnswerStreak = 0; // Reset correct answer streak
         this.saveStreakData();
         this.updateStreakDisplay();
     },
@@ -192,15 +195,69 @@ const dailyStreakService = {
         }
     },
 
+    // Handle streak updates when answering questions
+    handleStreakUpdate(isCorrect) {
+        if (isCorrect) {
+            // Increment the correct answer streak
+            this.correctAnswerStreak++;
+            
+            // Update streak display
+            const streakDisplay = document.querySelector('.streak-count');
+            if (streakDisplay) {
+                streakDisplay.textContent = this.correctAnswerStreak;
+            }
+            
+            // Update streak bar if it exists
+            if (this.streakFill) {
+                // Calculate width percentage based on correct answer streak (max 10)
+                const streakWidthPercentage = Math.min(this.correctAnswerStreak * 10, 100);
+                this.streakFill.style.width = `${streakWidthPercentage}%`;
+                
+                // Add special effects for high streaks
+                if (this.correctAnswerStreak >= 7) {
+                    this.streakFill.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
+                    this.streakFill.style.boxShadow = '0 0 15px rgba(76, 175, 80, 0.5)';
+                } else {
+                    this.streakFill.style.background = '#58cc02';
+                    this.streakFill.style.boxShadow = '0 0 10px rgba(88, 204, 2, 0.3)';
+                }
+            }
+            
+            // Save streak data
+            this.saveStreakData();
+        } else {
+            // Reset the correct answer streak on wrong answers
+            this.correctAnswerStreak = 0;
+            
+            // Update streak display
+            const streakDisplay = document.querySelector('.streak-count');
+            if (streakDisplay) {
+                streakDisplay.textContent = this.correctAnswerStreak;
+            }
+            
+            // Update streak bar
+            if (this.streakFill) {
+                this.streakFill.style.width = '0%';
+            }
+            
+            // Save streak data
+            this.saveStreakData();
+        }
+    },
+
     saveStreakData() {
         const data = {
             currentStreak: this.currentStreak,
             lastLoginDate: this.lastLoginDate.toISOString(),
-            rewardGiven: this.rewardGiven
+            rewardGiven: this.rewardGiven,
+            correctAnswerStreak: this.correctAnswerStreak // Save correct answer streak
         };
         localStorage.setItem('dailyStreakData', JSON.stringify(data));
     }
 };
 
 // Make dailyStreakService available globally
-window.dailyStreakService = dailyStreakService; 
+window.dailyStreakService = dailyStreakService;
+
+// For backwards compatibility with code that uses streakService
+window.streakService = dailyStreakService; 
