@@ -1090,12 +1090,6 @@
                             if (modalXPDisplay) {
                                 modalXPDisplay.textContent = xp;
                             }
-                            
-                            if (data.success) {
-                                showNotification(`XP Loaded: ${xp} points`);
-                            } else {
-                                showNotification('Server error loading XP data', false);
-                            }
                         } else {
                             console.warn('[Debug] Invalid XP data format:', data);
                             // Show error and use 0 XP
@@ -1103,7 +1097,6 @@
                                 xpDisplay.textContent = '0';
                             }
                             renderTopicsWithXP(0);
-                            showNotification('Failed to load XP data from server', false);
                         }
                     })
                     .catch(error => {
@@ -1112,7 +1105,6 @@
                             xpDisplay.textContent = '0';
                         }
                         renderTopicsWithXP(0);
-                        showNotification('Error connecting to server', false);
                     });
             }
 
