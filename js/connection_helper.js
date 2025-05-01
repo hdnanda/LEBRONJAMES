@@ -46,7 +46,10 @@ const ConnectionHelper = {
             // If local fails, try fallback
             if (!response.ok && API_CONFIG.FALLBACK_URL) {
                 console.log(`[ConnectionHelper] Local request failed, trying fallback`);
-                const fallbackUrl = `${API_CONFIG.FALLBACK_URL}/${endpoint}`;
+                // Remove 'backend/' prefix when using the fallback URL since the paths are already at root on the backend server
+                const cleanEndpoint = endpoint.replace('backend/', '');
+                const fallbackUrl = `${API_CONFIG.FALLBACK_URL}/${cleanEndpoint}`;
+                console.log(`[ConnectionHelper] Fallback URL: ${fallbackUrl}`);
                 response = await fetch(fallbackUrl, fetchOptions);
             }
             
@@ -93,7 +96,7 @@ const ConnectionHelper = {
             await this.loginTestUser();
             
             // Then get XP
-            return await this.request('backend/dummy_xp.php');
+            return await this.request('xp_handler.php');
         } catch (error) {
             console.error('[ConnectionHelper] Failed to get user XP:', error);
             // Return 0 as default XP
