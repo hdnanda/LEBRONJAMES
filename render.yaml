@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: financial-backend
+    env: docker
+    repo: https://github.com/hdnanda/LEBRONJAMES
+    branch: master
+    #rootDir: backend
+    dockerfilePath: backend/Dockerfile
+    plan: free
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DB_HOST
+        sync: false # Will be set manually in Render dashboard
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: ALLOWED_ORIGIN
+        value: https://hdnanda.github.io/LEBRONJAMES # GitHub Pages URL 
