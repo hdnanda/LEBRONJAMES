@@ -6,7 +6,7 @@ ini_set('display_errors', 1);
 // Set CORS headers for browser access
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Accept, X-Username, x-username');
+header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Accept');
 header('Access-Control-Allow-Credentials: true');
 header('Content-Type: application/json');
 
@@ -16,9 +16,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-// Get username from header
-$headers = function_exists('getallheaders') ? getallheaders() : [];
-$username = isset($headers['X-Username']) ? $headers['X-Username'] : 'test';
+// Get username from query parameter, POST data, or default to 'test'
+// Try GET parameter first
+if (isset($_GET['username'])) {
+    $username = $_GET['username'];
+} else {
+    // Try POST data
+    $input = file_get_contents('php://input');
+    $data = json_decode($input, true);
+    $username = isset($data['username']) ? $data['username'] : 'test';
+}
 
 // Default user data - this is a dummy version so we just return mock data
 $userData = [
