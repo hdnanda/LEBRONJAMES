@@ -16,6 +16,33 @@ const settingsPanel = document.getElementById('settings-panel');
 const closeSettingsBtn = document.getElementById('close-settings');
 const settingsOverlay = document.getElementById('settings-overlay');
 
+// Create a window.auth object to expose authentication functions globally
+window.auth = {
+    /**
+     * Get the current user's username
+     * @returns {string} The current username or null if not logged in
+     */
+    getCurrentUser: function() {
+        return localStorage.getItem('username') || null;
+    },
+    
+    /**
+     * Check if the user is currently logged in
+     * @returns {boolean} True if logged in, false otherwise
+     */
+    isLoggedIn: function() {
+        return !!localStorage.getItem('isLoggedIn');
+    },
+    
+    /**
+     * Get the user's email
+     * @returns {string} The user's email or null if not available
+     */
+    getUserEmail: function() {
+        return localStorage.getItem('userEmail') || null;
+    }
+};
+
 // Event Listeners
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is logged in
@@ -64,6 +91,9 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         document.head.appendChild(script);
     }
+    
+    // Log the current user for debugging
+    console.log('[Auth] Current user:', window.auth.getCurrentUser());
 });
 
 /**
@@ -314,14 +344,16 @@ function confirmLogout() {
 function handleLogout() {
     console.log('Logout requested');
     
-    // Clear authentication data from localStorage
+    // Clear ALL authentication data from localStorage
     localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('username');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('lastLogin');
     
-    // Note: We're keeping the streak and user email data for when the user logs back in
-    // If you want to clear all user data, uncomment these lines:
-    // localStorage.removeItem('userEmail');
-    // localStorage.removeItem('finlitStreak');
-    // localStorage.removeItem('lastVisitDate');
+    // Clear any session-specific data but keep settings preferences
+    // This is important to ensure XP data doesn't carry over between users
+    
+    console.log('User data cleared from localStorage');
     
     // Play logout sound
     playLogoutSound();
