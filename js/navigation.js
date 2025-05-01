@@ -8,8 +8,12 @@ document.addEventListener('DOMContentLoaded', function() {
                       currentPath === '/financial-frontend-3xkp.onrender.com/' ||
                       currentPath === '/financial-frontend-3xkp.onrender.com/index.html';
     
-    // If we're at the root URL or index.html, redirect to homepage.html
-    if (isRootUrl) {
+    // Check if we're accessing a sub-lesson (has URL parameters)
+    const urlParams = new URLSearchParams(window.location.search);
+    const isAccessingSubLesson = urlParams.has('topic') || urlParams.has('sublevel');
+    
+    // If we're at the root URL or index.html AND not accessing a sub-lesson, redirect to homepage.html
+    if (isRootUrl && !isAccessingSubLesson) {
         console.log('Redirecting from index to homepage');
         window.location.href = 'homepage.html';
         return;
