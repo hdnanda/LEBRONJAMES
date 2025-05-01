@@ -193,10 +193,13 @@ const ConnectionHelper = {
      */
     getUserXP: async function() {
         try {
-            console.log('[ConnectionHelper] Fetching XP for user: test');
+            // Get username from auth if available
+            const username = window.auth && window.auth.getCurrentUser ? window.auth.getCurrentUser() : 'test';
             
-            // Force direct backend URL for dummy_xp.php - use query param instead of header
-            const directUrl = `${API_CONFIG.BACKEND_URL}/dummy_xp.php?username=test`;
+            console.log(`[ConnectionHelper] Fetching XP for user: ${username}`);
+            
+            // Force direct backend URL for xp_handler.php - use query param instead of header
+            const directUrl = `${API_CONFIG.BACKEND_URL}/xp_handler.php?username=${encodeURIComponent(username)}`;
             console.log(`[ConnectionHelper] Using direct backend URL: ${directUrl}`);
             
             const response = await fetch(directUrl, {
@@ -204,7 +207,6 @@ const ConnectionHelper = {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json'
-                    // Removed X-Username header to avoid CORS preflight
                 },
                 mode: 'cors'
             });
@@ -254,17 +256,20 @@ const ConnectionHelper = {
      */
     updateXP: async function(xp, completedLevels = [], completedExams = []) {
         try {
-            console.log(`[ConnectionHelper] Updating XP to ${xp} for user: test`);
+            // Get username from auth if available
+            const username = window.auth && window.auth.getCurrentUser ? window.auth.getCurrentUser() : 'test';
+            
+            console.log(`[ConnectionHelper] Updating XP to ${xp} for user: ${username}`);
             
             const data = {
                 xp: xp,
                 completed_levels: completedLevels,
                 completed_exams: completedExams,
-                username: 'test' // Include username in body instead of header
+                username: username // Include username in body
             };
             
-            // Force direct backend URL for dummy_xp.php
-            const directUrl = `${API_CONFIG.BACKEND_URL}/dummy_xp.php`;
+            // Force direct backend URL for xp_handler.php
+            const directUrl = `${API_CONFIG.BACKEND_URL}/xp_handler.php`;
             console.log(`[ConnectionHelper] Using direct backend URL: ${directUrl}`);
             
             const response = await fetch(directUrl, {
@@ -272,7 +277,6 @@ const ConnectionHelper = {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json'
-                    // Removed X-Username header to avoid CORS preflight
                 },
                 mode: 'cors',
                 body: JSON.stringify(data)
