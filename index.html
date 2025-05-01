@@ -10,16 +10,23 @@
     <script>
         // Check if this is a first-time visitor
         window.addEventListener('DOMContentLoaded', function() {
-            // If we have no localStorage data at all, this is likely a first-time visitor
+            // Check if we're accessing a sub-lesson (has URL parameters)
+            const urlParams = new URLSearchParams(window.location.search);
+            const isAccessingSubLesson = urlParams.has('topic') || urlParams.has('sublevel');
+            
+            // Only redirect to homepage if:
+            // 1. This is a first-time visitor
+            // 2. They're not trying to access a specific sub-lesson
             const isFirstTimeVisitor = !localStorage.getItem('hasVisited');
             
-            if (isFirstTimeVisitor) {
+            if (isFirstTimeVisitor && !isAccessingSubLesson) {
                 // Mark that they've visited
                 localStorage.setItem('hasVisited', 'true');
                 // Redirect to homepage
                 window.location.href = 'homepage.html';
             }
-            // If not a first-time visitor, let the auth.js script handle redirection
+            // If accessing a sub-lesson or not a first-time visitor, 
+            // let the auth.js script handle authentication
         });
     </script>
     <!-- Load navigation.js first for redirect logic -->
