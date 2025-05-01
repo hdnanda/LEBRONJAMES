@@ -193,10 +193,26 @@ const ConnectionHelper = {
      */
     getUserXP: async function() {
         try {
-            // Get username from auth if available
-            const username = window.auth && window.auth.getCurrentUser ? window.auth.getCurrentUser() : 'test';
+            // Get username from auth if available, with better fallback mechanism
+            let username = 'guest';
+            
+            // First try to get username from auth object
+            if (window.auth && typeof window.auth.getCurrentUser === 'function') {
+                const authUsername = window.auth.getCurrentUser();
+                if (authUsername) {
+                    username = authUsername;
+                }
+            } 
+            // If that fails, try localStorage directly
+            else if (localStorage.getItem('username')) {
+                username = localStorage.getItem('username');
+            }
             
             console.log(`[ConnectionHelper] Fetching XP for user: ${username}`);
+            
+            if (username === 'guest') {
+                console.warn('[ConnectionHelper] No username available, using guest account');
+            }
             
             // Force direct backend URL for xp_handler.php - use query param instead of header
             const directUrl = `${API_CONFIG.BACKEND_URL}/xp_handler.php?username=${encodeURIComponent(username)}`;
@@ -256,10 +272,26 @@ const ConnectionHelper = {
      */
     updateXP: async function(xp, completedLevels = [], completedExams = []) {
         try {
-            // Get username from auth if available
-            const username = window.auth && window.auth.getCurrentUser ? window.auth.getCurrentUser() : 'test';
+            // Get username with better fallback mechanism
+            let username = 'guest';
+            
+            // First try to get username from auth object
+            if (window.auth && typeof window.auth.getCurrentUser === 'function') {
+                const authUsername = window.auth.getCurrentUser();
+                if (authUsername) {
+                    username = authUsername;
+                }
+            } 
+            // If that fails, try localStorage directly
+            else if (localStorage.getItem('username')) {
+                username = localStorage.getItem('username');
+            }
             
             console.log(`[ConnectionHelper] Updating XP to ${xp} for user: ${username}`);
+            
+            if (username === 'guest') {
+                console.warn('[ConnectionHelper] No username available, using guest account');
+            }
             
             const data = {
                 xp: xp,
