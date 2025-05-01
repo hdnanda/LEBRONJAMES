@@ -1,5 +1,26 @@
 // Main application logic for Financial Literacy App
 
+// Ensure ConnectionHelper is available globally
+(function ensureConnectionHelper() {
+    if (!window.ConnectionHelper && typeof ConnectionHelper !== 'undefined') {
+        console.log('[App] Making ConnectionHelper globally available');
+        window.ConnectionHelper = ConnectionHelper;
+    } else if (!window.ConnectionHelper) {
+        console.warn('[App] ConnectionHelper not found, will attempt to load it');
+        
+        // Try to load script dynamically
+        const script = document.createElement('script');
+        script.src = 'js/connection_helper.js';
+        script.onload = function() {
+            console.log('[App] ConnectionHelper loaded successfully');
+            if (typeof ConnectionHelper !== 'undefined' && !window.ConnectionHelper) {
+                window.ConnectionHelper = ConnectionHelper;
+            }
+        };
+        document.head.appendChild(script);
+    }
+})();
+
 // DOM Elements
 const questionText = document.getElementById('question-text');
 const optionsContainer = document.getElementById('options-container');
@@ -1131,6 +1152,12 @@ async function getTotalXP() {
 async function addXP(baseAmount, bonuses = {}) {
     try {
         console.log('[Debug] Adding XP - Base Amount:', baseAmount, 'Bonuses:', bonuses);
+        
+        // Ensure ConnectionHelper is available
+        if (!window.ConnectionHelper && typeof ConnectionHelper !== 'undefined') {
+            console.log('[Debug] Making ConnectionHelper globally available in addXP');
+            window.ConnectionHelper = ConnectionHelper;
+        }
         
         const currentLevel = await getCurrentLevel();
         const levelMultiplier = 1 + (currentLevel - 1) * 0.1; // 10% increase per level
