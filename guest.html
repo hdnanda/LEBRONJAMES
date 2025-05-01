@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TheMoneyOlympics - Financial Literacy App</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            /* Light theme variables (default) */
+            --bg-color: #f5f5f5;
+            --app-bg: rgba(255, 255, 255, 0.95);
+            --question-bg: rgba(240, 240, 240, 0.9);
+            --text-color: #333333;
+            --border-color: rgba(0, 0, 0, 0.2);
+            --glow-color: rgba(0, 0, 0, 0.1);
+            --inner-glow: rgba(0, 0, 0, 0.05);
+            --header-bg: rgba(255, 255, 255, 0.3);
+            --card-bg: rgba(255, 255, 255, 0.3);
+            --accent-color: #85bb65;
+            --accent-hover: rgba(133, 187, 101, 0.2);
+            --overlay-bg: rgba(0, 0, 0, 0.5);
+        }
+
+        :root[data-theme="dark"] {
+            /* Dark theme variables */
+            --bg-color: #000000;
+            --app-bg: rgba(64, 64, 64, 0.95);
+            --question-bg: rgba(32, 32, 32, 0.9);
+            --text-color: #ffffff;
+            --border-color: rgba(255, 255, 255, 0.2);
+            --glow-color: rgba(255, 255, 255, 0.15);
+            --inner-glow: rgba(255, 255, 255, 0.1);
+            --header-bg: rgba(64, 64, 64, 0.3);
+            --card-bg: rgba(64, 64, 64, 0.3);
+            --accent-color: #85bb65;
+            --accent-hover: rgba(133, 187, 101, 0.2);
+            --overlay-bg: rgba(0, 0, 0, 0.7);
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .background-illustrations {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-element {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.25;
+            transition: all 0.3s ease;
+            filter: blur(50px);
+            mix-blend-mode: screen;
+            background: linear-gradient(45deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.95));
+            box-shadow: 0 0 100px rgba(255, 255, 255, 0.4);
+        }
+
+        .bg-element:nth-child(1) {
+            width: min(400px, 40vw);
+            height: min(400px, 40vw);
+            top: -15vh;
+            left: -10vw;
+            animation: float 25s infinite ease-in-out;
+            opacity: 0.3;
+        }
+
+        .bg-element:nth-child(2) {
+            width: min(300px, 35vw);
+            height: min(300px, 35vw);
+            bottom: -10vh;
+            right: -10vw;
+            animation: float 20s infinite ease-in-out reverse;
+            opacity: 0.25;
+        }
+
+        .bg-element:nth-child(3) {
+            width: min(250px, 30vw);
+            height: min(250px, 30vw);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: float 30s infinite ease-in-out;
+            opacity: 0.2;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translate(0, 0) rotate(0deg) scale(1);
+            }
+            25% {
+                transform: translate(min(100px, 8vw), min(100px, 8vh)) rotate(120deg) scale(1.1);
+            }
+            50% {
+                transform: translate(0, min(200px, 15vh)) rotate(240deg) scale(1);
+            }
+            75% {
+                transform: translate(min(-100px, -8vw), min(100px, 8vh)) rotate(360deg) scale(0.9);
+            }
+        }
+
+        .app-container {
+            background: var(--app-bg);
+            border-radius: 20px;
+            padding: 24px;
+            width: min(90%, 600px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+                        0 0 30px var(--glow-color);
+            position: relative;
+            z-index: 1;
+            margin: 20px auto;
+            opacity: 0;
+            animation: fadeIn 0.8s forwards;
+            animation-delay: 0.2s;
+        }
+
+        .step-container {
+            display: none;
+            opacity: 0;
+            transform: translateY(0) scale(0.98);
+            transition: opacity 0.8s cubic-bezier(0.4, 0.0, 0.2, 1), 
+                        transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1);
+            position: absolute;
+            width: 100%;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            will-change: opacity, transform;
+            backface-visibility: hidden;
+        }
+
+        .step-container.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            position: relative;
+            transition: opacity 0.8s cubic-bezier(0.4, 0.0, 0.2, 1), 
+                        transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+
+        .step-container.fade-out {
+            opacity: 0;
+            transform: translateY(0) scale(0.98);
+            transition: opacity 0.6s cubic-bezier(0.4, 0.0, 0.2, 1), 
+                        transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+
+        .step-title {
+            font-size: 2rem;
+            color: var(--accent-color);
+            margin-bottom: 1.5rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .step-description {
+            font-size: 1.2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+
+        .option-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 2rem;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: var(--question-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .option-item:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .option-item.selected {
+            background: var(--accent-hover);
+            border-color: var(--accent-color);
+        }
+
+        .option-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            margin-right: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .option-item.selected .option-checkbox {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .option-item.selected .option-checkbox::after {
+            content: "✓";
+            color: white;
+            font-size: 14px;
+        }
+
+        .option-label {
+            font-size: 1.1rem;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: var(--question-bg);
+            color: var(--text-color);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .nav-btn.next {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .nav-btn.prev {
+            background: transparent;
+            border: 1px solid var(--border-color);
+        }
+
+        .gold-button {
+            display: none;
+            margin: 1.5rem auto;
+            padding: 12px 30px;
+            background: linear-gradient(to bottom right, #FFD700, #B8860B);
+            color: #000;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+            transition: all 0.3s ease, opacity 0.5s ease;
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+            width: fit-content;
+            opacity: 0;
+        }
+
+        .gold-button::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to bottom right,
+                rgba(255, 255, 255, 0.6),
+                rgba(255, 255, 255, 0)
+            );
+            transform: rotate(30deg);
+            opacity: 0.5;
+            pointer-events: none;
+            animation: shine 1.5s infinite;
+        }
+
+        .gold-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.6);
+        }
+
+        @keyframes shine {
+            0% {
+                opacity: 0.5;
+                left: -50%;
+            }
+            50% {
+                opacity: 0.8;
+            }
+            100% {
+                opacity: 0;
+                left: 100%;
+            }
+        }
+
+        /* Quiz styling */
+        .quiz-container {
+            display: none;
+            margin-top: 2rem;
+        }
+
+        .quiz-question {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .quiz-option {
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--question-bg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quiz-option:hover {
+            background: var(--accent-hover);
+        }
+
+        .quiz-option.selected {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .submit-quiz {
+            margin-top: 1.5rem;
+            padding: 10px 20px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-quiz:hover {
+            background: var(--accent-hover);
+            color: var(--text-color);
+        }
+
+        #progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: var(--border-color);
+            border-radius: 3px;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        
+        #progress-indicator {
+            height: 100%;
+            background-color: var(--accent-color);
+            width: 25%;
+            transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        
+        /* Add transition overlay for smooth page transitions */
+        .page-transition-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--accent-color);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        
+        .page-transition-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        /* Page entry animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-transition-overlay" id="page-transition"></div>
+    
+    <div class="background-illustrations">
+        <div class="bg-element"></div>
+        <div class="bg-element"></div>
+        <div class="bg-element"></div>
+    </div>
+
+    <div class="app-container">
+        <div id="progress-bar">
+            <div id="progress-indicator"></div>
+        </div>
+
+        <!-- Step 1 -->
+        <div class="step-container active" id="step1">
+            <h2 class="step-title">Why are you here?</h2>
+            <p class="step-description">What's your money mission?</p>
+            <div class="option-list">
+                <div class="option-item" data-value="save_better">
+                    <div class="option-checkbox"></div>
+                    <span class="option-label">I want to save better</span>
+                </div>
+                <div class="option-item" data-value="stop_wasting">
+                    <div class="option-checkbox"></div>
+                    <span class="option-label">I want to stop wasting money</span>
+                </div>
+                <div class="option-item" data-value="build_habits">
+                    <div class="option-checkbox"></div>
+                    <span class="option-label">I want to build good habits early</span>
+                </div>
+                <div class="option-item" data-value="smarter_than_parents">
+                    <div class="option-checkbox"></div>
+                    <span class="option-label">I want to be smarter than my parents with money</span>
+                </div>
+                <div class="option-item" data-value="exploring">
+                    <div class="option-checkbox"></div>
+                    <span class="option-label">Just exploring</span>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-btn prev" disabled>Back</button>
+                <button class="nav-btn next" id="next1">Next</button>
+            </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step-container" id="step2">
+            <h2 class="step-title">How much time can you give it?</h2>
+            <p class="step-description">No fluff. Just fast lessons that work.</p>
+            <div class="option-list">
+                <div class="option-item" data-value="casual">
+                    <div class="option-checkbox"></div>
+                    <span class="option-label">5 min a day (Casual)</span>
+                </div>
+                <div class="option-item" data-value="focused">
+                    <div class="option-checkbox"></div>
+                    <span class="option-label">10 min (Focused)</span>
+                </div>
+                <div class="option-item" data-value="olympian">
+                    <div class="option-checkbox"></div>
+                    <span class="option-label">15+ min (Olympian mode)</span>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-btn prev">Back</button>
+                <button class="nav-btn next" id="next2">Next</button>
+            </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step-container" id="step3">
+            <h2 class="step-title">Pick your starting point</h2>
+            <p class="step-description">Money stuff at school? Never heard of it.</p>
+            <div class="option-list">
+                <div class="option-item" data-value="zero">
+                    <div class="option-checkbox"></div>
+                    <span class="option-label">I'm starting from zero</span>
+                </div>
+                <div class="option-item" data-value="some_knowledge">
+                    <div class="option-checkbox"></div>
+                    <span class="option-label">I know a bit already</span>
+                </div>
+                <div class="option-item" data-value="quiz">
+                    <div class="option-checkbox"></div>
+                    <span class="option-label">Let me take a short quiz and place me</span>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-btn prev">Back</button>
+                <button class="nav-btn next" id="next3">Next</button>
+            </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="step-container" id="step4">
+            <h2 class="step-title">Start your first challenge</h2>
+            <p class="step-description">You'll learn by doing. No boring lectures. Jump into your first challenge and start earning points for getting smarter.</p>
+            <div id="letsgo-button-container" style="text-align: center;">
+                <!-- Gold button will appear here after 2 seconds -->
+            </div>
+            <div class="navigation">
+                <button class="nav-btn next" disabled style="visibility: hidden;">Next</button>
+            </div>
+        </div>
+
+        <!-- Quiz Container -->
+        <div class="quiz-container" id="quiz-container">
+            <h2 class="step-title">Quick Knowledge Check</h2>
+            <p class="step-description">Let's see what you already know about money</p>
+            
+            <div class="quiz-question">
+                What is compound interest?
+            </div>
+            <div class="quiz-options">
+                <div class="quiz-option" data-correct="true">Interest earned on both the initial principal and previously accumulated interest</div>
+                <div class="quiz-option">The interest banks charge on credit cards</div>
+                <div class="quiz-option">A fixed amount you earn on savings</div>
+                <div class="quiz-option">A type of investment strategy</div>
+            </div>
+            
+            <div class="quiz-question" style="margin-top: 20px;">
+                What is typically the first step in creating a budget?
+            </div>
+            <div class="quiz-options">
+                <div class="quiz-option">Cut all unnecessary spending</div>
+                <div class="quiz-option" data-correct="true">Track your income and expenses</div>
+                <div class="quiz-option">Open a savings account</div>
+                <div class="quiz-option">Set financial goals</div>
+            </div>
+            
+            <button class="submit-quiz" id="submit-quiz">Submit Answers</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const steps = document.querySelectorAll('.step-container');
+            const progressIndicator = document.getElementById('progress-indicator');
+            const nextButtons = document.querySelectorAll('.nav-btn.next');
+            const prevButtons = document.querySelectorAll('.nav-btn.prev');
+            const optionItems = document.querySelectorAll('.option-item');
+            const quizContainer = document.getElementById('quiz-container');
+            const quizOptions = document.querySelectorAll('.quiz-option');
+            const submitQuizButton = document.getElementById('submit-quiz');
+            const letsgoButtonContainer = document.getElementById('letsgo-button-container');
+            const pageTransition = document.getElementById('page-transition');
+            
+            // Handle entry transition
+            setTimeout(() => {
+                if (pageTransition.classList.contains('active')) {
+                    pageTransition.classList.remove('active');
+                }
+            }, 200);
+            
+            let currentStep = 0;
+            let selectedOptions = {
+                step1: null,
+                step2: null,
+                step3: null
+            };
+
+            // Show the current step with luxury fade transitions
+            function showStep(stepIndex) {
+                // Handle transitions smoothly
+                let activeStep = null;
+                
+                // Find the currently active step
+                steps.forEach((step, index) => {
+                    if (step.classList.contains('active')) {
+                        activeStep = {index, element: step};
+                    }
+                });
+                
+                // If there is an active step (not initial load)
+                if (activeStep) {
+                    // Fade out current step with subtle scale
+                    activeStep.element.classList.add('fade-out');
+                    
+                    // After a short delay, hide current and fade in next
+                    setTimeout(() => {
+                        activeStep.element.classList.remove('active', 'fade-out');
+                        
+                        // Start next step invisible
+                        steps[stepIndex].style.opacity = '0';
+                        steps[stepIndex].style.transform = 'translateY(0) scale(0.98)';
+                        steps[stepIndex].classList.add('active');
+                        
+                        // Force reflow
+                        void steps[stepIndex].offsetWidth;
+                        
+                        // Fade in next step
+                        steps[stepIndex].style.opacity = '1';
+                        steps[stepIndex].style.transform = 'translateY(0) scale(1)';
+                        
+                        // Update progress bar with elegant timing
+                        progressIndicator.style.width = `${(stepIndex + 1) * 25}%`;
+                    }, 500); // Slightly longer delay for luxury pacing
+                }
+                // Initial load (no animation needed)
+                else {
+                    steps.forEach((step, index) => {
+                        if (index === stepIndex) {
+                            step.classList.add('active');
+                        } else {
+                            step.classList.remove('active');
+                        }
+                    });
+                    
+                    // Update progress bar
+                    progressIndicator.style.width = `${(stepIndex + 1) * 25}%`;
+                }
+                
+                currentStep = stepIndex;
+            }
+
+            // Option selection
+            optionItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const parent = this.parentElement;
+                    const stepId = this.closest('.step-container').id;
+                    
+                    // Remove selected class from all options in this step
+                    parent.querySelectorAll('.option-item').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    
+                    // Add selected class to clicked option
+                    this.classList.add('selected');
+                    
+                    // Store selection
+                    selectedOptions[stepId] = this.dataset.value;
+                    
+                    // Enable next button for this step
+                    document.querySelector(`#${stepId} .nav-btn.next`).removeAttribute('disabled');
+                    
+                    // If in step 3 and quiz option is selected
+                    if (stepId === 'step3' && this.dataset.value === 'quiz') {
+                        // We'll handle this when moving to step 4
+                    }
+                });
+            });
+
+            // Quiz option selection
+            quizOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    // Remove selected class from all options in the same question
+                    const questionGroup = this.parentElement;
+                    questionGroup.querySelectorAll('.quiz-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    
+                    // Add selected class to clicked option
+                    this.classList.add('selected');
+                });
+            });
+
+            // Next button functionality
+            nextButtons.forEach((btn, index) => {
+                btn.addEventListener('click', function() {
+                    // Special handling for step 3 to step 4
+                    if (index === 2) { // This is next3 button
+                        if (selectedOptions.step3 === 'quiz') {
+                            // Show quiz instead of step 4
+                            steps[3].classList.remove('active');
+                            quizContainer.style.display = 'block';
+                            return;
+                        }
+                    }
+                    
+                    // Move to the next step
+                    showStep(index + 1);
+                    
+                    // Special handling for step 4
+                    if (index === 2) { // Moving to step 4
+                        // Create and add the gold button immediately
+                        const goldButton = document.createElement('button');
+                        goldButton.className = 'gold-button';
+                        goldButton.textContent = 'Let\'s Go';
+                        goldButton.addEventListener('click', showQuiz);
+                        letsgoButtonContainer.appendChild(goldButton);
+                        
+                        // Fade in the button immediately
+                        goldButton.style.display = 'block';
+                        setTimeout(() => {
+                            goldButton.style.opacity = '1';
+                        }, 50); // Small delay to ensure display:block is applied
+                    }
+                });
+            });
+
+            // Previous button functionality
+            prevButtons.forEach((btn, index) => {
+                btn.addEventListener('click', function() {
+                    // If we're in the quiz and going back
+                    if (quizContainer.style.display === 'block') {
+                        quizContainer.style.display = 'none';
+                        showStep(2); // Go back to step 3
+                        return;
+                    }
+                    
+                    showStep(index - 1);
+                });
+            });
+
+            // Show quiz function
+            function showQuiz() {
+                // Add a subtle fade effect
+                steps.forEach(step => {
+                    if (step.classList.contains('active')) {
+                        step.style.opacity = '0';
+                        step.style.transform = 'translateY(20px)';
+                        setTimeout(() => {
+                            step.classList.remove('active');
+                            quizContainer.style.opacity = '0';
+                            quizContainer.style.transform = 'translateY(20px)';
+                            quizContainer.style.display = 'block';
+                            
+                            // Force reflow
+                            void quizContainer.offsetWidth;
+                            
+                            // Fade in quiz
+                            quizContainer.style.opacity = '1';
+                            quizContainer.style.transform = 'translateY(0)';
+                        }, 300);
+                    }
+                });
+            }
+
+            // Submit quiz button
+            submitQuizButton.addEventListener('click', function() {
+                // Show transition overlay
+                const transitionOverlay = document.getElementById('page-transition');
+                transitionOverlay.classList.add('active');
+                
+                // Store user selections in localStorage for potential use in signup
+                localStorage.setItem('userPreferences', JSON.stringify(selectedOptions));
+                
+                // Redirect after transition completes
+                setTimeout(() => {
+                    window.location.href = 'signup.html';
+                }, 500);
+            });
+
+            // Initialize first step
+            showStep(0);
+        });
+    </script>
+    <script src="js/navigation.js"></script>
+</body>
+</html> 
