@@ -1247,16 +1247,9 @@ async function isLevelUnlocked(levelNumber) {
 
 // Show XP gain notification
 function showXPNotification(amount) {
-    const notification = document.createElement('div');
-    notification.className = 'xp-notification';
-    notification.innerHTML = `+${amount} XP! 🌟`;
-    document.body.appendChild(notification);
-    
-    // Animate notification
-    setTimeout(() => {
-        notification.classList.add('fade-out');
-        setTimeout(() => notification.remove(), 500);
-    }, 2000);
+    // Function kept empty to maintain code compatibility
+    // Notification display has been removed as requested
+    console.log(`XP gained: +${amount} XP`);
 }
 
 // Function to show main menu
