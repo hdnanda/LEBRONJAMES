@@ -511,7 +511,11 @@
         }
 
         .settings-option select {
-            min-width: 120px;
+            padding: 0.5rem;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            background-color: var(--input-bg);
+            color: var(--text-color);
         }
 
         .toggle-switch {
@@ -617,6 +621,25 @@
             background-color: #ff5252;
             color: white;
         }
+
+        /* Settings Section Styles */
+        .settings-section {
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+        }
+        
+        .settings-section h3 {
+            margin-top: 0;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            color: var(--accent-color);
+        }
+        
+        #settings-username, #settings-email {
+            font-weight: 500;
+            color: var(--accent-color);
+        }
     </style>
 </head>
 <body>
@@ -714,6 +737,20 @@
                 <button class="close-btn" onclick="closeModal('settingsModal')">&times;</button>
             </div>
             <div class="modal-body">
+                <!-- User Information Section -->
+                <div class="settings-section">
+                    <h3>User Information</h3>
+                    <div class="settings-option">
+                        <span>Username:</span>
+                        <span id="settings-username">Loading...</span>
+                    </div>
+                    <div class="settings-option">
+                        <span>Email:</span>
+                        <span id="settings-email">Loading...</span>
+                    </div>
+                </div>
+                
+                <!-- Settings Options -->
                 <div class="settings-option">
                     <span>Dark Mode</span>
                     <label class="toggle-switch">
@@ -905,6 +942,27 @@
                 localStorage.getItem('backgroundMusic') !== 'false';
             document.getElementById('languageSelect').value = 
                 localStorage.getItem('language') || 'en';
+                
+            // Populate user information from auth
+            const usernameElement = document.getElementById('settings-username');
+            const emailElement = document.getElementById('settings-email');
+            
+            if (usernameElement && emailElement) {
+                if (window.auth && typeof window.auth.getCurrentUser === 'function') {
+                    const username = window.auth.getCurrentUser();
+                    const email = window.auth.getUserEmail();
+                    
+                    usernameElement.textContent = username || 'Guest';
+                    emailElement.textContent = email || 'Not available';
+                } else {
+                    // Fallback if auth object not available
+                    const username = localStorage.getItem('username');
+                    const email = localStorage.getItem('userEmail');
+                    
+                    usernameElement.textContent = username || 'Guest';
+                    emailElement.textContent = email || 'Not available';
+                }
+            }
         };
 
         window.closeModal = function(modalId) {
