@@ -929,4 +929,87 @@ input:checked + .toggle-slider:before {
 
 .back-button:active {
     transform: scale(0.95);
+}
+
+/* XP Notifications */
+.xp-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    background-color: #58cc02;
+    color: white;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    animation: slide-in-right 0.3s ease forwards;
+}
+
+.xp-notification.error {
+    background-color: #ff5252;
+}
+
+.xp-notification.warning {
+    background-color: #ffc107;
+    color: #333;
+}
+
+.xp-notification.info {
+    background-color: #2196f3;
+}
+
+.xp-notification i {
+    font-size: 18px;
+}
+
+.xp-notification.fade-out {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+/* Connection status indicator */
+.connection-status {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    z-index: 100;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.connection-status:hover {
+    opacity: 1;
+}
+
+.connection-status.online {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.connection-status.offline {
+    background-color: #ff5252;
+    color: white;
+}
+
+@keyframes slide-in-right {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 } 
