@@ -85,10 +85,13 @@ const levelSystem = {
             const timeoutId = setTimeout(() => controller.abort(), 3000);
             
             try {
-                const response = await fetch('/FinancialLiteracyApp-main/backend/xp_handler.php', {
+                const response = await fetch('https://financial-backend1.onrender.com/xp_handler.php', {
                     method: 'GET',
                     credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Username': username 
+                    },
                     signal: controller.signal
                 });
                 
