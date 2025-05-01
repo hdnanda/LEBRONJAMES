@@ -3,9 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="0;url=homepage.html">
     <title>TheMoneyOlympics - Financial Literacy App</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        // Check if this is a first-time visitor
+        window.addEventListener('DOMContentLoaded', function() {
+            // If we have no localStorage data at all, this is likely a first-time visitor
+            const isFirstTimeVisitor = !localStorage.getItem('hasVisited');
+            
+            if (isFirstTimeVisitor) {
+                // Mark that they've visited
+                localStorage.setItem('hasVisited', 'true');
+                // Redirect to homepage
+                window.location.href = 'homepage.html';
+            }
+            // If not a first-time visitor, let the auth.js script handle redirection
+        });
+    </script>
+    <!-- Load navigation.js first for redirect logic -->
+    <script src="js/navigation.js"></script>
     <!-- Load ConnectionHelper first since other scripts depend on it -->
     <script src="js/connection_helper.js"></script>
     <script src="js/auth.js"></script>
