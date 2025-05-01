@@ -683,6 +683,12 @@
         </div>
     </div>
 
+    <!-- Connection Status Indicator -->
+    <div id="connectionStatus" class="connection-status online">
+        <i class="fas fa-wifi"></i>
+        <span>Online</span>
+    </div>
+
     <!-- Load scripts at the end of body -->
     <script src="js/topics.js"></script>
     <script src="js/dailyStreakService.js"></script>
@@ -942,6 +948,33 @@
             // Initialize theme on page load
             const savedTheme = localStorage.getItem('theme') || 'light';
             document.documentElement.setAttribute('data-theme', savedTheme);
+
+            // Connection status handling
+            function updateConnectionStatus() {
+                const statusIndicator = document.getElementById('connectionStatus');
+                if (!statusIndicator) return;
+                
+                const isOnline = navigator.onLine;
+                
+                statusIndicator.className = isOnline ? 
+                    'connection-status online' : 
+                    'connection-status offline';
+                    
+                statusIndicator.querySelector('i').className = isOnline ? 
+                    'fas fa-wifi' : 
+                    'fas fa-wifi-slash';
+                    
+                statusIndicator.querySelector('span').textContent = isOnline ? 
+                    'Online' : 
+                    'Offline';
+            }
+            
+            // Update connection status on page load
+            updateConnectionStatus();
+            
+            // Update connection status when it changes
+            window.addEventListener('online', updateConnectionStatus);
+            window.addEventListener('offline', updateConnectionStatus);
 
             // Close modals when clicking outside
             window.onclick = function(event) {
