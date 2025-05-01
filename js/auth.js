@@ -40,6 +40,30 @@ document.addEventListener('DOMContentLoaded', function() {
     if (settingsOverlay) {
         settingsOverlay.addEventListener('click', closeSettingsPanel);
     }
+    
+    // Make sure ConnectionHelper is loaded
+    if (!window.ConnectionHelper && typeof ConnectionHelper !== 'undefined') {
+        console.log('[Auth] Initializing ConnectionHelper globally');
+        window.ConnectionHelper = ConnectionHelper;
+    }
+    
+    // Check if ConnectionHelper is available
+    if (window.ConnectionHelper) {
+        console.log('[Auth] ConnectionHelper is available');
+    } else {
+        console.error('[Auth] ConnectionHelper is not available, attempting to load it');
+        
+        // Try to load connection_helper.js if not already loaded
+        const script = document.createElement('script');
+        script.src = 'js/connection_helper.js';
+        script.onload = function() {
+            console.log('[Auth] ConnectionHelper loaded dynamically');
+        };
+        script.onerror = function() {
+            console.error('[Auth] Failed to load ConnectionHelper dynamically');
+        };
+        document.head.appendChild(script);
+    }
 });
 
 /**
