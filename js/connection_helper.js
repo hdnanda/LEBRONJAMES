@@ -168,7 +168,7 @@ const ConnectionHelper = {
             console.log('[ConnectionHelper] Fetching XP for user: test');
             
             // Attempt to get from backend
-            const response = await this.request('xp_handler.php');
+            const response = await this.request('dummy_xp.php');
             console.log('[ConnectionHelper] XP data received:', response);
             
             // Validate and standardize response
@@ -218,7 +218,7 @@ const ConnectionHelper = {
             };
             
             // Send POST request to update XP
-            const response = await this.request('xp_handler.php', {
+            const response = await this.request('dummy_xp.php', {
                 method: 'POST',
                 body: JSON.stringify(data)
             });
