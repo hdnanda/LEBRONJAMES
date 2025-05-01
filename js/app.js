@@ -613,32 +613,36 @@ async function handleAnswer(selectedIndex, correctIndex) {
                         }).catch(error => {
                             console.error('[Error] Failed to award XP:', error);
                         });
+                        
+                        // Update streak through dailyStreakService
+                        if (window.dailyStreakService) {
+                            window.dailyStreakService.checkAndGiveReward();
+                            // Use the new function to update the streak for correct answers
+                            if (typeof window.dailyStreakService.handleStreakUpdate === 'function') {
+                                window.dailyStreakService.handleStreakUpdate(true);
+                            }
+                        }
                     } catch (error) {
                         console.error('[Error] Error in XP processing:', error);
                     }
                 }, 100);
                 
-                // Update streak through dailyStreakService
-                if (window.dailyStreakService) {
-                    window.dailyStreakService.checkAndGiveReward();
+                // Check if this completes an exam in a non-blocking way
+                if (window.currentLevelData?.isExam && currentQuestionIndex === questionsPerLesson - 1) {
+                    const passThreshold = 0.8; // 80% correct to pass
+                    const progress = correctAnswers / questionsPerLesson;
+                    const passed = progress >= passThreshold;
+                    console.log(`[Debug] Exam completed. Progress: ${progress}, Passed: ${passed}`);
+                    
+                    // Don't await here, handle exam completion in background
+                    setTimeout(() => {
+                        handleExamCompletion(passed).catch(error => {
+                            console.error('[Error] Failed to handle exam completion:', error);
+                        });
+                    }, 200);
                 }
             } catch (error) {
                 console.error('[Error] Failed to initiate XP award:', error);
-            }
-            
-            // Check if this completes an exam in a non-blocking way
-            if (window.currentLevelData?.isExam && currentQuestionIndex === questionsPerLesson - 1) {
-                const passThreshold = 0.8; // 80% correct to pass
-                const progress = correctAnswers / questionsPerLesson;
-                const passed = progress >= passThreshold;
-                console.log(`[Debug] Exam completed. Progress: ${progress}, Passed: ${passed}`);
-                
-                // Don't await here, handle exam completion in background
-                setTimeout(() => {
-                    handleExamCompletion(passed).catch(error => {
-                        console.error('[Error] Failed to handle exam completion:', error);
-                    });
-                }, 200);
             }
         } else {
             window.animateIncorrectFeedback(selectedButton);
@@ -652,7 +656,10 @@ async function handleAnswer(selectedIndex, correctIndex) {
                 }, 0);
             }
             
-            // No need to update streak for incorrect answers in daily streak service
+            // Update streak for incorrect answers in daily streak service
+            if (window.dailyStreakService && typeof window.dailyStreakService.handleStreakUpdate === 'function') {
+                window.dailyStreakService.handleStreakUpdate(false);
+            }
         }
         
         // Disable all options after selection
