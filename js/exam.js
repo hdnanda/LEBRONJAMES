@@ -108,17 +108,42 @@ function handleExamFailure(reason) {
         window.AudioManager.playSound('examFail');
     }
     
-    // Apply XP penalty using xpService
-    if (window.xpService) {
-        window.xpService.addXP(-100); // Subtract 100 XP
+    // Apply XP penalty - deduct 100 XP
+    if (window.ConnectionHelper) {
+        // First get current XP
+        window.ConnectionHelper.getUserXP().then(data => {
+            if (data && data.success) {
+                const currentXP = parseInt(data.xp) || 0;
+                const newXP = Math.max(0, currentXP - 100); // Don't go below 0
+                
+                // Update XP with penalty
+                window.ConnectionHelper.updateXP(newXP).then(() => {
+                    console.log('[Exam] Applied 100 XP penalty for failing exam');
+                    
+                    // Show XP penalty notification
+                    const notification = document.createElement('div');
+                    notification.className = 'xp-notification';
+                    notification.innerHTML = `-100 XP! 😢`;
+                    notification.style.backgroundColor = '#FF5252';
+                    document.body.appendChild(notification);
+                    
+                    setTimeout(() => {
+                        notification.classList.add('fade-out');
+                        setTimeout(() => notification.remove(), 500);
+                    }, 3000);
+                });
+            }
+        });
     }
     
     // Show XP penalty notification
     const penalty = document.getElementById('xp-penalty');
-    penalty.style.display = 'block';
-    setTimeout(() => {
-        penalty.style.display = 'none';
-    }, 3000);
+    if (penalty) {
+        penalty.style.display = 'block';
+        setTimeout(() => {
+            penalty.style.display = 'none';
+        }, 3000);
+    }
     
     // Redirect back to levels page after delay
     setTimeout(() => {
@@ -340,30 +365,74 @@ class ExamManager {
     }
 
     handleExamFailure() {
-        // Show XP penalty
-        const xpPenalty = document.getElementById('xp-penalty');
-        if (xpPenalty) {
-            xpPenalty.style.display = 'block';
+        if (!this.isExamActive) return;
+        
+        // Stop the timer
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
         }
         
-        // Remove XP
-        if (window.streakService && typeof window.streakService.removeXP === 'function') {
-            window.streakService.removeXP(100);
+        // Play failure sound
+        if (window.AudioManager && window.AudioManager.isEnabled) {
+            window.AudioManager.playSound('examFail');
+        }
+        
+        // Apply XP penalty - deduct 100 XP
+        if (window.ConnectionHelper) {
+            // First get current XP
+            window.ConnectionHelper.getUserXP().then(data => {
+                if (data && data.success) {
+                    const currentXP = parseInt(data.xp) || 0;
+                    const newXP = Math.max(0, currentXP - 100); // Don't go below 0
+                    
+                    // Update XP with penalty
+                    window.ConnectionHelper.updateXP(newXP).then(() => {
+                        console.log('[Exam] Applied 100 XP penalty for failing exam');
+                        
+                        // Show XP penalty notification
+                        const notification = document.createElement('div');
+                        notification.className = 'xp-notification';
+                        notification.innerHTML = `-100 XP! 😢`;
+                        notification.style.backgroundColor = '#FF5252';
+                        document.body.appendChild(notification);
+                        
+                        setTimeout(() => {
+                            notification.classList.add('fade-out');
+                            setTimeout(() => notification.remove(), 500);
+                        }, 3000);
+                    });
+                }
+            });
         }
         
         // Show failure feedback
         const failureFeedback = document.getElementById('exam-failure-feedback');
         if (failureFeedback) {
-            failureFeedback.classList.add('visible');
-        }
-        
-        // End exam after delay
-        setTimeout(() => {
+            failureFeedback.style.display = 'block';
+            
+            // Hide feedback after 3 seconds
+            setTimeout(() => {
+                // End exam after delay
+                this.endExam();
+                
+                // Redirect back to levels page
+                window.location.href = 'levels.html';
+            }, 3000);
+        } else {
             this.endExam();
-            if (xpPenalty) {
-                xpPenalty.style.display = 'none';
+            const failureFeedback = document.getElementById('exam-failure-feedback');
+            if (failureFeedback) {
+                failureFeedback.style.display = 'block';
             }
-        }, 2000);
+            
+            failureFeedback.querySelector('p').textContent = 'The exam has ended.';
+            
+            // Redirect back to levels page after delay
+            setTimeout(() => {
+                window.location.href = 'levels.html';
+            }, 3000);
+        }
     }
 
     handleTimeUp() {
