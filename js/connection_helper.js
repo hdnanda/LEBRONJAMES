@@ -195,16 +195,16 @@ const ConnectionHelper = {
         try {
             console.log('[ConnectionHelper] Fetching XP for user: test');
             
-            // Force direct backend URL for dummy_xp.php
-            const directUrl = `${API_CONFIG.BACKEND_URL}/dummy_xp.php`;
+            // Force direct backend URL for dummy_xp.php - use query param instead of header
+            const directUrl = `${API_CONFIG.BACKEND_URL}/dummy_xp.php?username=test`;
             console.log(`[ConnectionHelper] Using direct backend URL: ${directUrl}`);
             
             const response = await fetch(directUrl, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-Username': 'test'
+                    'Content-Type': 'application/json'
+                    // Removed X-Username header to avoid CORS preflight
                 },
                 mode: 'cors'
             });
@@ -259,7 +259,8 @@ const ConnectionHelper = {
             const data = {
                 xp: xp,
                 completed_levels: completedLevels,
-                completed_exams: completedExams
+                completed_exams: completedExams,
+                username: 'test' // Include username in body instead of header
             };
             
             // Force direct backend URL for dummy_xp.php
@@ -270,8 +271,8 @@ const ConnectionHelper = {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-Username': 'test'
+                    'Content-Type': 'application/json'
+                    // Removed X-Username header to avoid CORS preflight
                 },
                 mode: 'cors',
                 body: JSON.stringify(data)
