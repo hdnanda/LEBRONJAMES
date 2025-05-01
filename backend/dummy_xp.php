@@ -6,7 +6,7 @@ ini_set('display_errors', 1);
 // Set CORS headers for browser access
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Accept, X-Username');
+header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Accept, X-Username, x-username');
 header('Access-Control-Allow-Credentials: true');
 header('Content-Type: application/json');
 
