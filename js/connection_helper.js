@@ -335,4 +335,18 @@ const ConnectionHelper = {
 };
 
 // Make available globally
-window.ConnectionHelper = ConnectionHelper; 
+window.ConnectionHelper = ConnectionHelper;
+
+// Add this for extra assurance
+if (typeof ConnectionHelper !== 'undefined' && !window.ConnectionHelper) {
+    console.log('[ConnectionHelper] Re-applying global assignment');
+    window.ConnectionHelper = ConnectionHelper;
+}
+
+// Log successful initialization
+console.log('[ConnectionHelper] Successfully initialized and attached to window');
+
+// For modules that might need it
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ConnectionHelper;
+} 
