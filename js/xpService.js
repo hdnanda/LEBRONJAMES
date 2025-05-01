@@ -90,7 +90,7 @@ const xpService = {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
             
-            const response = await fetch('https://financial-backend1.onrender.com/backend/xp_handler.php', {
+            const response = await fetch('https://financial-backend1.onrender.com/xp_handler.php', {
                 method: 'GET',
                 credentials: 'same-origin',
                 headers: { 
@@ -134,7 +134,7 @@ const xpService = {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
             
-            const response = await fetch('https://financial-backend1.onrender.com/backend/xp_handler.php', {
+            const response = await fetch('https://financial-backend1.onrender.com/xp_handler.php', {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: { 
@@ -323,7 +323,7 @@ export async function getUserXP() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
         
-        const response = await fetch('https://financial-backend1.onrender.com/backend/xp_handler.php', {
+        const response = await fetch('https://financial-backend1.onrender.com/xp_handler.php', {
             method: 'GET',
             credentials: 'same-origin',
             headers: { 
@@ -362,7 +362,7 @@ export async function updateUserXP(xp) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
         
-        const response = await fetch('https://financial-backend1.onrender.com/backend/xp_handler.php', {
+        const response = await fetch('https://financial-backend1.onrender.com/xp_handler.php', {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 
