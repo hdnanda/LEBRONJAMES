@@ -51,6 +51,34 @@ const ConnectionHelper = {
             
             console.log('[ConnectionHelper] Attempting to fetch data...');
             
+            // For dummy_xp.php, only try the backend URL and don't fall back
+            if (cleanEndpoint === 'dummy_xp.php') {
+                const directUrl = `${API_CONFIG.BACKEND_URL}/${cleanEndpoint}`;
+                console.log(`[ConnectionHelper] Using only backend URL for dummy_xp: ${directUrl}`);
+                
+                try {
+                    response = await fetch(directUrl, fetchOptions);
+                    if (response.ok) {
+                        console.log(`[ConnectionHelper] Backend URL succeeded: ${directUrl}`);
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            const data = await response.json();
+                            return data;
+                        } else {
+                            console.warn(`[ConnectionHelper] Response not JSON: ${contentType}`);
+                            // Handle non-JSON response
+                            const text = await response.text();
+                            throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}...`);
+                        }
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                } catch (e) {
+                    console.error(`[ConnectionHelper] Backend URL failed: ${e.message}`);
+                    throw e; // Don't fall back for dummy_xp.php
+                }
+            }
+            
+            // For other endpoints, use normal fallback mechanism
             // Try direct URL first (backend URL + endpoint)
             try {
                 const directUrl = `${API_CONFIG.BACKEND_URL}/${cleanEndpoint}`;
@@ -167,20 +195,37 @@ const ConnectionHelper = {
         try {
             console.log('[ConnectionHelper] Fetching XP for user: test');
             
-            // Attempt to get from backend
-            const response = await this.request('dummy_xp.php');
-            console.log('[ConnectionHelper] XP data received:', response);
+            // Force direct backend URL for dummy_xp.php
+            const directUrl = `${API_CONFIG.BACKEND_URL}/dummy_xp.php`;
+            console.log(`[ConnectionHelper] Using direct backend URL: ${directUrl}`);
+            
+            const response = await fetch(directUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Username': 'test'
+                },
+                mode: 'cors'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('[ConnectionHelper] XP data received:', data);
             
             // Validate and standardize response
-            if (response && typeof response.xp !== 'undefined') {
+            if (data && typeof data.xp !== 'undefined') {
                 return {
                     success: true,
-                    xp: parseInt(response.xp) || 0,
-                    level: parseInt(response.level) || 1,
-                    message: response.message || 'XP retrieved successfully'
+                    xp: parseInt(data.xp) || 0,
+                    level: parseInt(data.level) || 1,
+                    message: data.message || 'XP retrieved successfully'
                 };
             } else {
-                console.warn('[ConnectionHelper] Invalid XP response format:', response);
+                console.warn('[ConnectionHelper] Invalid XP response format:', data);
                 return {
                     success: false,
                     xp: 0,
@@ -217,24 +262,38 @@ const ConnectionHelper = {
                 completed_exams: completedExams
             };
             
-            // Send POST request to update XP
-            const response = await this.request('dummy_xp.php', {
+            // Force direct backend URL for dummy_xp.php
+            const directUrl = `${API_CONFIG.BACKEND_URL}/dummy_xp.php`;
+            console.log(`[ConnectionHelper] Using direct backend URL: ${directUrl}`);
+            
+            const response = await fetch(directUrl, {
                 method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Username': 'test'
+                },
+                mode: 'cors',
                 body: JSON.stringify(data)
             });
             
-            console.log('[ConnectionHelper] Update XP response:', response);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            console.log('[ConnectionHelper] Update XP response:', result);
             
             // Validate and standardize response
-            if (response && typeof response.xp !== 'undefined') {
+            if (result && typeof result.xp !== 'undefined') {
                 return {
                     success: true,
-                    xp: parseInt(response.xp) || 0,
-                    level: parseInt(response.level) || 1,
-                    message: response.message || 'XP updated successfully'
+                    xp: parseInt(result.xp) || 0,
+                    level: parseInt(result.level) || 1,
+                    message: result.message || 'XP updated successfully'
                 };
             } else {
-                console.warn('[ConnectionHelper] Invalid update response format:', response);
+                console.warn('[ConnectionHelper] Invalid update response format:', result);
                 return {
                     success: false,
                     xp: xp, // Return the XP we tried to set
