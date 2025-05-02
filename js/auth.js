@@ -101,10 +101,13 @@ document.addEventListener('DOMContentLoaded', function() {
  * If not logged in, redirects to login page
  */
 function checkAuthentication() {
+    console.log('[Auth DEBUG] Checking authentication...');
+    console.log('[Auth DEBUG] isLoggedIn value:', localStorage.getItem('isLoggedIn'));
+    
     if (!localStorage.getItem('isLoggedIn')) {
-        // User is not logged in, redirect to login page
-        console.log('User not authenticated. Redirecting to login page...');
-        window.location.href = 'login.html';
+        // User is not logged in, redirect to homepage instead of login
+        console.log('[Auth DEBUG] User not authenticated. Redirecting to homepage...');
+        window.location.href = 'homepage.html';
     } else {
         // User is logged in
         
@@ -112,9 +115,11 @@ function checkAuthentication() {
         const currentPage = window.location.pathname.split('/').pop();
         const urlParams = new URLSearchParams(window.location.search);
         
+        console.log('[Auth DEBUG] Current page:', currentPage);
+        
         if ((currentPage === 'index.html' || currentPage === '') && 
             !urlParams.has('topic') && !urlParams.has('sublevel')) {
-            console.log('No topic/sublevel specified. Redirecting to levels page...');
+            console.log('[Auth DEBUG] No topic/sublevel specified. Redirecting to levels page...');
             window.location.href = 'levels.html';
             return;
         }
@@ -131,7 +136,7 @@ function checkAuthentication() {
             userEmailInPanel.textContent = userEmail;
         }
         
-        console.log('User authenticated:', username);
+        console.log('[Auth DEBUG] User authenticated:', username);
     }
 }
 
