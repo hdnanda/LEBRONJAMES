@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="0;url=homepage.html">
+    <!-- TEMPORARILY DISABLED FOR TESTING -->
+    <!-- <meta http-equiv="refresh" content="0;url=homepage.html"> -->
     <title>TheMoneyOlympics - Financial Literacy App</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -19,12 +20,15 @@
             // 2. They're not trying to access a specific sub-lesson
             const isFirstTimeVisitor = !localStorage.getItem('hasVisited');
             
+            // TEMPORARILY DISABLED FOR TESTING
+            /*
             if (isFirstTimeVisitor && !isAccessingSubLesson) {
                 // Mark that they've visited
                 localStorage.setItem('hasVisited', 'true');
                 // Redirect to homepage
                 window.location.href = 'homepage.html';
             }
+            */
             // If accessing a sub-lesson or not a first-time visitor, 
             // let the auth.js script handle authentication
         });
