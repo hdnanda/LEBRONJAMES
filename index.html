@@ -1429,6 +1429,7 @@
     <script>
         // Check authentication when page loads
         window.addEventListener('load', function() {
+            console.log('isLoggedIn value:', localStorage.getItem('isLoggedIn'));
             if (!localStorage.getItem('isLoggedIn')) {
                 window.location.href = 'homepage.html';
             }
