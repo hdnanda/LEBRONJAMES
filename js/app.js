@@ -613,33 +613,33 @@ async function handleAnswer(selectedIndex, correctIndex) {
                         }).catch(error => {
                             console.error('[Error] Failed to award XP:', error);
                         });
-                        
-                        // Update streak through dailyStreakService
-                        if (window.dailyStreakService) {
-                            window.dailyStreakService.checkAndGiveReward();
+                
+                // Update streak through dailyStreakService
+                if (window.dailyStreakService) {
+                    window.dailyStreakService.checkAndGiveReward();
                             // Use the new function to update the streak for correct answers
                             if (typeof window.dailyStreakService.handleStreakUpdate === 'function') {
                                 window.dailyStreakService.handleStreakUpdate(true);
                             }
-                        }
-                    } catch (error) {
+                }
+            } catch (error) {
                         console.error('[Error] Error in XP processing:', error);
-                    }
+            }
                 }, 100);
+            
+            // Check if this completes an exam in a non-blocking way
+            if (window.currentLevelData?.isExam && currentQuestionIndex === questionsPerLesson - 1) {
+                const passThreshold = 0.8; // 80% correct to pass
+                const progress = correctAnswers / questionsPerLesson;
+                const passed = progress >= passThreshold;
+                console.log(`[Debug] Exam completed. Progress: ${progress}, Passed: ${passed}`);
                 
-                // Check if this completes an exam in a non-blocking way
-                if (window.currentLevelData?.isExam && currentQuestionIndex === questionsPerLesson - 1) {
-                    const passThreshold = 0.8; // 80% correct to pass
-                    const progress = correctAnswers / questionsPerLesson;
-                    const passed = progress >= passThreshold;
-                    console.log(`[Debug] Exam completed. Progress: ${progress}, Passed: ${passed}`);
-                    
-                    // Don't await here, handle exam completion in background
-                    setTimeout(() => {
-                        handleExamCompletion(passed).catch(error => {
-                            console.error('[Error] Failed to handle exam completion:', error);
-                        });
-                    }, 200);
+                // Don't await here, handle exam completion in background
+                setTimeout(() => {
+                    handleExamCompletion(passed).catch(error => {
+                        console.error('[Error] Failed to handle exam completion:', error);
+                    });
+                }, 200);
                 }
             } catch (error) {
                 console.error('[Error] Failed to initiate XP award:', error);
@@ -780,6 +780,8 @@ function showCompletionMessage() {
     
     // Always reset streak at the end of a session
     if (window.dailyStreakService) {
+        window.dailyStreakService.correctAnswerStreak = 0;
+        window.dailyStreakService.updateStreakDisplay();
         window.dailyStreakService.saveStreakData();
     }
     
@@ -943,6 +945,8 @@ function initApp(levelQuestions = null) {
 
         // Reset streak and ensure display is updated when starting new level
         if (window.dailyStreakService) {
+            window.dailyStreakService.correctAnswerStreak = 0;
+            window.dailyStreakService.updateStreakDisplay();
             window.dailyStreakService.saveStreakData();
         }
 
@@ -1454,8 +1458,7 @@ function forceCheckUIState() {
                 console.log('[Debug] XP Sync result:', result);
                 
                 if (result && result.success) {
-                    // Optional: Show a small notification
-                    showSyncNotification('XP Synced ✓');
+                    // XP Synced notification removed
                 }
             } else {
                 console.warn('[Debug] ConnectionHelper not available for XP sync');
@@ -1465,19 +1468,7 @@ function forceCheckUIState() {
         }
     }
     
-    // Show a small sync notification
-    function showSyncNotification(message) {
-        const syncNotification = document.createElement('div');
-        syncNotification.className = 'xp-notification';
-        syncNotification.innerHTML = message;
-        syncNotification.style.backgroundColor = '#4CAF50';
-        document.body.appendChild(syncNotification);
-        
-        setTimeout(() => {
-            syncNotification.classList.add('fade-out');
-            setTimeout(() => syncNotification.remove(), 500);
-        }, 1500);
-    }
+    // XP Sync notification function removed
     
     // Check for XP on page load
     document.addEventListener('DOMContentLoaded', () => {
@@ -1525,31 +1516,8 @@ function forceCheckUIState() {
     
     // Add the monitor once DOM is ready
     function addMonitor() {
-        if (document.body) {
-            document.body.appendChild(monitorEl);
-            console.log('%c[FLAG-MONITOR] Added visible monitor to page', 'color: green');
-        } else {
-            setTimeout(addMonitor, 100);
-        }
+        // Flag monitor has been removed
     }
-    addMonitor();
-    
-    // Add direct reset button 
-    const resetBtn = document.createElement('button');
-    resetBtn.textContent = 'Reset Flag';
-    resetBtn.style.marginLeft = '8px';
-    resetBtn.style.padding = '4px 8px';
-    resetBtn.style.background = 'red';
-    resetBtn.style.color = 'white';
-    resetBtn.style.border = 'none';
-    resetBtn.style.borderRadius = '4px';
-    resetBtn.style.cursor = 'pointer';
-    resetBtn.onclick = function() {
-        console.log('%c[FLAG-MONITOR] Manual flag reset triggered', 'color: red; font-weight: bold');
-        window.isProcessingQuestion = false;
-        alert('Flag reset to FALSE. Try answering a question now.');
-    };
-    monitorEl.appendChild(resetBtn);
     
     // Update monitor every 2 seconds
     setInterval(function() {
@@ -1734,237 +1702,21 @@ function forceCheckUIState() {
     }
 })();
 
-// Add recovery button
-function addRecoveryButton() {
-    const app = document.querySelector('.app-container');
-    if (!app) return;
+// Remove the "Fix Quiz" debug button
+function initializeUI() {
+    // ... existing code ...
     
-    // Create recovery button if it doesn't exist
-    if (!document.getElementById('recovery-btn')) {
-        const recoveryBtn = document.createElement('button');
-        recoveryBtn.id = 'recovery-btn';
-        recoveryBtn.className = 'recovery-btn';
-        recoveryBtn.textContent = '🔧 Fix Quiz';
-        recoveryBtn.style.position = 'fixed';
-        recoveryBtn.style.bottom = '10px';
-        recoveryBtn.style.right = '10px';
-        recoveryBtn.style.zIndex = '9999';
-        recoveryBtn.style.padding = '8px 12px';
-        recoveryBtn.style.borderRadius = '20px';
-        recoveryBtn.style.backgroundColor = '#ff9800';
-        recoveryBtn.style.color = 'white';
-        recoveryBtn.style.display = 'none';
-        recoveryBtn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.3)';
-        
-        recoveryBtn.addEventListener('click', () => {
-            console.log('🔧 Manual recovery triggered');
-            isProcessingQuestion = false;
-            const optionsContainer = document.getElementById('options-container');
-            if (optionsContainer) {
-                Array.from(optionsContainer.children).forEach(button => {
-                    button.disabled = false;
-                });
-            }
-            // Reload the current question
-            loadQuestion();
-            // Hide the button after use
-            recoveryBtn.style.display = 'none';
-        });
-        
-        app.appendChild(recoveryBtn);
-        
-        // Show the button after 5 seconds of inactivity
-        setInterval(() => {
-            const optionsContainer = document.getElementById('options-container');
-            if (optionsContainer && document.querySelectorAll('.option-btn').length > 0 && !isProcessingQuestion) {
-                // If there are questions but no user activity for 5 seconds, show the button
-                const lastActivityTime = window.lastUserActivity || 0;
-                if (Date.now() - lastActivityTime > 5000) {
-                    recoveryBtn.style.display = 'block';
-                }
-            } else {
-                recoveryBtn.style.display = 'none';
-            }
-        }, 5000);
-    }
+    // Recovery button has been removed for production
+    
+    // ... existing code ...
 }
 
-// Track user activity
-document.addEventListener('click', () => {
-    window.lastUserActivity = Date.now();
-});
+// ... existing code ...
+function checkForStuckState() {
+    // ... existing code ...
+    
+    // Fix Quiz button display has been removed
 
-// Call this function when the page loads
-document.addEventListener('DOMContentLoaded', () => {
-    addRecoveryButton();
-});
-
-/* Quiz Flow Diagnostics System */
-(function setupQuizFlowDiagnostics() {
-    console.log('%c[QUIZ-DIAGNOSTIC] Setting up comprehensive quiz flow monitoring', 'color: purple; font-weight: bold');
-    
-    // Track successful question loads
-    let successfulQuestionLoads = 0;
-    
-    // Track successful answers processed
-    let successfulAnswers = 0;
-    
-    // Track button click timestamps to detect delays
-    let lastButtonClickTime = 0;
-    
-    // Keep a history of actions for debugging
-    const actionHistory = [];
-    
-    function logAction(action, details) {
-        const timestamp = new Date().toISOString();
-        const entry = { timestamp, action, details };
-        actionHistory.push(entry);
-        
-        // Keep history to last 20 actions
-        if (actionHistory.length > 20) {
-            actionHistory.shift();
-        }
-        
-        console.log(`%c[QUIZ-DIAGNOSTIC] ${action}`, 'color: purple', details);
-    }
-    
-    // Check for stalled state periodically
-    setInterval(() => {
-        // If we're in a question but nothing's happened for 10 seconds
-        const now = Date.now();
-        if (lastButtonClickTime > 0 && (now - lastButtonClickTime) > 10000) {
-            console.warn('%c[QUIZ-DIAGNOSTIC] Potential stalled state detected - 10+ seconds since last action', 'color: orange; font-weight: bold');
-            
-            // Log diagnostic information
-            console.log('%c[QUIZ-DIAGNOSTIC] Recent action history:', 'color: purple', actionHistory);
-            console.log('%c[QUIZ-DIAGNOSTIC] isProcessingQuestion:', 'color: purple', isProcessingQuestion);
-            console.log('%c[QUIZ-DIAGNOSTIC] Current question index:', 'color: purple', currentQuestionIndex);
-            
-            // Check if options are disabled
-            const optionsContainer = document.getElementById('options-container');
-            if (optionsContainer) {
-                const options = optionsContainer.querySelectorAll('.option-btn');
-                const disabledCount = Array.from(options).filter(opt => opt.disabled).length;
-                console.log(`%c[QUIZ-DIAGNOSTIC] Options state: ${disabledCount}/${options.length} disabled`, 'color: purple');
-                
-                // If all options are disabled but continue button isn't visible, that's a problem
-                const continueBtn = document.getElementById('continue-btn');
-                if (disabledCount === options.length && continueBtn && 
-                    (continueBtn.style.display === 'none' || 
-                     continueBtn.style.visibility === 'hidden' || 
-                     continueBtn.style.opacity === '0')) {
-                    console.error('%c[QUIZ-DIAGNOSTIC] CRITICAL ERROR: All options disabled but continue button not visible!', 'color: red; font-weight: bold');
-                    
-                    // Try to auto-recover
-                    logAction('Auto-recovery initiated', { reason: 'Options disabled but continue button not visible' });
-                    continueBtn.style.display = 'inline-block';
-                    continueBtn.style.opacity = '1';
-                    continueBtn.style.visibility = 'visible';
-                }
-            }
-            
-            // Reset timer to avoid spamming the console
-            lastButtonClickTime = now;
-        }
-    }, 5000);
-    
-    // Hook into loadQuestion
-    const originalLoadQuestion = window.loadQuestion;
-    window.loadQuestion = function() {
-        logAction('Question load started', { index: currentQuestionIndex });
-        const result = originalLoadQuestion.apply(this, arguments);
-        
-        // After loading, check that options are truly interactive
-        setTimeout(() => {
-            const optionsContainer = document.getElementById('options-container');
-            if (optionsContainer) {
-                const options = optionsContainer.querySelectorAll('.option-btn');
-                logAction('Question loaded', { 
-                    index: currentQuestionIndex,
-                    optionsCount: options.length,
-                    disabled: Array.from(options).filter(opt => opt.disabled).length
-                });
-                
-                // Track successful load
-                successfulQuestionLoads++;
-                lastButtonClickTime = Date.now();
-            }
-        }, 100);
-        
-        return result;
-    };
-    
-    // Hook into handleAnswer
-    const originalHandleAnswer = window.handleAnswer;
-    window.handleAnswer = function() {
-        const selectedIndex = arguments[0];
-        const correctIndex = arguments[1];
-        
-        logAction('Answer selected', { selectedIndex, correctIndex });
-        lastButtonClickTime = Date.now();
-        
-        const result = originalHandleAnswer.apply(this, arguments);
-        
-        // Check if the continue button is properly visible after answering
-        setTimeout(() => {
-            const continueBtn = document.getElementById('continue-btn');
-            const isVisible = continueBtn && 
-                continueBtn.style.display !== 'none' && 
-                continueBtn.style.visibility !== 'hidden' &&
-                continueBtn.style.opacity !== '0';
-            
-            logAction('Answer processed', { 
-                continueButtonVisible: isVisible,
-                isProcessingQuestion: isProcessingQuestion
-            });
-            
-            // If continue button isn't visible after answering, that's a problem
-            if (!isVisible) {
-                console.error('%c[QUIZ-DIAGNOSTIC] ERROR: Continue button not visible after answering!', 'color: red; font-weight: bold');
-                // Try to fix it
-                if (continueBtn) {
-                    continueBtn.style.display = 'inline-block';
-                    continueBtn.style.opacity = '1';
-                    continueBtn.style.visibility = 'visible';
-                    logAction('Auto-fixed continue button', {});
-                }
-            } else {
-                // Track successful answer
-                successfulAnswers++;
-            }
-        }, 500);
-        
-        return result;
-    };
-    
-    // Hook into handleContinue
-    const originalHandleContinue = window.handleContinue;
-    window.handleContinue = function() {
-        logAction('Continue clicked', { 
-            from: currentQuestionIndex,
-            to: currentQuestionIndex + 1,
-            total: questionsPerLesson
-        });
-        lastButtonClickTime = Date.now();
-        
-        return originalHandleContinue.apply(this, arguments);
-    };
-    
-    // Add global status command for debugging
-    window.checkQuizStatus = function() {
-        const statusReport = {
-            currentQuestionIndex,
-            totalQuestions: questionsPerLesson,
-            successfulQuestionLoads,
-            successfulAnswers,
-            isProcessingQuestion,
-            actionHistory,
-            timeElapsedSinceLastAction: Date.now() - lastButtonClickTime
-        };
-        
-        console.log('%c[QUIZ-DIAGNOSTIC] Status Report:', 'color: blue; font-weight: bold', statusReport);
-        return statusReport;
-    };
-    
-    console.log('%c[QUIZ-DIAGNOSTIC] Quiz flow monitoring initialized successfully', 'color: purple; font-weight: bold');
-})(); 
+    // ... existing code ...
+}
+// ... existing code ... 
