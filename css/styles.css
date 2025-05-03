@@ -929,7 +929,7 @@ input:checked + .toggle-slider:before {
 
 .back-button:active {
     transform: scale(0.95);
-}
+} 
 
 /* XP Notifications */
 .xp-notification {
