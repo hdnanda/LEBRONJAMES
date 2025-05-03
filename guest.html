@@ -755,6 +755,24 @@
         .progress-indicator-animate {
             transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
         }
+
+        /* Style for feedback messages */
+        .step-feedback {
+            min-height: 40px;
+            margin-top: 20px;
+            text-align: center;
+            color: var(--accent-color);
+            font-size: 1.1rem;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        .step-feedback.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
     </style>
 </head>
 
@@ -801,6 +819,8 @@
                     <span class="option-label">Just exploring</span>
                 </div>
             </div>
+            <!-- Add feedback message container -->
+            <div id="step1-feedback" class="step-feedback"></div>
             <div class="navigation">
                 <button class="nav-btn prev" disabled>Back</button>
                 <button class="nav-btn next" id="next1" disabled>Next</button>
@@ -825,6 +845,8 @@
                     <span class="option-label">15+ min (Olympian mode)</span>
                 </div>
             </div>
+            <!-- Add feedback message container -->
+            <div id="step2-feedback" class="step-feedback"></div>
             <div class="navigation">
                 <button class="nav-btn prev">Back</button>
                 <button class="nav-btn next" id="next2" disabled>Next</button>
@@ -849,6 +871,8 @@
                     <span class="option-label">Let me take a short quiz and place me</span>
                 </div>
             </div>
+            <!-- Add feedback message container -->
+            <div id="step3-feedback" class="step-feedback"></div>
             <div class="navigation">
                 <button class="nav-btn prev">Back</button>
                 <button class="nav-btn next" id="next3" disabled>Next</button>
@@ -1120,73 +1144,73 @@
                 }, 1500); // 1.5s active animation + 0.5s fadeout = 2s total
             };
             
-            // Quiz questions data
+            // Quiz questions data - Simplified version
             const quizQuestions = [
                 {
-                    question: "What is compound interest?",
+                    question: "Which of these is a good way to save money?",
                     options: [
-                        "Interest earned on both the initial principal and previously accumulated interest",
-                        "The interest banks charge on credit cards",
-                        "A fixed amount you earn on savings",
-                        "A type of investment strategy"
-                    ],
-                    correctIndex: 0,
-                    explanation: "Compound interest is interest earned on both the initial principal and previously accumulated interest, which helps your money grow faster over time."
-                },
-                {
-                    question: "What is typically the first step in creating a budget?",
-                    options: [
-                        "Cut all unnecessary spending",
-                        "Track your income and expenses",
-                        "Open a savings account",
-                        "Set financial goals"
+                        "Spending everything you earn",
+                        "Creating a budget and sticking to it",
+                        "Using credit cards for all purchases",
+                        "Borrowing money from friends"
                     ],
                     correctIndex: 1,
-                    explanation: "Tracking your income and expenses gives you a clear picture of where your money is coming from and going to, which is essential before making a budget."
+                    explanation: "Creating and following a budget helps you track your money, spend less than you earn, and save regularly."
                 },
                 {
-                    question: "What is a stock dividend?",
+                    question: "What is a savings account for?",
                     options: [
-                        "A loan you take against your stock holdings",
-                        "The fee you pay when buying stocks",
-                        "A payment made by a corporation to its shareholders",
-                        "A tax on stock market gains"
+                        "Buying stocks and bonds",
+                        "Keeping money safe while earning some interest",
+                        "Paying bills automatically",
+                        "Getting a loan"
+                    ],
+                    correctIndex: 1,
+                    explanation: "A savings account is a secure place to keep money you don't need right away, while earning a small amount of interest."
+                },
+                {
+                    question: "Why is it important to save money?",
+                    options: [
+                        "To spend it all on vacations",
+                        "To impress your friends",
+                        "To have money for unexpected expenses",
+                        "Because banks require it"
                     ],
                     correctIndex: 2,
-                    explanation: "A stock dividend is a payment made by a corporation to its shareholders, usually as a distribution of profits."
+                    explanation: "Saving money helps you handle unexpected expenses like car repairs or medical bills, and also build toward future goals."
                 },
                 {
-                    question: "What is an emergency fund?",
+                    question: "What is the difference between a want and a need?",
                     options: [
-                        "A government program for disaster relief",
-                        "Money saved for unexpected expenses or financial emergencies",
-                        "A college education savings account",
-                        "An investment in cryptocurrency"
-                    ],
-                    correctIndex: 1,
-                    explanation: "An emergency fund is money saved specifically for unexpected expenses or financial emergencies, typically 3-6 months of living expenses."
-                },
-                {
-                    question: "What does ETF stand for in investing?",
-                    options: [
-                        "Electronic Trading Fund",
-                        "Exchange-Traded Fund",
-                        "Extended Tax Form",
-                        "Equity Transfer Fee"
-                    ],
-                    correctIndex: 1,
-                    explanation: "ETF stands for Exchange-Traded Fund, which is a type of investment fund traded on stock exchanges."
-                },
-                {
-                    question: "What is a credit score primarily based on?",
-                    options: [
-                        "Your income level",
-                        "Your education level",
-                        "Your borrowing and repayment history",
-                        "The amount of cash you have in the bank"
+                        "They're the same thing",
+                        "Wants are things you must have to survive, needs are optional",
+                        "Needs are essential for survival, wants are things you'd like to have",
+                        "Needs are cheaper than wants"
                     ],
                     correctIndex: 2,
-                    explanation: "A credit score is primarily based on your borrowing and repayment history, which helps lenders assess how likely you are to repay debt."
+                    explanation: "Needs are things essential for survival like food, shelter, and basic clothing. Wants are non-essential things that make life more enjoyable."
+                },
+                {
+                    question: "What is interest?",
+                    options: [
+                        "Money you get for free",
+                        "A fee you pay for borrowing money or money you earn for saving",
+                        "A type of bank",
+                        "Money that disappears over time"
+                    ],
+                    correctIndex: 1,
+                    explanation: "Interest is either money you pay when you borrow money (like with a loan) or money you earn when you save or invest money (like in a savings account)."
+                },
+                {
+                    question: "Which of these is NOT a good financial habit?",
+                    options: [
+                        "Saving a portion of your allowance or income",
+                        "Tracking what you spend",
+                        "Spending money as soon as you get it",
+                        "Comparing prices before buying something"
+                    ],
+                    correctIndex: 2,
+                    explanation: "Spending money immediately without planning is not a good financial habit. It's better to think about your purchases and save some of your money."
                 }
             ];
             
@@ -1252,11 +1276,99 @@
                 currentStep = stepIndex;
             }
 
-            // Option selection
+            // Feedback message library
+            const feedbackMessages = {
+                step1: {
+                    save_better: [
+                        "Smart choice. Saving is the first flex.",
+                        "That's a power move. Let's make it easy.",
+                        "Brilliant start! Saving creates options.",
+                        "Future you is already grateful.",
+                        "Money saved = freedom earned."
+                    ],
+                    stop_wasting: [
+                        "We'll turn those leaks into lakes.",
+                        "Small changes, big impact. Let's go!",
+                        "That money deserves better. You've got this.",
+                        "Cutting waste = instant wealth.",
+                        "This is how fortunes begin."
+                    ],
+                    build_habits: [
+                        "Early habits = lifelong wealth.",
+                        "You're ahead of 90% already.",
+                        "Future millionaire move right there.",
+                        "Small habits, massive results.",
+                        "You'll thank yourself every day."
+                    ],
+                    smarter_than_parents: [
+                        "Each generation levels up. Your turn.",
+                        "New generation, new money rules.",
+                        "Financial evolution starts with you.",
+                        "Parents taught values, you'll master money.",
+                        "Breaking the cycle starts here."
+                    ],
+                    exploring: [
+                        "Curiosity creates wealth. Let's explore.",
+                        "Best journeys start with exploration.",
+                        "Perfect place to start. Let's discover.",
+                        "Financial curiosity is step one to mastery.",
+                        "Let's turn that curiosity into cash."
+                    ]
+                },
+                step2: {
+                    casual: [
+                        "Perfect. Small daily wins add up.",
+                        "5 minutes daily beats 5 hours monthly.",
+                        "Consistency beats intensity. Good choice.",
+                        "Bite-sized wisdom creates lasting wealth.",
+                        "Small steps, big progress."
+                    ],
+                    focused: [
+                        "The sweet spot of learning. Excellent!",
+                        "10 minutes daily = expertise in months.",
+                        "You'll be money-smart in no time.",
+                        "Focused learning creates lasting results.",
+                        "Goldilocks zone: just right for mastery."
+                    ],
+                    olympian: [
+                        "Going for gold! Love the commitment.",
+                        "Future financial champion in the making.",
+                        "That's how wealth mastery happens.",
+                        "Elite mindset leads to elite results.",
+                        "Exceptional commitment = exceptional results."
+                    ]
+                },
+                step3: {
+                    zero: [
+                        "Perfect place to start. Clean slate.",
+                        "Starting from zero means no bad habits.",
+                        "Beginners often learn faster. You've got this.",
+                        "Fresh start, fresh perspective.",
+                        "We'll build your foundation brick by brick."
+                    ],
+                    some_knowledge: [
+                        "We'll build on what you know.",
+                        "Great! You've got a running start.",
+                        "Some knowledge + new skills = financial power.",
+                        "We'll fill in the gaps and level you up.",
+                        "That's a great foundation to build on."
+                    ],
+                    quiz: [
+                        "Smart move. Let's find your perfect level.",
+                        "Custom path coming right up!",
+                        "We'll meet you exactly where you are.",
+                        "Let's find your ideal starting point.",
+                        "Let the journey fit your exact needs."
+                    ]
+                }
+            };
+
+            // Enhanced option selection with feedback
             optionItems.forEach(item => {
                 item.addEventListener('click', function() {
                     const parent = this.parentElement;
                     const stepId = this.closest('.step-container').id;
+                    const optionValue = this.dataset.value;
                     
                     // Remove selected class from all options in this step
                     parent.querySelectorAll('.option-item').forEach(opt => {
@@ -1273,10 +1385,28 @@
                     }, 300);
                     
                     // Store selection
-                    selectedOptions[stepId] = this.dataset.value;
+                    selectedOptions[stepId] = optionValue;
                     
                     // Enable next button for this step
                     document.querySelector(`#${stepId} .nav-btn.next`).removeAttribute('disabled');
+                    
+                    // Show feedback message
+                    const feedbackContainer = document.getElementById(`${stepId}-feedback`);
+                    if (feedbackContainer && feedbackMessages[stepId] && feedbackMessages[stepId][optionValue]) {
+                        // Get random message for this option
+                        const messages = feedbackMessages[stepId][optionValue];
+                        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+                        
+                        // Reset any existing feedback animation
+                        feedbackContainer.classList.remove('active');
+                        
+                        // Force DOM reflow to restart animation
+                        void feedbackContainer.offsetWidth;
+                        
+                        // Set new message and animate
+                        feedbackContainer.textContent = randomMessage;
+                        feedbackContainer.classList.add('active');
+                    }
                 });
             });
 
@@ -1392,13 +1522,22 @@
                 const isCorrect = selectedIndex === correctIndex;
                 console.log("Is answer correct?", isCorrect);
                 
+                // Play the appropriate sound based on whether the answer is correct or incorrect
                 if (isCorrect) {
+                    // Play correct sound
+                    const correctSound = new Audio('assets/sounds/correct.mp3');
+                    correctSound.play();
+                    
                     // Play confetti for correct answer
                     confetti.start();
                     
                     selectedButton.classList.add('correct');
                     correctAnswers++;
                 } else {
+                    // Play incorrect sound
+                    const incorrectSound = new Audio('assets/sounds/incorrect.mp3');
+                    incorrectSound.play();
+                    
                     selectedButton.classList.add('incorrect');
                     correctButton.classList.add('correct');
                 }
