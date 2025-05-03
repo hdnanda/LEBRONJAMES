@@ -104,8 +104,7 @@
             transition: all 0.3s ease;
             filter: blur(50px);
             mix-blend-mode: screen;
-            background: linear-gradient(45deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.95));
-            box-shadow: 0 0 100px rgba(255, 255, 255, 0.4);
+            /* Default background will be set by data-theme */
         }
 
         .bg-element[data-theme="dark"] {
@@ -114,8 +113,8 @@
         }
 
         .bg-element[data-theme="light"] {
-            background: linear-gradient(45deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.95));
-            box-shadow: 0 0 100px rgba(255, 255, 255, 0.4);
+            background: linear-gradient(45deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.95));
+            box-shadow: 0 0 100px rgba(0, 0, 0, 0.4);
         }
 
         /* Base sizes for small screens */
@@ -1649,6 +1648,12 @@
             });
 
             leaveBtn.addEventListener('click', () => {
+                // Reset streak before leaving
+                if (window.dailyStreakService) {
+                    window.dailyStreakService.correctAnswerStreak = 0;
+                    window.dailyStreakService.updateStreakDisplay();
+                    window.dailyStreakService.saveStreakData();
+                }
                 window.location.href = 'levels.html';
             });
 
