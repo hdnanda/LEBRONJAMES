@@ -1147,70 +1147,59 @@
             // Quiz questions data - Simplified version
             const quizQuestions = [
                 {
-                    question: "Which of these is a good way to save money?",
+                    question: "Your friend says he bought a phone on EMI with 0% interest. Is it really free?",
                     options: [
-                        "Spending everything you earn",
-                        "Creating a budget and sticking to it",
-                        "Using credit cards for all purchases",
-                        "Borrowing money from friends"
+                        "Yes, no interest = free money",
+                        "Not always — there might be hidden processing fees",
+                        "Only if he pays the full amount upfront",
+                        "Yes, it's always free if 0% is written"
                     ],
                     correctIndex: 1,
-                    explanation: "Creating and following a budget helps you track your money, spend less than you earn, and save regularly."
+                    explanation: "Zero percent interest offers often hide processing fees, administration charges, or higher product prices to compensate for the 'free' interest."
                 },
                 {
-                    question: "What is a savings account for?",
+                    question: "You get a ₹10,000 salary. Which of these is the smartest first step?",
                     options: [
-                        "Buying stocks and bonds",
-                        "Keeping money safe while earning some interest",
-                        "Paying bills automatically",
-                        "Getting a loan"
-                    ],
-                    correctIndex: 1,
-                    explanation: "A savings account is a secure place to keep money you don't need right away, while earning a small amount of interest."
-                },
-                {
-                    question: "Why is it important to save money?",
-                    options: [
-                        "To spend it all on vacations",
-                        "To impress your friends",
-                        "To have money for unexpected expenses",
-                        "Because banks require it"
+                        "Spend first, save what's left",
+                        "Buy things on sale to \"save money\"",
+                        "Save/invest first, then spend the rest",
+                        "Withdraw everything in cash"
                     ],
                     correctIndex: 2,
-                    explanation: "Saving money helps you handle unexpected expenses like car repairs or medical bills, and also build toward future goals."
+                    explanation: "Paying yourself first (saving/investing before spending) ensures you build wealth consistently rather than saving only what's left after spending."
                 },
                 {
-                    question: "What is the difference between a want and a need?",
+                    question: "You missed a credit card payment by 1 day. What's likely to happen?",
                     options: [
-                        "They're the same thing",
-                        "Wants are things you must have to survive, needs are optional",
-                        "Needs are essential for survival, wants are things you'd like to have",
-                        "Needs are cheaper than wants"
+                        "Nothing, it's just 1 day",
+                        "You'll lose the card forever",
+                        "Late fee + interest may be charged",
+                        "Credit card company will ignore it"
                     ],
                     correctIndex: 2,
-                    explanation: "Needs are things essential for survival like food, shelter, and basic clothing. Wants are non-essential things that make life more enjoyable."
+                    explanation: "Even being one day late can result in late payment fees and interest charges on your outstanding balance. Some cards may also apply penalty interest rates."
                 },
                 {
-                    question: "What is interest?",
+                    question: "What does \"compounding\" mean in investing?",
                     options: [
-                        "Money you get for free",
-                        "A fee you pay for borrowing money or money you earn for saving",
-                        "A type of bank",
-                        "Money that disappears over time"
-                    ],
-                    correctIndex: 1,
-                    explanation: "Interest is either money you pay when you borrow money (like with a loan) or money you earn when you save or invest money (like in a savings account)."
-                },
-                {
-                    question: "Which of these is NOT a good financial habit?",
-                    options: [
-                        "Saving a portion of your allowance or income",
-                        "Tracking what you spend",
-                        "Spending money as soon as you get it",
-                        "Comparing prices before buying something"
+                        "Interest only on the initial amount",
+                        "Doubling your money every year",
+                        "Earning interest on interest over time",
+                        "Spending more to earn more rewards"
                     ],
                     correctIndex: 2,
-                    explanation: "Spending money immediately without planning is not a good financial habit. It's better to think about your purchases and save some of your money."
+                    explanation: "Compounding is the process where your investment returns (interest, dividends, etc.) are added to your principal, and then earn additional returns themselves, accelerating growth over time."
+                },
+                {
+                    question: "Which of these is a smart reason to start budgeting?",
+                    options: [
+                        "To track every single rupee you spend",
+                        "To feel guilty about spending",
+                        "To understand and control your money",
+                        "To make life boring and restrictive"
+                    ],
+                    correctIndex: 2,
+                    explanation: "Budgeting gives you awareness and control over your finances, helping you make informed decisions about your money rather than restricting your life or making you feel guilty."
                 }
             ];
             
@@ -1527,6 +1516,7 @@
                     // Play correct sound
                     const correctSound = new Audio('assets/sounds/correct.mp3');
                     correctSound.play();
+                    console.log("Played correct.mp3 sound effect");
                     
                     // Play confetti for correct answer
                     confetti.start();
@@ -1537,6 +1527,7 @@
                     // Play incorrect sound
                     const incorrectSound = new Audio('assets/sounds/incorrect.mp3');
                     incorrectSound.play();
+                    console.log("Played incorrect.mp3 sound effect");
                     
                     selectedButton.classList.add('incorrect');
                     correctButton.classList.add('correct');
