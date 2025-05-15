@@ -6,6 +6,7 @@
     <title>TheMoneyOlympics - Financial Literacy App</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/dist/tippy.css">
     <style>
         :root {
             /* Light theme variables (default) */
@@ -773,6 +774,146 @@
             opacity: 1;
             transform: translateY(0);
         }
+
+        /* Financial term tooltip styling */
+        .financial-term {
+            text-decoration: underline dotted var(--accent-color);
+            cursor: help;
+            position: relative;
+            display: inline-block;
+        }
+
+        /* Tippy tooltip custom theme */
+        .tippy-box[data-theme~='finance'] {
+            background-color: var(--app-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            font-size: 0.9rem;
+            max-width: 300px;
+            padding: 5px;
+        }
+
+        .tippy-box[data-theme~='finance'] .tippy-content {
+            padding: 10px 12px;
+        }
+
+        .tippy-box[data-theme~='finance'][data-placement^='top'] > .tippy-arrow::before {
+            border-top-color: var(--app-bg);
+        }
+
+        .tippy-box[data-theme~='finance'][data-placement^='bottom'] > .tippy-arrow::before {
+            border-bottom-color: var(--app-bg);
+        }
+
+        .tippy-box[data-theme~='finance'][data-placement^='left'] > .tippy-arrow::before {
+            border-left-color: var(--app-bg);
+        }
+
+        .tippy-box[data-theme~='finance'][data-placement^='right'] > .tippy-arrow::before {
+            border-right-color: var(--app-bg);
+        }
+
+        /* Remove signup prompt styles as they're no longer used */
+        /* Add iPhone animation styles */
+        .iphone-container {
+            position: fixed;
+            bottom: -100%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            transition: bottom 1s cubic-bezier(0.33, 1, 0.68, 1);
+            text-align: center;
+            width: 100%;
+            max-width: 700px; /* Increased from 400px to 700px */
+        }
+        
+        .iphone-container.active {
+            bottom: 50%;
+            transform: translate(-50%, 50%);
+        }
+        
+        /* Add hovering animation */
+        @keyframes hover {
+            0% {
+                transform: translate(-50%, 50%);
+            }
+            50% {
+                transform: translate(-50%, 48%); /* Move slightly up */
+            }
+            100% {
+                transform: translate(-50%, 50%);
+            }
+        }
+        
+        .iphone-container.hovering {
+            animation: hover 3s ease-in-out infinite;
+        }
+        
+        .iphone-image {
+            width: 100%;
+            max-width: 500px; /* Increased from 300px to 500px */
+            display: block;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .continue-btn {
+            position: absolute;
+            bottom: 12%; /* Adjusted from 18% to 12% to move button down */
+            left: 50%;
+            transform: translateX(-50%) translateY(20px); /* Initial position with offset */
+            padding: 12px 30px;
+            background: var(--accent-color);
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            width: 60%; /* Width relative to the iPhone */
+            max-width: 240px;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            display: none;
+            z-index: 101; /* Ensure it's above the iPhone image */
+        }
+        
+        .continue-btn.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0); /* Final position */
+            display: block;
+        }
+        
+        .continue-btn:hover {
+            transform: translateX(-50%) translateY(-5px); /* Simple upward hover effect */
+        }
+        
+        .continue-btn:active {
+            transform: translateX(-50%) translateY(0); /* Return to original position when clicked */
+        }
+
+        /* Dark blurred overlay */
+        .dark-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Dark with 70% opacity */
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 90; /* Below the iPhone container */
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .dark-overlay.active {
+            opacity: 1;
+        }
     </style>
 </head>
 
@@ -915,6 +1056,9 @@
         <button id="continue-btn">Continue to Next Question 👍</button>
     </div>
 
+    <!-- Add Tippy.js before your custom scripts -->
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Add the index.html styles for feedback
@@ -1637,9 +1781,6 @@
 
             // Finish the quiz and redirect
             function finishQuiz() {
-                // Show transition overlay
-                pageTransition.classList.add('active');
-                
                 // Store user selections in localStorage for potential use in signup
                 localStorage.setItem('userPreferences', JSON.stringify(selectedOptions));
                 localStorage.setItem('quizScore', correctAnswers);
@@ -1650,10 +1791,50 @@
                     confetti.start();
                 }
                 
-                // Redirect after transition completes
+                // Create dark overlay
+                const darkOverlay = document.createElement('div');
+                darkOverlay.className = 'dark-overlay';
+                document.body.appendChild(darkOverlay);
+                
+                // Create and show iPhone container
+                const iphoneContainer = document.createElement('div');
+                iphoneContainer.className = 'iphone-container';
+                iphoneContainer.innerHTML = `
+                    <img src="assets/images/iphone.png" alt="iPhone" class="iphone-image">
+                    <button id="continue-to-signup" class="continue-btn">Take me there!</button>
+                `;
+                document.body.appendChild(iphoneContainer);
+                
+                // Force reflow to ensure the transition works
+                void iphoneContainer.offsetWidth;
+                void darkOverlay.offsetWidth;
+                
+                // Trigger animations
                 setTimeout(() => {
-                    window.location.href = 'signup.html';
-                }, 800);
+                    darkOverlay.classList.add('active');
+                    iphoneContainer.classList.add('active');
+                    
+                    // Add hovering animation after reaching center
+                    setTimeout(() => {
+                        iphoneContainer.classList.add('hovering');
+                        
+                        // Show continue button after animation completes
+                        const continueBtn = document.getElementById('continue-to-signup');
+                        continueBtn.style.display = 'block';
+                        
+                        // Force reflow
+                        void continueBtn.offsetWidth;
+                        
+                        continueBtn.classList.add('visible');
+                    }, 1000); // Wait for iPhone to reach center
+                }, 100);
+                
+                // Add event listener to the continue button
+                setTimeout(() => {
+                    document.getElementById('continue-to-signup').addEventListener('click', function() {
+                        window.location.href = 'signup.html';
+                    });
+                }, 1200); // Add event listener after button appears
             }
 
             // Initialize first step
@@ -1693,6 +1874,26 @@
 
             // Initialize validation after everything else is setup
             setTimeout(validateStepSelection, 100);
+            
+            // Add a test to make sure tooltips work on sample content
+            setTimeout(() => {
+                // Create a test element with financial terms to confirm tooltips are working
+                const testContainer = document.createElement('div');
+                testContainer.style.display = 'none';
+                testContainer.innerHTML = '<p>Test text with financial terms like compound interest and budget.</p>';
+                document.body.appendChild(testContainer);
+                
+                // Apply highlighting to the test container
+                testContainer.innerHTML = highlightFinancialTerms(testContainer.innerHTML);
+                
+                // Initialize tooltips
+                initializeFinancialTerms();
+                
+                // Cleanup test element
+                document.body.removeChild(testContainer);
+                
+                console.log("Financial term tooltips initialized successfully!");
+            }, 1000);
         });
     </script>
     <script src="js/navigation.js"></script>
