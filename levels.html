@@ -848,28 +848,68 @@
             topicId = parseInt(topicId);
             subLevelId = parseFloat(subLevelId);
             
+            console.log(`[isLevelCompleted] Checking if level is completed: Topic ${topicId}, SubLevel ${subLevelId}`);
+            
+            // First check completedLevels array
             const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
-            return completedLevels.some(level => {
+            const isCompletedInLevels = completedLevels.some(level => {
                 const storedTopicId = parseInt(level.topicId);
                 const storedSubLevelId = parseFloat(level.subLevelId);
                 return storedTopicId === topicId && storedSubLevelId === subLevelId;
             });
+            
+            if (isCompletedInLevels) {
+                console.log(`[isLevelCompleted] Found in completedLevels: Topic ${topicId}, SubLevel ${subLevelId}`);
+                return true;
+            }
+            
+            // Also check completedExams array for exam levels
+            const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+            const isCompletedInExams = completedExams.some(exam => {
+                if (!exam || typeof exam !== 'object') return false;
+                
+                const examTopicId = parseInt(exam.topicId);
+                const examSubLevelId = parseFloat(exam.subLevelId);
+                return examTopicId === topicId && examSubLevelId === subLevelId;
+            });
+            
+            if (isCompletedInExams) {
+                console.log(`[isLevelCompleted] Found in completedExams: Topic ${topicId}, SubLevel ${subLevelId}`);
+                return true;
+            }
+            
+            console.log(`[isLevelCompleted] Not completed: Topic ${topicId}, SubLevel ${subLevelId}`);
+            return false;
         }
+
+        // Make isLevelCompleted available globally for debugging
+        window.isLevelCompleted = isLevelCompleted;
 
         // Check if the final exam of a topic has been completed
         function isTopicExamCompleted(topicId) {
             topicId = parseInt(topicId);
+            console.log(`[isTopicExamCompleted] Checking if topic exam completed: Topic ${topicId}`);
             
             // Find the topic data
             const topic = window.topicsData.find(t => parseInt(t.id) === topicId);
-            if (!topic) return false;
+            if (!topic) {
+                console.warn(`[isTopicExamCompleted] Topic ${topicId} not found in topicsData`);
+                return false;
+            }
             
             // Find the final exam sublevel (should be the last one and have isExam flag)
             const finalExam = topic.subLevels.find(sl => sl.isExam === true);
-            if (!finalExam) return false;
+            if (!finalExam) {
+                console.warn(`[isTopicExamCompleted] No exam found for topic ${topicId}`);
+                return false;
+            }
+            
+            console.log(`[isTopicExamCompleted] Found exam for topic ${topicId}: SubLevel ${finalExam.id}`);
             
             // Check if this exam is completed
-            return isLevelCompleted(topicId, finalExam.id);
+            const examCompleted = isLevelCompleted(topicId, finalExam.id);
+            console.log(`[isTopicExamCompleted] Topic ${topicId} exam completed: ${examCompleted}`);
+            return examCompleted;
         }
 
         // Check if a topic should be unlocked
@@ -877,11 +917,16 @@
             topicId = parseInt(topicId);
             
             // First topic is always unlocked
-            if (topicId === 1) return true;
+            if (topicId === 1) {
+                console.log(`[isTopicUnlocked] Topic ${topicId} is first topic, always unlocked`);
+                return true;
+            }
             
             // For other topics, check if the previous topic's final exam is completed
             const previousTopicId = topicId - 1;
-            return isTopicExamCompleted(previousTopicId);
+            const isUnlocked = isTopicExamCompleted(previousTopicId);
+            console.log(`[isTopicUnlocked] Topic ${topicId} unlocked status: ${isUnlocked}`);
+            return isUnlocked;
         }
 
         // Load completed levels from server
@@ -1423,11 +1468,123 @@
             // Add event listener to load completed levels from server when page loads
             console.log('[DOMContentLoaded] Loading completed levels from server');
             loadCompletedLevelsFromServer();
+            
+            // Add a debug button to force unlock check
+            function addDebugUnlockButton() {
+                console.log('[Debug] Adding unlock check button');
+                const button = document.createElement('button');
+                button.textContent = 'Debug: Force Check Unlocks';
+                button.style.position = 'fixed';
+                button.style.bottom = '50px';
+                button.style.right = '20px';
+                button.style.zIndex = '9999';
+                button.style.padding = '8px 16px';
+                button.style.background = '#FF5252';
+                button.style.color = 'white';
+                button.style.border = 'none';
+                button.style.borderRadius = '4px';
+                button.style.cursor = 'pointer';
+                
+                button.addEventListener('click', function() {
+                    // Show all completed levels in localStorage
+                    const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
+                    console.log('[Debug] All completed levels:', completedLevels);
+                    
+                    // Show all completed exams
+                    const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+                    console.log('[Debug] All completed exams:', completedExams);
+                    
+                    // Check each topic if it should be unlocked
+                    if (window.topicsData) {
+                        window.topicsData.forEach(topic => {
+                            const isUnlocked = isTopicUnlocked(topic.id, 0);
+                            console.log(`[Debug] Topic ${topic.id} should be unlocked: ${isUnlocked}`);
+                            
+                            if (topic.id > 1) {
+                                // Check previous topic's exam
+                                const prevTopic = topic.id - 1;
+                                const examCompleted = isTopicExamCompleted(prevTopic);
+                                console.log(`[Debug] Previous topic ${prevTopic} exam completed: ${examCompleted}`);
+                                
+                                // Find the exam in the previous topic
+                                const prevTopicData = window.topicsData.find(t => t.id === prevTopic);
+                                if (prevTopicData) {
+                                    const examLevel = prevTopicData.subLevels.find(sl => sl.isExam === true);
+                                    if (examLevel) {
+                                        console.log(`[Debug] Previous topic exam: Topic ${prevTopic}, SubLevel ${examLevel.id}`);
+                                        
+                                        // Check if this exact exam is in completedLevels
+                                        const isInCompletedLevels = completedLevels.some(level => 
+                                            parseInt(level.topicId) === prevTopic && 
+                                            parseFloat(level.subLevelId) === parseFloat(examLevel.id)
+                                        );
+                                        console.log(`[Debug] Exam found in completedLevels: ${isInCompletedLevels}`);
+                                        
+                                        // Check if this exact exam is in completedExams
+                                        const isInCompletedExams = completedExams.some(exam => 
+                                            exam && 
+                                            parseInt(exam.topicId) === prevTopic && 
+                                            parseFloat(exam.subLevelId) === parseFloat(examLevel.id)
+                                        );
+                                        console.log(`[Debug] Exam found in completedExams: ${isInCompletedExams}`);
+                                        
+                                        // If not found in either, try to add it manually
+                                        if (!isInCompletedLevels && !isInCompletedExams) {
+                                            // Try to fix by adding to completedLevels
+                                            completedLevels.push({
+                                                topicId: prevTopic,
+                                                subLevelId: examLevel.id,
+                                                timestamp: new Date().getTime()
+                                            });
+                                            localStorage.setItem('completedLevels', JSON.stringify(completedLevels));
+                                            console.log(`[Debug] MANUAL FIX: Added exam to completedLevels`);
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                    
+                    // Force rebuild the UI
+                    buildLevelsUI();
+                    
+                    // Show a notification
+                    showNotification('Debug: Force checked unlocks', true);
+                });
+                
+                document.body.appendChild(button);
+            }
+            
+            // Add the debug button when DOM is loaded
+            console.log('[DOMContentLoaded] Loading completed levels from server');
+            loadCompletedLevelsFromServer();
+            
+            // Add debug button
+            addDebugUnlockButton();
         });
 
         // Function to rebuild the levels UI based on current completed levels
         function buildLevelsUI() {
             console.log('[buildLevelsUI] Rebuilding levels UI');
+            
+            // First check the completed levels directly
+            const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
+            const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+            
+            console.log('[buildLevelsUI] Current completedLevels:', completedLevels);
+            console.log('[buildLevelsUI] Current completedExams:', completedExams);
+            
+            // Debug check: Verify each topic's exam completion
+            if (window.topicsData) {
+                window.topicsData.forEach(topic => {
+                    // Skip the first topic as it's always unlocked
+                    if (topic.id > 1) {
+                        const previousTopicId = topic.id - 1;
+                        const examCompleted = isTopicExamCompleted(previousTopicId);
+                        console.log(`[buildLevelsUI] Topic ${topic.id} - Previous topic's exam completed: ${examCompleted}`);
+                    }
+                });
+            }
             
             // Get current XP for rendering
             if (window.ConnectionHelper && typeof window.ConnectionHelper.getUserXP === 'function') {
