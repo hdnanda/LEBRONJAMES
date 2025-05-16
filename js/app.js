@@ -1328,18 +1328,62 @@ async function handleExamCompletion(passed) {
                 };
                 
                 // Mark exam as completed - this ensures it's saved in completedLevels
-                window.markLevelCompleted(examLevel, true);
-                console.log('[Exam Completion] Exam marked as completed in completedLevels');
+                const marked = window.markLevelCompleted(examLevel, true);
+                console.log(`[Exam Completion] Exam marked as completed in completedLevels: ${marked ? 'Success' : 'Already completed'}`);
+                
+                // Double check if the level is actually marked as completed
+                // This is to debug the issue with topics not unlocking
+                if (window.isLevelCompleted) {
+                    const isCompleted = window.isLevelCompleted(topicId, subLevelId);
+                    console.log(`[Exam Completion] Double check - isLevelCompleted: ${isCompleted}`);
+                }
             } else {
                 console.warn('[Exam Completion] markLevelCompleted function not available');
+                
+                // Emergency fallback - directly add to completedLevels
+                try {
+                    const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
+                    const alreadyCompleted = completedLevels.some(level => 
+                        parseInt(level.topicId) === parseInt(topicId) && 
+                        parseFloat(level.subLevelId) === parseFloat(subLevelId)
+                    );
+                    
+                    if (!alreadyCompleted) {
+                        completedLevels.push({
+                            topicId: parseInt(topicId),
+                            subLevelId: parseFloat(subLevelId),
+                            timestamp: new Date().getTime()
+                        });
+                        
+                        localStorage.setItem('completedLevels', JSON.stringify(completedLevels));
+                        console.log(`[Exam Completion] Emergency fallback - added to completedLevels`);
+                    } else {
+                        console.log(`[Exam Completion] Already in completedLevels`);
+                    }
+                } catch (error) {
+                    console.error('[Exam Completion] Emergency fallback failed:', error);
+                }
             }
             
             // Save exam completion to localStorage
             const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
-            if (!completedExams.includes(window.currentLevelData)) {
-                completedExams.push(window.currentLevelData);
+            const examData = {
+                topicId: parseInt(topicId),
+                subLevelId: parseFloat(subLevelId),
+                timestamp: new Date().getTime(),
+                score: score
+            };
+            
+            const alreadyInExams = completedExams.some(exam => 
+                exam && exam.topicId === examData.topicId && exam.subLevelId === examData.subLevelId
+            );
+            
+            if (!alreadyInExams) {
+                completedExams.push(examData);
                 localStorage.setItem('completedExams', JSON.stringify(completedExams));
-                console.log('[Exam Completion] Saved exam to local storage:', window.currentLevelData);
+                console.log('[Exam Completion] Saved exam to completedExams storage:', examData);
+            } else {
+                console.log('[Exam Completion] Exam already in completedExams');
             }
             
             // Save to server if ConnectionHelper is available
@@ -1364,6 +1408,9 @@ async function handleExamCompletion(passed) {
             if (subLevel && subLevel.xpReward) {
                 await addXP(subLevel.xpReward, { exam: true });
             }
+            
+            // DEBUG: Alert user about exam completion status
+            alert(`Exam for Topic ${topicId} completed successfully! You should now be able to access the next topic.`);
         }
     } else if (!passed) {
         console.log('[Exam Completion] Exam failed - no completion status saved');
