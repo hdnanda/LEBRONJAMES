@@ -26,18 +26,11 @@ const isDevelopment = window.location.hostname === 'localhost' ||
 // Log environment
 console.log(`Running in ${isDevelopment ? 'DEVELOPMENT' : 'PRODUCTION'} mode`);
 
-// Configure backend - since we're having issues with the backend, 
-// let's use a local mock implementation for demo/development
-const useRealBackend = true; // Changed to true to use real backend instead of mock implementation
+// Always use real backend
+const useRealBackend = true;
 
-// API base URL configuration - ENSURE NO DUPLICATE DECLARATIONS
+// API base URL configuration
 const API_BASE_URL = (() => {
-    // Use real backend even in development
-    if (!useRealBackend) {
-        console.log('Using mock backend');
-        return null; // No real backend will be used
-    }
-    
     const hostname = window.location.hostname;
     
     // For local development with real backend
@@ -158,29 +151,24 @@ async function handleLogin(event) {
 
         let response;
         
-        // Use mock backend in development
-        if (isDevelopment || !useRealBackend) {
-            console.log('Using mock backend for login');
-            response = MockBackend.loginUser(username, email, password);
-        } else {
-            // Use real backend
-            const apiResponse = await fetch(`${API_BASE_URL}/login.php`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    username,
-                    email,
-                    password
-                }),
-                // FIXED: Add timeout to prevent hanging requests
-                signal: AbortSignal.timeout(10000)
-            });
-            
-            response = await apiResponse.json();
-        }
+        // Always use real backend regardless of environment
+        console.log('Using real backend for login');
+        const apiResponse = await fetch(`${API_BASE_URL}/login.php`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                username,
+                email,
+                password
+            }),
+            // FIXED: Add timeout to prevent hanging requests
+            signal: AbortSignal.timeout(10000)
+        });
+        
+        response = await apiResponse.json();
 
         if (!response.success) {
             throw new Error(response.message || 'Login failed');
@@ -249,29 +237,24 @@ async function handleSignup(event) {
 
         let response;
         
-        // Use mock backend in development
-        if (isDevelopment || !useRealBackend) {
-            console.log('Using mock backend for signup');
-            response = MockBackend.createUser(username, email, password);
-        } else {
-            // Use real backend
-            const apiResponse = await fetch(`${API_BASE_URL}/signup.php`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    username,
-                    email,
-                    password
-                }),
-                // Add timeout
-                signal: AbortSignal.timeout(10000)
-            });
-            
-            response = await apiResponse.json();
-        }
+        // Always use real backend regardless of environment
+        console.log('Using real backend for signup');
+        const apiResponse = await fetch(`${API_BASE_URL}/signup.php`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                username,
+                email,
+                password
+            }),
+            // Add timeout
+            signal: AbortSignal.timeout(10000)
+        });
+        
+        response = await apiResponse.json();
 
         if (!response.success) {
             throw new Error(response.message || 'Signup failed');
