@@ -1387,6 +1387,22 @@
                 min-height: unset;
             }
         }
+        
+        /* Debug indicator for device detection */
+        html::after {
+            content: attr(data-device);
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 9999;
+            pointer-events: none;
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
@@ -1403,7 +1419,7 @@
         </button>
         <div class="top-bar">
             <div class="progress-container">
-                <span id="progress-text">7/10 🎯</span>
+                <span id="progress-text" class="progress-text">7/10 🎯</span>
             </div>
             <div class="streak-progress-bar">
                 <div class="streak-fill"></div>
