@@ -10,7 +10,7 @@ const API_CONFIG = {
     FALLBACK_URL: 'https://financial-frontend-3xkp.onrender.com',
     BACKEND_URL: 'https://financial-backend1.onrender.com',
     // Timeout for API requests in milliseconds
-    TIMEOUT_MS: 10000
+    TIMEOUT_MS: 15000  // Increased timeout for potentially slow connections
 };
 
 // Connection Helper object
@@ -367,7 +367,7 @@ const ConnectionHelper = {
 };
 
 // Make available globally
-window.ConnectionHelper = ConnectionHelper;
+window.ConnectionHelper = ConnectionHelper; 
 
 // Add this for extra assurance
 if (typeof ConnectionHelper !== 'undefined' && !window.ConnectionHelper) {
