@@ -6,7 +6,12 @@
     <!-- TEMPORARILY DISABLED FOR TESTING -->
     <!-- <meta http-equiv="refresh" content="0;url=homepage.html"> -->
     <title>TheMoneyOlympics - Financial Literacy App</title>
+    
+    <!-- Device detection (must be before other scripts) -->
+    <script src="js/device-detection.js"></script>
+    
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/device-specific.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script>
         // Check if this is a first-time visitor
@@ -223,6 +228,7 @@
             border-radius: 20px;
             padding: 24px;
             width: min(90%, 600px);
+            min-height: 550px;
             position: fixed;
             top: 50%;
             left: 50%;
@@ -302,6 +308,8 @@
             flex-direction: column;
             justify-content: center;
             position: relative;
+            width: 100%;
+            margin: auto;
         }
 
         /* Confirmation Dialog Styles */
@@ -377,17 +385,21 @@
             background: var(--question-bg);
             color: var(--text-color);
             border-radius: 15px;
-            padding: 20px;
+            padding: 30px;
             margin: 0;
             width: 100%;
+            min-height: 300px;
             box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         #question-text {
             color: var(--text-color);
-            font-size: 1.5rem;
-            margin: 0 0 20px 0;
-            text-align: left;
+            font-size: 1.6rem;
+            margin: 0 0 30px 0;
+            text-align: center;
         }
 
         #options-container {
@@ -395,7 +407,7 @@
             z-index: 1;
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
-            grid-gap: 15px;
+            grid-gap: 20px;
             margin-top: 20px;
             width: 100%;
             box-sizing: border-box;
@@ -415,18 +427,24 @@
             color: var(--text-color);
             border: 1px solid var(--border-color);
             border-radius: 10px;
-            padding: 15px;
-            font-size: 1rem;
+            padding: 20px 15px;
+            font-size: 1.1rem;
             cursor: pointer;
             transition: all 0.3s ease;
-            text-align: left;
+            text-align: center;
             width: 100%;
             box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 80px;
         }
 
         .option-btn:hover {
             background: var(--accent-hover);
             border-color: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px var(--glow-color);
         }
 
         .option-btn.correct {
@@ -1040,6 +1058,12 @@
             border-radius: 15px;
             padding: 20px;
             margin-top: 20px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
         }
 
         .question-header {
@@ -1299,6 +1323,68 @@
         @media (max-width: 600px) {
             #options-container, .options-grid {
                 grid-template-columns: 1fr !important;
+                grid-gap: 15px;
+            }
+            
+            .option-btn {
+                padding: 15px 10px;
+                font-size: 0.95rem;
+                min-height: 70px;
+            }
+        }
+
+        /* Additional responsive adjustments for different screen sizes */
+        @media (min-width: 1200px) {
+            .app-container {
+                width: 650px;
+                min-height: 600px;
+            }
+            
+            #question-container {
+                min-height: 350px;
+                padding: 35px;
+            }
+            
+            #question-text {
+                font-size: 1.8rem;
+                margin-bottom: 40px;
+            }
+            
+            .option-btn {
+                padding: 25px 20px;
+                font-size: 1.2rem;
+                min-height: 90px;
+            }
+        }
+        
+        @media (max-height: 700px) {
+            .app-container {
+                min-height: 450px;
+                padding: 16px;
+            }
+            
+            #question-container {
+                min-height: 220px;
+                padding: 20px;
+            }
+            
+            #question-text {
+                font-size: 1.3rem;
+                margin-bottom: 20px;
+            }
+            
+            .option-btn {
+                padding: 12px 10px;
+                min-height: 60px;
+            }
+        }
+        
+        /* Ensure app container never goes off-screen */
+        @media (max-height: 550px) {
+            .app-container {
+                height: 90vh;
+                overflow-y: auto;
+                min-height: unset;
             }
         }
     </style>
