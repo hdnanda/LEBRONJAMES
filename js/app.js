@@ -824,7 +824,13 @@ function showCompletionMessage() {
         
         // Mark level as completed if passed
         if (window.markLevelCompleted) {
-            window.markLevelCompleted(currentLevel, true);
+            // Make sure currentLevel has the correct format expected by markLevelCompleted
+            if (currentLevel && !currentLevel.topicId && window.currentLevelData) {
+                // Use the window.currentLevelData instead if it exists
+                window.markLevelCompleted(window.currentLevelData, true);
+            } else {
+                window.markLevelCompleted(currentLevel, true);
+            }
         }
 
         // If this is an exam, save the completed exam status
@@ -1331,9 +1337,49 @@ async function handleExamCompletion(passed) {
             if (subLevel && subLevel.xpReward) {
                 await addXP(subLevel.xpReward, { exam: true });
             }
+            
+            // Mark exam as completed in localStorage
+            const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
+            const alreadyCompleted = completedLevels.some(level => 
+                parseInt(level.topicId) === topicId && parseFloat(level.subLevelId) === subLevelId
+            );
+            
+            if (!alreadyCompleted) {
+                completedLevels.push({
+                    topicId: topicId,
+                    subLevelId: subLevelId,
+                    timestamp: new Date().getTime()
+                });
+                
+                localStorage.setItem('completedLevels', JSON.stringify(completedLevels));
+                console.log(`[Exam Completion] Exam saved to completedLevels, total completed: ${completedLevels.length}`);
+                
+                // Save to server if available
+                if (window.ConnectionHelper && typeof window.ConnectionHelper.updateXP === 'function') {
+                    try {
+                        const result = await window.ConnectionHelper.updateXP(null, completedLevels);
+                        console.log('[Exam Completion] Saved to server:', result);
+                    } catch (error) {
+                        console.error('[Exam Completion] Error saving to server:', error);
+                    }
+                }
+                
+                // Show success notification
+                showNotification(`Topic ${topicId} Exam Completed! 🎉`, true);
+                
+                // Add a small delay to ensure everything is saved
+                setTimeout(() => {
+                    window.location.href = 'levels.html';
+                }, 1000);
+                
+                return true;
+            }
         }
     } else if (!passed) {
         console.log('[Exam Completion] Exam failed - no completion status saved');
+        
+        // Show failure notification
+        showNotification('Exam failed. Try again! 💪', false);
     }
 }
 
@@ -1720,3 +1766,27 @@ function checkForStuckState() {
     // ... existing code ...
 }
 // ... existing code ... 
+
+// Show notification utility function
+function showNotification(message, isSuccess = true) {
+    const notification = document.createElement('div');
+    notification.className = 'xp-notification';
+    notification.innerHTML = message;
+    notification.style.backgroundColor = isSuccess ? '#4CAF50' : '#FF5252';
+    notification.style.color = 'white';
+    notification.style.padding = '10px 20px';
+    notification.style.borderRadius = '4px';
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.zIndex = '1000';
+    notification.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+    notification.style.animation = 'slide-in-right 0.5s forwards';
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transition = 'opacity 0.5s ease';
+        setTimeout(() => notification.remove(), 500);
+    }, 3000);
+} 
