@@ -829,11 +829,6 @@ function showCompletionMessage() {
 
         // If this is an exam, save the completed exam status
         if (window.examManager && window.examManager.isExamActive) {
-            const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
-            if (!completedExams.includes(currentLevel)) {
-                completedExams.push(currentLevel);
-                localStorage.setItem('completedExams', JSON.stringify(completedExams));
-            }
             // Add bonus XP for completing exam
             addXP(20, { exam: true });
         }
@@ -1323,6 +1318,29 @@ async function handleExamCompletion(passed) {
             // Calculate score as percentage
             const score = Math.round((correctAnswers / questionsPerLesson) * 100);
             console.log(`[Exam Completion] Exam score: ${score}%`);
+            
+            // Save exam completion to localStorage
+            const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+            if (!completedExams.includes(window.currentLevelData)) {
+                completedExams.push(window.currentLevelData);
+                localStorage.setItem('completedExams', JSON.stringify(completedExams));
+                console.log('[Exam Completion] Saved exam to local storage:', window.currentLevelData);
+            }
+            
+            // Save to server if ConnectionHelper is available
+            if (window.ConnectionHelper && typeof window.ConnectionHelper.updateXP === 'function') {
+                // Get current XP and completed levels
+                const currentXp = await getTotalXP();
+                const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
+                
+                // Send data to server
+                try {
+                    const result = await window.ConnectionHelper.updateXP(currentXp, completedLevels, completedExams);
+                    console.log('[Exam Completion] Saved exam completion to server:', result);
+                } catch (error) {
+                    console.error('[Exam Completion] Failed to save exam completion to server:', error);
+                }
+            }
             
             // Update XP
             const topic = window.topicsData.find(t => t.id === topicId);
