@@ -88,10 +88,12 @@ html[data-device="mobile"] #question-text {
     margin-bottom: 15px;
 }
 
-html[data-device="mobile"] .feedback-container {
+html[data-device="mobile"] .feedback-container,
+html[data-device="mobile"] #feedback-container {
     width: 90%;
     max-width: 350px;
     padding: 15px;
+    z-index: 9999;
 }
 
 html[data-device="mobile"] .feedback-message,
@@ -306,4 +308,47 @@ html[data-device="mobile"] .social-btn {
     width: 45px;
     height: 45px;
     font-size: 1.1rem;
+}
+
+/* Mobile quiz top bar layout optimization - stack elements for better visibility */
+html[data-device="mobile"] .top-bar {
+    flex-direction: column;
+    margin-left: 0;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+}
+
+html[data-device="mobile"] .progress-container {
+    order: 1;
+    text-align: center;
+    margin-bottom: 5px;
+}
+
+html[data-device="mobile"] .progress-text {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-color);
+    display: block;
+    padding: 4px 0;
+}
+
+html[data-device="mobile"] .streak-progress-bar {
+    order: 2;
+    width: 100%;
+    margin: 0;
+    height: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+html[data-device="mobile"] .streak-fill {
+    height: 100%;
+    border-radius: 8px;
+}
+
+html[data-device="mobile"] .settings-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
 } 
