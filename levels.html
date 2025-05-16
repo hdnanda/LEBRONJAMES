@@ -884,6 +884,50 @@
             return isTopicExamCompleted(previousTopicId);
         }
 
+        // Mark a level as completed
+        window.markLevelCompleted = function(currentLevel, passed) {
+            if (!currentLevel || !passed) return false;
+
+            const topicId = parseInt(currentLevel.topicId);
+            const subLevelId = parseFloat(currentLevel.subLevelId);
+            
+            console.log(`[markLevelCompleted] Marking level as completed: Topic ${topicId}, SubLevel ${subLevelId}, Passed: ${passed}`);
+            
+            // Save to completedLevels in localStorage
+            const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
+            
+            // Check if this level is already marked as completed
+            const alreadyCompleted = completedLevels.some(level => 
+                parseInt(level.topicId) === topicId && parseFloat(level.subLevelId) === subLevelId
+            );
+            
+            if (!alreadyCompleted) {
+                completedLevels.push({
+                    topicId: topicId,
+                    subLevelId: subLevelId,
+                    timestamp: new Date().getTime()
+                });
+                
+                localStorage.setItem('completedLevels', JSON.stringify(completedLevels));
+                console.log(`[markLevelCompleted] Level saved to completedLevels, total completed: ${completedLevels.length}`);
+                
+                // Save to server if available
+                if (window.ConnectionHelper && typeof window.ConnectionHelper.updateXP === 'function') {
+                    window.ConnectionHelper.updateXP(null, completedLevels)
+                        .then(result => {
+                            console.log('[markLevelCompleted] Saved to server:', result);
+                        })
+                        .catch(error => {
+                            console.error('[markLevelCompleted] Error saving to server:', error);
+                        });
+                }
+                
+                return true;
+            }
+            
+            return false;
+        };
+
         function createConnectingLines(container, cards) {
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.classList.add('connecting-line');
