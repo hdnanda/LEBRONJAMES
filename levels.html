@@ -884,6 +884,42 @@
             return isTopicExamCompleted(previousTopicId);
         }
 
+        // Load completed levels from server
+        async function loadCompletedLevelsFromServer() {
+            try {
+                console.log('[loadCompletedLevels] Fetching completed levels from server');
+                
+                if (window.ConnectionHelper && typeof window.ConnectionHelper.getUserXP === 'function') {
+                    const result = await window.ConnectionHelper.getUserXP();
+                    console.log('[loadCompletedLevels] Server response:', result);
+                    
+                    if (result && result.success) {
+                        // Update localStorage with server data if available
+                        if (result.completed_levels && Array.isArray(result.completed_levels)) {
+                            console.log('[loadCompletedLevels] Updating completed levels from server');
+                            localStorage.setItem('completedLevels', JSON.stringify(result.completed_levels));
+                        }
+                        
+                        if (result.completed_exams && Array.isArray(result.completed_exams)) {
+                            console.log('[loadCompletedLevels] Updating completed exams from server');
+                            localStorage.setItem('completedExams', JSON.stringify(result.completed_exams));
+                        }
+                        
+                        // Refresh the UI to reflect the updated completion status
+                        buildLevelsUI();
+                        return true;
+                    } else {
+                        console.warn('[loadCompletedLevels] Failed to get completed levels from server');
+                    }
+                } else {
+                    console.warn('[loadCompletedLevels] ConnectionHelper not available');
+                }
+            } catch (error) {
+                console.error('[loadCompletedLevels] Error fetching completed levels:', error);
+            }
+            return false;
+        }
+
         // Mark a level as completed
         window.markLevelCompleted = function(currentLevel, passed) {
             if (!currentLevel || !passed) return false;
@@ -913,7 +949,10 @@
                 
                 // Save to server if available
                 if (window.ConnectionHelper && typeof window.ConnectionHelper.updateXP === 'function') {
-                    window.ConnectionHelper.updateXP(null, completedLevels)
+                    // Also include completedExams when sending to server
+                    const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+                    
+                    window.ConnectionHelper.updateXP(null, completedLevels, completedExams)
                         .then(result => {
                             console.log('[markLevelCompleted] Saved to server:', result);
                         })
@@ -1380,6 +1419,10 @@
                     event.target.style.display = 'none';
                 }
             };
+
+            // Add event listener to load completed levels from server when page loads
+            console.log('[DOMContentLoaded] Loading completed levels from server');
+            loadCompletedLevelsFromServer();
         });
     </script>
     
