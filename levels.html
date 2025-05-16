@@ -1553,6 +1553,110 @@
                 });
                 
                 document.body.appendChild(button);
+                
+                // Add a "Fix All Exams" button for topics 2-5
+                const fixAllButton = document.createElement('button');
+                fixAllButton.textContent = 'Debug: Fix All Topic Exams';
+                fixAllButton.style.position = 'fixed';
+                fixAllButton.style.bottom = '100px';
+                fixAllButton.style.right = '20px';
+                fixAllButton.style.zIndex = '9999';
+                fixAllButton.style.padding = '8px 16px';
+                fixAllButton.style.background = '#4CAF50';
+                fixAllButton.style.color = 'white';
+                fixAllButton.style.border = 'none';
+                fixAllButton.style.borderRadius = '4px';
+                fixAllButton.style.cursor = 'pointer';
+                
+                fixAllButton.addEventListener('click', function() {
+                    // Get the current data
+                    const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
+                    const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+                    let changes = 0;
+                    
+                    // Fix exams for topics 1-5
+                    if (window.topicsData) {
+                        for (let topicId = 1; topicId <= 5; topicId++) {
+                            const topic = window.topicsData.find(t => t.id === topicId);
+                            if (topic) {
+                                // Find the exam for this topic
+                                const examLevel = topic.subLevels.find(sl => sl.isExam === true);
+                                if (examLevel) {
+                                    console.log(`[Debug] Checking Topic ${topicId} exam: SubLevel ${examLevel.id}`);
+                                    
+                                    // Check if this exam is in completedLevels
+                                    const isInCompletedLevels = completedLevels.some(level => 
+                                        parseInt(level.topicId) === topicId && 
+                                        parseFloat(level.subLevelId) === parseFloat(examLevel.id)
+                                    );
+                                    
+                                    // Check if this exam is in completedExams
+                                    const isInCompletedExams = completedExams.some(exam => 
+                                        exam && 
+                                        parseInt(exam.topicId) === topicId && 
+                                        parseFloat(exam.subLevelId) === parseFloat(examLevel.id)
+                                    );
+                                    
+                                    // If exam is in completedExams but not in completedLevels, add it
+                                    if (isInCompletedExams && !isInCompletedLevels) {
+                                        completedLevels.push({
+                                            topicId: topicId,
+                                            subLevelId: examLevel.id,
+                                            timestamp: new Date().getTime()
+                                        });
+                                        console.log(`[Debug] FIXED: Added Topic ${topicId} exam to completedLevels`);
+                                        changes++;
+                                    }
+                                    
+                                    // Add option to manually mark an exam as completed for testing
+                                    const manualOverride = confirm(`Mark Topic ${topicId} exam (${examLevel.title}) as completed? (Cancel = No Change)`);
+                                    if (manualOverride) {
+                                        // Only add if not already present
+                                        if (!isInCompletedLevels) {
+                                            completedLevels.push({
+                                                topicId: topicId,
+                                                subLevelId: examLevel.id,
+                                                timestamp: new Date().getTime()
+                                            });
+                                            console.log(`[Debug] MANUAL OVERRIDE: Added Topic ${topicId} exam to completedLevels`);
+                                            changes++;
+                                        }
+                                        
+                                        // Also add to completedExams if not present
+                                        if (!isInCompletedExams) {
+                                            completedExams.push({
+                                                topicId: topicId,
+                                                subLevelId: examLevel.id,
+                                                timestamp: new Date().getTime(),
+                                                score: 80 // Default score
+                                            });
+                                            console.log(`[Debug] MANUAL OVERRIDE: Added Topic ${topicId} exam to completedExams`);
+                                            changes++;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Save changes if any were made
+                        if (changes > 0) {
+                            localStorage.setItem('completedLevels', JSON.stringify(completedLevels));
+                            localStorage.setItem('completedExams', JSON.stringify(completedExams));
+                            console.log(`[Debug] Saved ${changes} changes to localStorage`);
+                            
+                            // Force rebuild the UI
+                            buildLevelsUI();
+                            
+                            // Show a notification
+                            showNotification(`Fixed ${changes} exam completion records`, true);
+                        } else {
+                            console.log('[Debug] No changes needed');
+                            showNotification('No changes needed', true);
+                        }
+                    }
+                });
+                
+                document.body.appendChild(fixAllButton);
             }
             
             // Add the debug button when DOM is loaded
