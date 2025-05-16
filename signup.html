@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TheMoneyOlympics - Smart Money Education</title>
+    
+    <!-- Device detection (must be before other scripts) -->
+    <script src="js/device-detection.js"></script>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/device-specific.css">
     <style>
         :root {
             --bg-color: #E8F5E9;
@@ -49,6 +54,9 @@
             align-items: center;
             background-color: var(--header-bg);
             box-shadow: 0 2px 4px var(--shadow-color);
+            opacity: 0;
+            animation: fadeIn 0.6s ease forwards;
+            animation-delay: 0.3s;
         }
 
         .logo {
@@ -100,6 +108,9 @@
             gap: 4rem;
             max-width: 1200px;
             margin: 0 auto;
+            opacity: 0;
+            animation: fadeIn 0.8s ease forwards;
+            animation-delay: 0.5s;
         }
 
         .illustration {
@@ -251,11 +262,36 @@
                 font-size: 2rem;
             }
         }
+
+        /* Add transition animation for smooth page entry */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .page-transition-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #D4AF37;
+            opacity: 1;
+            z-index: 9999;
+            transition: opacity 0.8s ease;
+        }
     </style>
 </head>
 <body>
+    <div class="page-transition-overlay" id="page-transition"></div>
     <header class="header">
-        <a href="#" class="logo">
+        <a href="homepage.html" class="logo">
             <span>💰</span>
             TheMoneyOlympics
         </a>
@@ -310,23 +346,28 @@
     </main>
 
     <script>
-        const themeToggle = document.getElementById('themeToggle');
-        const html = document.documentElement;
-        
-        // Check for saved theme preference
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            html.setAttribute('data-theme', savedTheme);
-            themeToggle.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
-        }
-
-        themeToggle.addEventListener('click', () => {
-            const currentTheme = html.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        // Handle the page transition effect
+        document.addEventListener('DOMContentLoaded', function() {
+            const transitionOverlay = document.getElementById('page-transition');
             
-            html.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+            // Fade out the overlay
+            setTimeout(() => {
+                transitionOverlay.style.opacity = '0';
+                
+                // Remove the overlay after transition completes
+                setTimeout(() => {
+                    transitionOverlay.style.display = 'none';
+                }, 800);
+            }, 200);
+            
+            // Handle theme toggle
+            const themeToggle = document.querySelector('.theme-toggle');
+            themeToggle.addEventListener('click', function() {
+                document.documentElement.setAttribute(
+                    'data-theme', 
+                    document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
+                );
+            });
         });
 
         // Mock user database in localStorage
@@ -442,5 +483,6 @@
     </script>
     <script src="js/config.js"></script>
     <script src="js/xpService.js"></script>
+    <script src="js/navigation.js"></script>
 </body>
 </html> 
