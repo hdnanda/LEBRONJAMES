@@ -1424,6 +1424,50 @@
             console.log('[DOMContentLoaded] Loading completed levels from server');
             loadCompletedLevelsFromServer();
         });
+
+        // Function to rebuild the levels UI based on current completed levels
+        function buildLevelsUI() {
+            console.log('[buildLevelsUI] Rebuilding levels UI');
+            
+            // Get current XP for rendering
+            if (window.ConnectionHelper && typeof window.ConnectionHelper.getUserXP === 'function') {
+                window.ConnectionHelper.getUserXP()
+                    .then(data => {
+                        if (data && typeof data.xp !== 'undefined') {
+                            const xp = parseInt(data.xp) || 0;
+                            
+                            // Update XP display
+                            const xpDisplay = document.getElementById('totalXP');
+                            if (xpDisplay) {
+                                xpDisplay.textContent = xp;
+                            }
+                            
+                            // Re-render topics with updated XP and completion status
+                            const topicsContainer = document.getElementById('topicsContainer');
+                            if (topicsContainer && window.topicsData) {
+                                renderTopicsWithXP(xp);
+                                console.log('[buildLevelsUI] UI rebuilt successfully');
+                            } else {
+                                console.warn('[buildLevelsUI] Missing topicsContainer or topicsData');
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('[buildLevelsUI] Error getting XP:', error);
+                    });
+            } else {
+                console.warn('[buildLevelsUI] ConnectionHelper not available');
+            }
+        }
+
+        // Add event listener for when returning from a lesson
+        window.addEventListener('pageshow', function(event) {
+            // Check if the page is being shown from back/forward cache (bfcache)
+            if (event.persisted) {
+                console.log('[pageshow] Page restored from cache, refreshing data');
+                loadCompletedLevelsFromServer();
+            }
+        });
     </script>
     
     <!-- Feedback container -->
