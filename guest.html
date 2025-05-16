@@ -4,9 +4,122 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TheMoneyOlympics - Financial Literacy App</title>
+    
+    <!-- Device detection (must be before other scripts) -->
+    <script src="js/device-detection.js"></script>
+    
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/device-specific.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/dist/tippy.css">
+    <script>
+        // Device detection using feature detection approach
+        function detectDevice() {
+            // Check for touch capabilities
+            const hasTouchScreen = !!(('ontouchstart' in window) || 
+                                   (navigator.maxTouchPoints > 0) || 
+                                   (navigator.msMaxTouchPoints > 0));
+            
+            // Check for screen size (mobile typically has smaller screens)
+            const isSmallScreen = window.innerWidth < 768;
+            
+            // Check for mobile-specific browser features in user agent
+            const hasMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            // Check for mobile-specific orientation capability
+            const hasOrientationChange = typeof window.orientation !== 'undefined';
+            
+            // Final determination based on multiple factors
+            const isMobileDevice = hasTouchScreen && (isSmallScreen || hasMobileUA || hasOrientationChange);
+            
+            // Debug logging
+            console.log("📱 DEVICE DETECTION LOG:");
+            console.log("- Has touch screen:", hasTouchScreen);
+            console.log("- Is small screen:", isSmallScreen, `(${window.innerWidth}px)`);
+            console.log("- Has mobile user agent:", hasMobileUA);
+            console.log("- Has orientation change:", hasOrientationChange);
+            console.log("➡️ RESULT: This device is a", isMobileDevice ? "MOBILE PHONE" : "COMPUTER");
+            
+            // Set device type as a data attribute on body for CSS targeting
+            document.documentElement.setAttribute('data-device', isMobileDevice ? 'mobile' : 'desktop');
+            
+            return isMobileDevice;
+        }
+        
+        // Run detection when DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            const isMobile = detectDevice();
+            
+            // Apply device-specific adjustments
+            if (isMobile) {
+                console.log("Applying mobile-specific adjustments...");
+                
+                // Add specific class for mobile quiz styling
+                document.body.classList.add('mobile-device');
+                
+                // Apply index.html style quiz layout
+                applyMobileQuizLayout();
+            } else {
+                console.log("Applying desktop-specific adjustments...");
+                document.body.classList.add('desktop-device');
+            }
+        });
+        
+        // Function to apply index.html-style quiz layout for mobile
+        function applyMobileQuizLayout() {
+            // Wait for quiz elements to be available
+            const applyMobileStyles = function() {
+                const quizContainer = document.getElementById('quiz-container');
+                const optionsContainer = document.getElementById('options-container');
+                
+                if (quizContainer) {
+                    console.log("Applying mobile styles to quiz container");
+                    
+                    // Ensure options are in a single column on mobile
+                    if (optionsContainer) {
+                        // Remove forced columns if present
+                        optionsContainer.style.gridTemplateColumns = '1fr';
+                    }
+                    
+                    // Center question text for better mobile reading
+                    const questionText = document.getElementById('question-text');
+                    if (questionText) {
+                        console.log("Centering question text for mobile");
+                    }
+                    
+                    // Adjust feedback container for mobile
+                    const feedbackContainer = document.getElementById('feedback-container');
+                    if (feedbackContainer) {
+                        console.log("Optimizing feedback container for mobile");
+                        feedbackContainer.style.width = '90%';
+                        feedbackContainer.style.maxWidth = '350px';
+                    }
+                }
+            };
+            
+            // Apply immediately if elements exist
+            applyMobileStyles();
+            
+            // Also apply when quiz is shown
+            const checkQuizVisibility = setInterval(function() {
+                const quizContainer = document.getElementById('quiz-container');
+                if (quizContainer && quizContainer.style.display === 'block') {
+                    applyMobileStyles();
+                    clearInterval(checkQuizVisibility);
+                }
+            }, 500);
+        }
+        
+        // Also detect on resize for responsive testing
+        window.addEventListener('resize', function() {
+            // Throttle resize event to avoid excessive calls
+            if (this.resizeTimer) clearTimeout(this.resizeTimer);
+            this.resizeTimer = setTimeout(function() {
+                console.log("Window resized, re-checking device type...");
+                detectDevice();
+            }, 500);
+        });
+    </script>
     <style>
         :root {
             /* Light theme variables (default) */
@@ -53,6 +166,14 @@
             transition: all 0.3s ease;
             position: relative;
             overflow-x: hidden;
+            max-width: 100vw;
+            width: 100%;
+        }
+        
+        html {
+            overflow-x: hidden;
+            max-width: 100vw;
+            width: 100%;
         }
 
         .background-illustrations {
@@ -339,6 +460,9 @@
             opacity: 0;
             transform: translateY(20px);
             transition: opacity 0.5s ease, transform 0.5s ease;
+            width: 100%;
+            box-sizing: border-box;
+            max-width: 100%;
         }
 
         .question-wrapper {
@@ -351,6 +475,9 @@
             margin: 0 0 20px 0;
             transform-origin: center;
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 100%;
+            box-sizing: border-box;
+            max-width: 100%;
         }
 
         #question-text {
@@ -358,6 +485,10 @@
             font-size: 1.5rem;
             margin: 0 0 20px 0;
             text-align: left;
+            line-height: 1.4;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            hyphens: auto;
         }
 
         #options-container {
@@ -369,6 +500,7 @@
             margin-top: 20px;
             width: 100%;
             box-sizing: border-box;
+            max-width: 100%;
         }
 
         .option-btn {
@@ -386,6 +518,13 @@
             width: 100%;
             box-sizing: border-box;
             overflow: hidden;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            hyphens: auto;
+            line-height: 1.3;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .option-btn:hover {
@@ -572,6 +711,99 @@
         @media (max-width: 600px) {
             #options-container {
                 grid-template-columns: 1fr !important;
+                width: 100% !important;
+                grid-gap: 10px;
+            }
+            
+            .option-btn {
+                width: 100% !important;
+                box-sizing: border-box;
+                overflow-wrap: break-word;
+                word-wrap: break-word;
+                hyphens: auto;
+                display: block;
+                text-align: left;
+                white-space: normal;
+                line-height: 1.3;
+                font-size: 1rem;
+                padding: 12px;
+            }
+            
+            .question-wrapper {
+                padding: 15px;
+                margin: 0 0 15px 0;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            
+            #question-text {
+                font-size: 1.25rem;
+                line-height: 1.4;
+                margin-bottom: 15px;
+                text-align: left;
+            }
+            
+            .app-container {
+                width: 95%;
+                padding: 15px;
+                margin: 10px auto;
+                max-width: 450px;
+            }
+            
+            .feedback-container {
+                width: 90%;
+                max-width: 350px;
+                padding: 20px;
+            }
+            
+            .feedback-message, #feedback-text {
+                font-size: 1.1rem;
+                line-height: 1.4;
+            }
+            
+            .explanation {
+                font-size: 0.95rem;
+                line-height: 1.4;
+            }
+            
+            #continue-btn {
+                min-width: 180px;
+                padding: 10px 20px;
+            }
+            
+            .progress-container {
+                margin-bottom: 8px;
+            }
+            
+            .progress-text {
+                font-size: 0.9rem;
+            }
+            
+            /* Improve full screen handling */
+            body, html {
+                max-width: 100vw;
+                overflow-x: hidden;
+            }
+        }
+        
+        /* Small phones */
+        @media (max-width: 380px) {
+            .app-container {
+                width: 98%;
+                padding: 12px;
+            }
+            
+            .question-wrapper {
+                padding: 12px;
+            }
+            
+            #question-text {
+                font-size: 1.1rem;
+            }
+            
+            .option-btn {
+                padding: 10px;
+                font-size: 0.9rem;
             }
         }
 
@@ -913,6 +1145,215 @@
         
         .dark-overlay.active {
             opacity: 1;
+        }
+
+        /* Device-specific styles */
+        html[data-device="mobile"] {
+            /* Mobile-specific base styles */
+            --mobile-padding: 12px;
+            --mobile-font-size-adjust: 0.9;
+        }
+        
+        html[data-device="desktop"] {
+            /* Desktop-specific base styles */
+            --desktop-padding: 20px;
+            --desktop-font-size-adjust: 1;
+        }
+        
+        /* Apply device-specific styling based on the data-device attribute */
+        html[data-device="mobile"] .app-container {
+            width: 95%;
+            padding: var(--mobile-padding);
+            margin: 10px auto;
+            border-radius: 15px;
+        }
+        
+        html[data-device="mobile"] .question-wrapper {
+            padding: var(--mobile-padding);
+            border-radius: 12px;
+        }
+        
+        html[data-device="mobile"] #options-container {
+            grid-template-columns: 1fr !important;
+            grid-gap: 10px;
+        }
+        
+        html[data-device="mobile"] .option-btn {
+            padding: 12px;
+            font-size: calc(1rem * var(--mobile-font-size-adjust));
+        }
+        
+        html[data-device="mobile"] #question-text {
+            font-size: 1.2rem;
+            line-height: 1.4;
+        }
+        
+        /* Add debug indicator in development */
+        html::after {
+            content: attr(data-device);
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 9999;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        /* Mobile-specific question layout from index.html */
+        html[data-device="mobile"] .question-wrapper {
+            background: var(--question-bg);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            position: static;
+            margin: 20px 0;
+            transform-origin: unset;
+            max-width: 100%;
+        }
+        
+        html[data-device="mobile"] #options-container {
+            display: grid !important;
+            grid-template-columns: 1fr !important;
+            gap: 15px;
+            margin-top: 20px;
+            width: 100%;
+            position: static;
+            z-index: 1;
+        }
+        
+        html[data-device="mobile"] .option-btn {
+            background: var(--app-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            position: static;
+            overflow: hidden;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            hyphens: auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        html[data-device="mobile"] #question-text {
+            font-size: 1.2rem;
+            color: var(--text-color);
+            margin-bottom: 15px;
+            text-align: center; /* Center align like in index.html */
+            line-height: 1.4;
+        }
+        
+        /* For smaller devices, further reduce padding and font sizes */
+        @media (max-width: 380px) {
+            html[data-device="mobile"] .question-wrapper {
+                padding: 15px;
+            }
+            
+            html[data-device="mobile"] .option-btn {
+                padding: 12px;
+                font-size: 0.95rem;
+            }
+            
+            html[data-device="mobile"] #question-text {
+                font-size: 1.1rem;
+            }
+        }
+
+        /* Mobile Quiz Layout Class */
+        .mobile-quiz .question-wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            margin: 20px 0;
+            background: var(--question-bg);
+            border-radius: 15px;
+            position: static;
+            transform-origin: unset;
+        }
+        
+        .mobile-quiz #question-text {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+        
+        .mobile-quiz #options-container {
+            display: grid !important;
+            grid-template-columns: 1fr !important;
+            gap: 15px;
+            width: 100%;
+            max-width: 100%;
+            margin-top: 20px;
+        }
+        
+        .mobile-quiz .option-btn {
+            background: var(--app-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            position: static;
+            z-index: 1;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .mobile-quiz .option-btn:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+        
+        .mobile-quiz .feedback-container {
+            width: 90%;
+            max-width: 350px;
+            padding: 20px;
+        }
+        
+        .mobile-quiz .feedback-message,
+        .mobile-quiz #feedback-text {
+            font-size: 1.1rem;
+            line-height: 1.4;
+        }
+        
+        /* Additional enhancements for smaller screens */
+        @media (max-width: 380px) {
+            .mobile-quiz .question-wrapper {
+                padding: 15px;
+            }
+            
+            .mobile-quiz .option-btn {
+                padding: 12px;
+                font-size: 0.95rem;
+            }
+            
+            .mobile-quiz #question-text {
+                font-size: 1.1rem;
+            }
         }
     </style>
 </head>
@@ -1613,6 +2054,22 @@
                     const optionsContainer = document.getElementById('options-container');
                     optionsContainer.innerHTML = '';
                     
+                    // Check if we're on mobile for different styling
+                    const isMobile = document.documentElement.getAttribute('data-device') === 'mobile';
+                    
+                    // Apply mobile-specific styling if needed
+                    if (isMobile) {
+                        // Ensure we're using single column for options on mobile
+                        optionsContainer.style.gridTemplateColumns = '1fr';
+                        
+                        // Set up centering for index.html style
+                        questionContainer.style.justifyContent = 'center';
+                        questionContainer.style.alignItems = 'center';
+                        
+                        // For index.html style, center the question text
+                        document.getElementById('question-text').style.textAlign = 'center';
+                    }
+                    
                     questionData.options.forEach((option, optIndex) => {
                         const optionButton = document.createElement('button');
                         optionButton.className = 'option-btn';
@@ -1622,9 +2079,19 @@
                         optionButton.onclick = () => handleAnswer(optIndex, questionData.correctIndex, questionData.explanation);
                         optionsContainer.appendChild(optionButton);
                         
+                        // If on mobile, use the mobile question style from index.html
+                        if (isMobile) {
+                            optionButton.style.position = 'static';
+                            optionButton.style.width = '100%'; 
+                            optionButton.style.boxSizing = 'border-box';
+                            optionButton.style.transition = 'all 0.3s ease'; // Use the simpler transition from index.html
+                        }
+                        
                         // Stagger the animation of each option
                         setTimeout(() => {
-                            optionButton.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+                            optionButton.style.transition = isMobile ? 
+                                'all 0.3s ease' : // index.html style transition 
+                                'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'; // original transition
                             optionButton.style.opacity = '1';
                             optionButton.style.transform = 'translateY(0)';
                         }, 100 + (optIndex * 50));
@@ -1758,12 +2225,24 @@
                 // Hide step containers after transition
                 setTimeout(() => {
                     steps.forEach(step => {
-                            step.classList.remove('active');
+                        step.classList.remove('active');
                     });
                     
                     // Show and fade in quiz container
-                            quizContainer.style.display = 'block';
+                    quizContainer.style.display = 'block';
                     progressIndicator.style.width = '0%';
+                    
+                    // Apply device-specific layouts for quiz
+                    if (document.documentElement.getAttribute('data-device') === 'mobile') {
+                        console.log("Applying mobile-specific quiz layout");
+                        // Apply mobile-specific layouts and styles
+                        document.querySelector('.quiz-container').classList.add('mobile-quiz');
+                        
+                        // Force options to be in a single column on mobile
+                        if (document.getElementById('options-container')) {
+                            document.getElementById('options-container').style.gridTemplateColumns = '1fr';
+                        }
+                    }
                     
                     // Load first question
                     currentQuestionIndex = 0;
@@ -1773,9 +2252,9 @@
                     // Complete the transition
                     setTimeout(() => {
                         pageTransition.classList.remove('active');
-                            quizContainer.style.opacity = '1';
-                            quizContainer.style.transform = 'translateY(0)';
-                        }, 300);
+                        quizContainer.style.opacity = '1';
+                        quizContainer.style.transform = 'translateY(0)';
+                    }, 300);
                 }, 500);
             }
 
