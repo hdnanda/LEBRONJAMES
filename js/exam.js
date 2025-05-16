@@ -166,7 +166,19 @@ function handleExamSuccess() {
         window.xpService.addXP(200);
     }
     
-    // Redirect back to levels page
+    // Use the markLevelCompleted function if available
+    if (window.markLevelCompleted && window.currentLevelData) {
+        window.markLevelCompleted(window.currentLevelData, true);
+        console.log('[Exam] Marked exam as completed using markLevelCompleted');
+    }
+    
+    // Use handleExamCompletion if available
+    if (window.handleExamCompletion) {
+        window.handleExamCompletion(true);
+        return; // Let handleExamCompletion handle the redirect
+    }
+    
+    // Redirect back to levels page (fallback)
     window.location.href = 'levels.html';
 }
 
