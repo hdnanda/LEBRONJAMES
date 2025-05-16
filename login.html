@@ -4,14 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TheMoneyOlympics - Login</title>
+    
+    <!-- Device detection (must be before other scripts) -->
+    <script src="js/device-detection.js"></script>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/device-specific.css">
     <style>
         :root {
             --bg-color: #f5f5f5;
             --card-bg: rgba(255, 255, 255, 0.3);
             --text-color: #333333;
-            --accent-color: #D4AF37;
+            --accent-color: #85bb65; /* USD 100 dollar bill green */
             --border-radius: 12px;
             --border-color: rgba(0, 0, 0, 0.1);
         }
@@ -108,7 +113,7 @@
         .form-group input:focus {
             outline: none;
             border-color: var(--accent-color);
-            box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+            box-shadow: 0 0 0 2px rgba(133, 187, 101, 0.2);
         }
 
         .login-btn {
@@ -125,7 +130,7 @@
         }
 
         .login-btn:hover {
-            background: #b38f2d;
+            background: #6a9951; /* Darker green on hover */
             transform: translateY(-2px);
         }
 
@@ -264,7 +269,7 @@
 </head>
 <body>
     <div class="login-container">
-        <div class="logo">T</div>
+        <div class="logo" onclick="window.location.href='homepage.html'">T</div>
         <h1 class="login-title">Welcome to TheMoneyOlympics</h1>
         
         <form id="login-form" class="login-form" method="POST" onsubmit="handleLogin(event)">
@@ -358,5 +363,6 @@
 
     <!-- Scripts -->
     <script src="js/login.js"></script>
+    <script src="js/navigation.js"></script>
 </body>
 </html> 
