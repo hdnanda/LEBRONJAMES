@@ -376,6 +376,39 @@
             transform: translateY(-50%);
         }
 
+        /* Mobile specific tooltip positioning */
+        html[data-device="mobile"] .sub-level-card .level-tooltip {
+            left: 50% !important;
+            right: auto !important;
+            top: 100% !important;
+            transform: translateX(-50%) !important;
+            width: 280px;
+            max-width: 90vw;
+            z-index: 10;
+        }
+        
+        /* Add more space below the node for the tooltip on mobile */
+        html[data-device="mobile"] .sub-level-card {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        /* Debug indicator for device detection */
+        html::after {
+            content: attr(data-device);
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 9999;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
         .topic-card {
             background: none !important;
             border: none !important;
@@ -1305,5 +1338,15 @@
             };
         });
     </script>
+    
+    <!-- Feedback container -->
+    <div id="feedback-container" class="hidden">
+        <div id="feedback-text">
+            <span class="feedback-message"></span>
+            <span class="explanation"></span>
+        </div>
+        <button id="continue-btn">Continue</button>
+        <button id="retry-btn" class="hidden">Try Again</button>
+    </div>
 </body>
 </html>
