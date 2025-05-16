@@ -1319,6 +1319,21 @@ async function handleExamCompletion(passed) {
             const score = Math.round((correctAnswers / questionsPerLesson) * 100);
             console.log(`[Exam Completion] Exam score: ${score}%`);
             
+            // Explicitly mark the level as completed to trigger topic unlocking
+            if (window.markLevelCompleted) {
+                // Create current level object for markLevelCompleted
+                const examLevel = {
+                    topicId: topicId,
+                    subLevelId: subLevelId
+                };
+                
+                // Mark exam as completed - this ensures it's saved in completedLevels
+                window.markLevelCompleted(examLevel, true);
+                console.log('[Exam Completion] Exam marked as completed in completedLevels');
+            } else {
+                console.warn('[Exam Completion] markLevelCompleted function not available');
+            }
+            
             // Save exam completion to localStorage
             const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
             if (!completedExams.includes(window.currentLevelData)) {
