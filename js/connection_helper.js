@@ -240,6 +240,8 @@ const ConnectionHelper = {
                     success: true,
                     xp: parseInt(data.xp) || 0,
                     level: parseInt(data.level) || 1,
+                    completed_levels: data.completed_levels || [],
+                    completed_exams: data.completed_exams || [],
                     message: data.message || 'XP retrieved successfully'
                 };
             } else {
@@ -248,6 +250,8 @@ const ConnectionHelper = {
                     success: false,
                     xp: 0,
                     level: 1,
+                    completed_levels: [],
+                    completed_exams: [],
                     message: 'Invalid response format from server'
                 };
             }
@@ -258,6 +262,8 @@ const ConnectionHelper = {
                 success: false,
                 xp: 0,
                 level: 1,
+                completed_levels: [],
+                completed_exams: [],
                 message: 'Could not connect to server: ' + (error.message || 'Unknown error')
             };
         }
