@@ -28,12 +28,12 @@ console.log(`Running in ${isDevelopment ? 'DEVELOPMENT' : 'PRODUCTION'} mode`);
 
 // Configure backend - since we're having issues with the backend, 
 // let's use a local mock implementation for demo/development
-const useRealBackend = false; // Set to false to use mock implementation
+const useRealBackend = true; // Changed to true to use real backend instead of mock implementation
 
 // API base URL configuration - ENSURE NO DUPLICATE DECLARATIONS
 const API_BASE_URL = (() => {
-    // Always use mock backend in development due to CORS issues
-    if (isDevelopment || !useRealBackend) {
+    // Use real backend even in development
+    if (!useRealBackend) {
         console.log('Using mock backend');
         return null; // No real backend will be used
     }
