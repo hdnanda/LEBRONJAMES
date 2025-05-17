@@ -848,12 +848,15 @@
             topicId = parseInt(topicId);
             subLevelId = parseFloat(subLevelId);
             
+            // First check localStorage for completed levels
             const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
-            return completedLevels.some(level => {
+            const isCompletedLocal = completedLevels.some(level => {
                 const storedTopicId = parseInt(level.topicId);
                 const storedSubLevelId = parseFloat(level.subLevelId);
                 return storedTopicId === topicId && storedSubLevelId === subLevelId;
             });
+            
+            return isCompletedLocal;
         }
 
         // Check if the final exam of a topic has been completed
@@ -868,8 +871,62 @@
             const finalExam = topic.subLevels.find(sl => sl.isExam === true);
             if (!finalExam) return false;
             
-            // Check if this exam is completed
+            // Format key for checking completedExams array
+            const examKey = `${topicId}.${finalExam.id}`;
+            
+            // First check localStorage
+            const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+            const isExamCompletedLocal = completedExams.includes(examKey);
+            
+            // If found in localStorage, return true immediately
+            if (isExamCompletedLocal) return true;
+            
+            // Otherwise, also check if the level itself is completed
             return isLevelCompleted(topicId, finalExam.id);
+        }
+
+        // Load completed data from server
+        async function syncCompletedDataFromServer() {
+            // Only proceed if ConnectionHelper is available
+            if (!window.ConnectionHelper || typeof window.ConnectionHelper.getUserXP !== 'function') {
+                return false;
+            }
+            
+            try {
+                const result = await window.ConnectionHelper.getUserXP();
+                
+                if (result.success) {
+                    // Update local storage with server data
+                    if (result.completed_levels && Array.isArray(result.completed_levels)) {
+                        const localLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
+                        // Need to merge objects by their topic and sublevel IDs
+                        const mergedLevels = [...localLevels];
+                        result.completed_levels.forEach(serverLevel => {
+                            // Only add if not already in local levels
+                            const exists = localLevels.some(localLevel => 
+                                localLevel.topicId === serverLevel.topicId && 
+                                localLevel.subLevelId === serverLevel.subLevelId
+                            );
+                            if (!exists) {
+                                mergedLevels.push(serverLevel);
+                            }
+                        });
+                        localStorage.setItem('completedLevels', JSON.stringify(mergedLevels));
+                    }
+                    
+                    if (result.completed_exams && Array.isArray(result.completed_exams)) {
+                        const localExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+                        const mergedExams = [...new Set([...localExams, ...result.completed_exams])];
+                        localStorage.setItem('completedExams', JSON.stringify(mergedExams));
+                    }
+                    
+                    return true;
+                }
+            } catch (error) {
+                console.error('Error syncing completed data from server:', error);
+            }
+            
+            return false;
         }
 
         // Check if a topic should be unlocked
@@ -911,9 +968,18 @@
                 localStorage.setItem('completedLevels', JSON.stringify(completedLevels));
                 console.log(`[markLevelCompleted] Level saved to completedLevels, total completed: ${completedLevels.length}`);
                 
+                // Get completedExams data to send to server as well
+                const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+                
                 // Save to server if available
                 if (window.ConnectionHelper && typeof window.ConnectionHelper.updateXP === 'function') {
-                    window.ConnectionHelper.updateXP(null, completedLevels)
+                    // First get current XP to avoid overwriting with null
+                    window.ConnectionHelper.getUserXP()
+                        .then(result => {
+                            const currentXP = result.xp || 0;
+                            // Update with both completed levels and exams
+                            return window.ConnectionHelper.updateXP(currentXP, completedLevels, completedExams);
+                        })
                         .then(result => {
                             console.log('[markLevelCompleted] Saved to server:', result);
                         })
@@ -1114,6 +1180,16 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('[Debug] DOM Content Loaded');
             
+            // First try to sync data from server
+            syncCompletedDataFromServer().then(() => {
+                // Then initialize the UI with potentially updated data
+                initializeTopicsUI();
+            }).catch(error => {
+                console.error('Error during data sync:', error);
+                // Initialize UI anyway with local data
+                initializeTopicsUI();
+            });
+
             // Initialize theme
             initializeTheme();
             
@@ -1287,6 +1363,14 @@
                             if (modalXPDisplay) {
                                 modalXPDisplay.textContent = xp;
                             }
+                            
+                            // If we have completedExams data from server, update localStorage
+                            if (data.completed_exams && Array.isArray(data.completed_exams)) {
+                                const localExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+                                const mergedExams = [...new Set([...localExams, ...data.completed_exams])];
+                                localStorage.setItem('completedExams', JSON.stringify(mergedExams));
+                                console.log('[Topics UI] Updated localStorage completedExams with server data');
+                            }
                         } else {
                             console.warn('[Debug] Invalid XP data format:', data);
                             // Show error and use 0 XP
@@ -1381,6 +1465,12 @@
                 }
             };
         });
+
+        // Define the initialize function
+        function initializeTopicsUI() {
+            // Load user XP data which will render topics
+            loadUserXP();
+        }
     </script>
     
     <!-- Feedback container -->
