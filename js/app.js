@@ -831,6 +831,12 @@ function showCompletionMessage() {
         if (window.examManager && window.examManager.isExamActive) {
             // Add bonus XP for completing exam
             addXP(20, { exam: true });
+            
+            // Check if we should trigger the exam completion handler
+            if (window.currentLevelData && window.currentLevelData.isExam) {
+                console.log('[showCompletionMessage] Exam passed, explicitly triggering handleExamCompletion');
+                handleExamCompletion(true);
+            }
         }
     } else {
         feedbackText.innerHTML = `
