@@ -924,129 +924,9 @@
             
             // For other topics, check if the previous topic's final exam is completed
             const previousTopicId = topicId - 1;
-            
-            // For logging purposes, show what we're checking
-            console.log(`[isTopicUnlocked] Checking if previous topic ${previousTopicId} exam is completed for unlocking topic ${topicId}`);
-            
-            // Look up the exam in topicsData
-            const prevTopic = window.topicsData.find(t => parseInt(t.id) === previousTopicId);
-            if (!prevTopic) {
-                console.error(`[isTopicUnlocked] Cannot find previous topic ${previousTopicId} in topicsData`);
-                return false;
-            }
-            
-            // Find the exam sublevel
-            const examLevel = prevTopic.subLevels.find(sl => sl.isExam === true);
-            if (!examLevel) {
-                console.error(`[isTopicUnlocked] Cannot find exam in previous topic ${previousTopicId}`);
-                return false;
-            }
-            
-            console.log(`[isTopicUnlocked] Found exam level: ${previousTopicId}.${examLevel.id}`);
-            
-            // Direct check in completedLevels array
-            const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
-            const isInCompletedLevels = completedLevels.some(level => {
-                const storedTopicId = parseInt(level.topicId);
-                const storedSubLevelId = parseFloat(level.subLevelId);
-                const matches = storedTopicId === previousTopicId && storedSubLevelId === parseFloat(examLevel.id);
-                if (matches) {
-                    console.log(`[isTopicUnlocked] Found exam directly in completedLevels`);
-                }
-                return matches;
-            });
-            
-            // Direct check in completedExams array
-            const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
-            const isInCompletedExams = completedExams.some(exam => {
-                if (!exam || typeof exam !== 'object') return false;
-                
-                const examTopicId = parseInt(exam.topicId);
-                const examSubLevelId = parseFloat(exam.subLevelId);
-                const matches = examTopicId === previousTopicId && examSubLevelId === parseFloat(examLevel.id);
-                if (matches) {
-                    console.log(`[isTopicUnlocked] Found exam directly in completedExams`);
-                }
-                return matches;
-            });
-            
-            // If found directly in either array, we can unlock
-            if (isInCompletedLevels || isInCompletedExams) {
-                console.log(`[isTopicUnlocked] Topic ${topicId} should be unlocked - found in arrays`);
-                return true;
-            }
-            
-            // Otherwise, use the isTopicExamCompleted function as a backup
             const isUnlocked = isTopicExamCompleted(previousTopicId);
-            console.log(`[isTopicUnlocked] Topic ${topicId} unlocked status from isTopicExamCompleted: ${isUnlocked}`);
+            console.log(`[isTopicUnlocked] Topic ${topicId} unlocked status: ${isUnlocked}`);
             return isUnlocked;
-        }
-        
-        // Function to manually unlock a topic for debugging purposes
-        function forceUnlockTopic(topicId) {
-            topicId = parseInt(topicId);
-            console.log(`[forceUnlockTopic] Attempting to force unlock topic ${topicId}`);
-            
-            if (topicId <= 1) {
-                console.log(`[forceUnlockTopic] Topic ${topicId} is already unlocked by default`);
-                return true;
-            }
-            
-            const previousTopicId = topicId - 1;
-            
-            // Find the previous topic
-            const prevTopic = window.topicsData?.find(t => parseInt(t.id) === previousTopicId);
-            if (!prevTopic) {
-                console.error(`[forceUnlockTopic] Cannot find previous topic ${previousTopicId}`);
-                return false;
-            }
-            
-            // Find the exam in the previous topic
-            const examLevel = prevTopic.subLevels?.find(sl => sl.isExam === true);
-            if (!examLevel) {
-                console.error(`[forceUnlockTopic] Cannot find exam in previous topic ${previousTopicId}`);
-                return false;
-            }
-            
-            console.log(`[forceUnlockTopic] Found exam: Topic ${previousTopicId}, SubLevel ${examLevel.id}`);
-            
-            // Add to completedLevels
-            const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
-            
-            // Check if already exists
-            const exists = completedLevels.some(level => 
-                parseInt(level.topicId) === previousTopicId && 
-                parseFloat(level.subLevelId) === parseFloat(examLevel.id)
-            );
-            
-            if (!exists) {
-                // Add the exam to completedLevels
-                completedLevels.push({
-                    topicId: previousTopicId,
-                    subLevelId: parseFloat(examLevel.id),
-                    timestamp: new Date().getTime()
-                });
-                
-                localStorage.setItem('completedLevels', JSON.stringify(completedLevels));
-                console.log(`[forceUnlockTopic] Added exam to completedLevels`);
-                
-                // Also add to completedExams for good measure
-                const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
-                completedExams.push({
-                    topicId: previousTopicId,
-                    subLevelId: parseFloat(examLevel.id),
-                    timestamp: new Date().getTime(),
-                    score: 100
-                });
-                
-                localStorage.setItem('completedExams', JSON.stringify(completedExams));
-                console.log(`[forceUnlockTopic] Added exam to completedExams`);
-                
-                return true;
-            } else {
-                console.log(`[forceUnlockTopic] Exam already exists in completedLevels`);
-                return false;
-            }
         }
 
         // Load completed levels from server
@@ -1651,7 +1531,13 @@
                                         // If not found in either, try to add it manually
                                         if (!isInCompletedLevels && !isInCompletedExams) {
                                             // Try to fix by adding to completedLevels
-                                            forceUnlockTopic(topic.id);
+                                            completedLevels.push({
+                                                topicId: prevTopic,
+                                                subLevelId: examLevel.id,
+                                                timestamp: new Date().getTime()
+                                            });
+                                            localStorage.setItem('completedLevels', JSON.stringify(completedLevels));
+                                            console.log(`[Debug] MANUAL FIX: Added exam to completedLevels`);
                                         }
                                     }
                                 }
@@ -1667,39 +1553,6 @@
                 });
                 
                 document.body.appendChild(button);
-                
-                // Add topic-specific unlock buttons
-                if (window.topicsData) {
-                    let topicButtonsContainer = document.createElement('div');
-                    topicButtonsContainer.style.position = 'fixed';
-                    topicButtonsContainer.style.top = '50px';
-                    topicButtonsContainer.style.right = '20px';
-                    topicButtonsContainer.style.zIndex = '9998';
-                    topicButtonsContainer.style.display = 'flex';
-                    topicButtonsContainer.style.flexDirection = 'column';
-                    topicButtonsContainer.style.gap = '10px';
-                    
-                    for (let i = 2; i <= 5; i++) {
-                        const topicButton = document.createElement('button');
-                        topicButton.textContent = `Unlock Topic ${i}`;
-                        topicButton.style.padding = '5px 10px';
-                        topicButton.style.background = '#4CAF50';
-                        topicButton.style.color = 'white';
-                        topicButton.style.border = 'none';
-                        topicButton.style.borderRadius = '4px';
-                        topicButton.style.cursor = 'pointer';
-                        
-                        topicButton.addEventListener('click', function() {
-                            forceUnlockTopic(i);
-                            buildLevelsUI();
-                            showNotification(`Topic ${i} unlock attempted`, true);
-                        });
-                        
-                        topicButtonsContainer.appendChild(topicButton);
-                    }
-                    
-                    document.body.appendChild(topicButtonsContainer);
-                }
             }
             
             // Add the debug button when DOM is loaded
