@@ -878,6 +878,10 @@
             const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
             const isExamCompletedLocal = completedExams.includes(examKey);
             
+            // DEBUG LOG: Show exam completion check
+            console.log(`[DEBUG] Checking if exam ${examKey} is completed:`, isExamCompletedLocal);
+            console.log(`[DEBUG] All completed exams from localStorage:`, completedExams);
+            
             // If found in localStorage, return true immediately
             if (isExamCompletedLocal) return true;
             
@@ -896,6 +900,14 @@
                 const result = await window.ConnectionHelper.getUserXP();
                 
                 if (result.success) {
+                    // DEBUG LOG: Show server response data
+                    console.log('[DEBUG] Server returned user data:', {
+                        xp: result.xp,
+                        level: result.level,
+                        completed_levels: result.completed_levels,
+                        completed_exams: result.completed_exams
+                    });
+                
                     // Update local storage with server data
                     if (result.completed_levels && Array.isArray(result.completed_levels)) {
                         const localLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
@@ -918,6 +930,13 @@
                         const localExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
                         const mergedExams = [...new Set([...localExams, ...result.completed_exams])];
                         localStorage.setItem('completedExams', JSON.stringify(mergedExams));
+                        
+                        // DEBUG LOG: Show merged exam data
+                        console.log('[DEBUG] Merged completedExams:', {
+                            fromServer: result.completed_exams,
+                            fromLocal: localExams, 
+                            merged: mergedExams
+                        });
                     }
                     
                     return true;
@@ -938,7 +957,12 @@
             
             // For other topics, check if the previous topic's final exam is completed
             const previousTopicId = topicId - 1;
-            return isTopicExamCompleted(previousTopicId);
+            const isUnlocked = isTopicExamCompleted(previousTopicId);
+            
+            // DEBUG LOG: Show topic unlocking check
+            console.log(`[DEBUG] Is topic ${topicId} unlocked? ${isUnlocked} (previous topic exam completed: ${isUnlocked})`);
+            
+            return isUnlocked;
         }
 
         // Mark a level as completed
@@ -1180,6 +1204,10 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('[Debug] DOM Content Loaded');
             
+            // DEBUG LOG: Display stored completed exams on page load
+            const initialStoredExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+            console.log('[DEBUG] Initial completedExams in localStorage:', initialStoredExams);
+            
             // First try to sync data from server
             syncCompletedDataFromServer().then(() => {
                 // Then initialize the UI with potentially updated data
@@ -1241,6 +1269,10 @@
                     ];
                 }
 
+                // DEBUG LOG: Show completed exams before rendering topics
+                const examsBeforeRender = JSON.parse(localStorage.getItem('completedExams') || '[]');
+                console.log('[DEBUG] Completed exams before rendering topics:', examsBeforeRender);
+
                 topicsContainer.innerHTML = '';
 
                 window.topicsData.forEach(topic => {
@@ -1249,6 +1281,9 @@
 
                     // Check if this topic is unlocked based on previous topic completion
                     const isTopicLocked = !isTopicUnlocked(topic.id, totalXP);
+                    
+                    // DEBUG LOG: Show topic lock status
+                    console.log(`[DEBUG] Topic ${topic.id}: ${topic.title} - Locked: ${isTopicLocked}`);
 
                     // Create topic header
                     const topicHeader = document.createElement('div');
@@ -1350,6 +1385,14 @@
                 ConnectionHelper.getUserXP()
                     .then(data => {
                         console.log('[Debug] XP Data:', data);
+                        
+                        // DEBUG LOG: Focus specifically on completed exams from server
+                        if (data && data.completed_exams) {
+                            console.log('[DEBUG] Server returned completed exams:', data.completed_exams);
+                        } else {
+                            console.log('[DEBUG] No completed exams data from server');
+                        }
+                        
                         if (data && typeof data.xp !== 'undefined') {
                             const xp = parseInt(data.xp) || 0;
                             if (xpDisplay) {
