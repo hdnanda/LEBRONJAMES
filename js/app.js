@@ -305,6 +305,54 @@ document.addEventListener('DOMContentLoaded', function() {
     const topicId = parseInt(urlParams.get('topic'));
     const subLevelId = parseFloat(urlParams.get('sublevel'));
     
+    // SYNC WITH SERVER: Fetch completed exams from server first
+    if (window.ConnectionHelper && typeof window.ConnectionHelper.getUserXP === 'function') {
+        window.ConnectionHelper.getUserXP()
+            .then(result => {
+                console.log('[App Initialization] Got user data from server:', result);
+                // If server returned completed exams, update local storage
+                if (result.success && result.completed_exams && Array.isArray(result.completed_exams)) {
+                    // Merge server data with any local data to avoid overwriting local progress
+                    const localExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+                    const mergedExams = [...new Set([...localExams, ...result.completed_exams])];
+                    localStorage.setItem('completedExams', JSON.stringify(mergedExams));
+                    console.log('[App Initialization] Updated local completedExams with server data:', mergedExams);
+                }
+                // Also update completed levels from server
+                if (result.success && result.completed_levels && Array.isArray(result.completed_levels)) {
+                    const localLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
+                    // Need to merge objects by their topic and sublevel IDs
+                    const mergedLevels = [...localLevels];
+                    result.completed_levels.forEach(serverLevel => {
+                        // Only add if not already in local levels
+                        const exists = localLevels.some(localLevel => 
+                            localLevel.topicId === serverLevel.topicId && 
+                            localLevel.subLevelId === serverLevel.subLevelId
+                        );
+                        if (!exists) {
+                            mergedLevels.push(serverLevel);
+                        }
+                    });
+                    localStorage.setItem('completedLevels', JSON.stringify(mergedLevels));
+                    console.log('[App Initialization] Updated local completedLevels with server data:', mergedLevels);
+                }
+                
+                // Continue with normal initialization
+                proceedWithInitialization(topicId, subLevelId);
+            })
+            .catch(error => {
+                console.error('[App Initialization] Error fetching user data:', error);
+                // Continue with initialization using local data only
+                proceedWithInitialization(topicId, subLevelId);
+            });
+    } else {
+        // No ConnectionHelper available, proceed with local data
+        proceedWithInitialization(topicId, subLevelId);
+    }
+});
+
+// Helper function to proceed with initialization after attempting server sync
+function proceedWithInitialization(topicId, subLevelId) {
     if (topicId && subLevelId) {
         // Ensure topics.js is loaded before trying to access topic data
         if (!window.topicsData || !Array.isArray(window.topicsData) || window.topicsData.length === 0) {
@@ -343,7 +391,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add a fallback timer to force check UI state after 3 seconds
     setTimeout(forceCheckUIState, 3000);
-});
+}
 
 /**
  * Preload the next question in the background
@@ -829,13 +877,33 @@ function showCompletionMessage() {
 
         // If this is an exam, save the completed exam status
         if (window.examManager && window.examManager.isExamActive) {
+            // Get existing completedExams from localStorage
             const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
             if (!completedExams.includes(currentLevel)) {
                 completedExams.push(currentLevel);
                 localStorage.setItem('completedExams', JSON.stringify(completedExams));
+                
+                // SYNC WITH SERVER: Save completedExams to server
+                if (window.ConnectionHelper && typeof window.ConnectionHelper.updateXP === 'function') {
+                    // Get completedLevels from localStorage for the full update
+                    const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
+                    
+                    // Get current XP first to avoid overwriting with null
+                    window.ConnectionHelper.getUserXP().then(result => {
+                        const currentXP = result.xp || 0;
+                        // Update server with both completed levels and exams
+                        window.ConnectionHelper.updateXP(currentXP, completedLevels, completedExams)
+                            .then(result => {
+                                console.log('[Exam Completion] Saved completedExams to server:', result);
+                            })
+                            .catch(error => {
+                                console.error('[Exam Completion] Error saving completedExams to server:', error);
+                            });
+                    });
+                }
+                // Add bonus XP for completing exam
+                addXP(20, { exam: true });
             }
-            // Add bonus XP for completing exam
-            addXP(20, { exam: true });
         }
     } else {
         feedbackText.innerHTML = `
