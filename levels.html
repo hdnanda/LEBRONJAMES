@@ -738,6 +738,25 @@
                         <span class="user-stat-label">Next Level:</span>
                         <span id="modalNextLevel">50 XP needed</span>
                     </div>
+                    <!-- New Sync Button -->
+                    <div class="user-stat" style="display: flex; justify-content: center;">
+                        <button id="sync-data-btn" class="sync-btn" style="
+                            background: var(--accent-color);
+                            color: white;
+                            padding: 0.5rem 1rem;
+                            border: none;
+                            border-radius: var(--border-radius);
+                            cursor: pointer;
+                            font-weight: 500;
+                            margin-top: 0.5rem;
+                            display: flex;
+                            align-items: center;
+                            gap: 0.5rem;
+                        ">
+                            <i class="fas fa-sync-alt"></i>
+                            Sync Progress Data
+                        </button>
+                    </div>
                     <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                         <button id="logout-btn" class="logout-btn" style="
                             background: var(--accent-color);
@@ -893,6 +912,7 @@
         async function syncCompletedDataFromServer() {
             // Only proceed if ConnectionHelper is available
             if (!window.ConnectionHelper || typeof window.ConnectionHelper.getUserXP !== 'function') {
+                console.log('[DEBUG] No ConnectionHelper available for syncing');
                 return false;
             }
             
@@ -924,14 +944,15 @@
                             }
                         });
                         localStorage.setItem('completedLevels', JSON.stringify(mergedLevels));
+                        console.log('[DEBUG] Updated local completedLevels with server data:', mergedLevels);
                     }
                     
+                    // IMPORTANT FIX: Prioritize server completed_exams data over local storage
                     if (result.completed_exams && Array.isArray(result.completed_exams)) {
                         const localExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
                         const mergedExams = [...new Set([...localExams, ...result.completed_exams])];
                         localStorage.setItem('completedExams', JSON.stringify(mergedExams));
                         
-                        // DEBUG LOG: Show merged exam data
                         console.log('[DEBUG] Merged completedExams:', {
                             fromServer: result.completed_exams,
                             fromLocal: localExams, 
@@ -957,6 +978,8 @@
             
             // For other topics, check if the previous topic's final exam is completed
             const previousTopicId = topicId - 1;
+            
+            // Force sync from server before checking exam completion (for better cross-browser experience)
             const isUnlocked = isTopicExamCompleted(previousTopicId);
             
             // DEBUG LOG: Show topic unlocking check
@@ -992,6 +1015,23 @@
                 localStorage.setItem('completedLevels', JSON.stringify(completedLevels));
                 console.log(`[markLevelCompleted] Level saved to completedLevels, total completed: ${completedLevels.length}`);
                 
+                // Check if this is an exam level
+                const topic = window.topicsData.find(t => parseInt(t.id) === topicId);
+                const isExam = topic && topic.subLevels.some(sl => 
+                    parseFloat(sl.id) === subLevelId && sl.isExam === true
+                );
+                
+                // If it's an exam, add to completedExams
+                if (isExam) {
+                    const examKey = `${topicId}.${subLevelId}`;
+                    const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+                    if (!completedExams.includes(examKey)) {
+                        completedExams.push(examKey);
+                        localStorage.setItem('completedExams', JSON.stringify(completedExams));
+                        console.log(`[markLevelCompleted] Exam ${examKey} added to completedExams`);
+                    }
+                }
+                
                 // Get completedExams data to send to server as well
                 const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
                 
@@ -1001,6 +1041,11 @@
                     window.ConnectionHelper.getUserXP()
                         .then(result => {
                             const currentXP = result.xp || 0;
+                            console.log('[markLevelCompleted] About to update XP on server with:', {
+                                currentXP,
+                                completedLevels,
+                                completedExams
+                            });
                             // Update with both completed levels and exams
                             return window.ConnectionHelper.updateXP(currentXP, completedLevels, completedExams);
                         })
@@ -1232,6 +1277,41 @@
                 dbTestBtn.addEventListener('click', testDatabaseConnection);
             }
 
+            // Add event listener for the sync button
+            const syncBtn = document.getElementById('sync-data-btn');
+            if (syncBtn) {
+                syncBtn.addEventListener('click', function() {
+                    // Change button text to show sync in progress
+                    const originalText = syncBtn.innerHTML;
+                    syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+                    syncBtn.disabled = true;
+                    
+                    // Sync data from server
+                    syncCompletedDataFromServer().then(() => {
+                        // Re-render UI with the updated data
+                        initializeTopicsUI();
+                        
+                        // Show success notification
+                        showNotification('Progress data synced successfully ✓');
+                        
+                        // Reset button state
+                        setTimeout(() => {
+                            syncBtn.innerHTML = originalText;
+                            syncBtn.disabled = false;
+                        }, 1000);
+                    }).catch(error => {
+                        console.error('Error during manual sync:', error);
+                        
+                        // Show error notification
+                        showNotification('Failed to sync progress data ✗', false);
+                        
+                        // Reset button state
+                        syncBtn.innerHTML = originalText;
+                        syncBtn.disabled = false;
+                    });
+                });
+            }
+
             function renderTopicsWithXP(totalXP) {
                 console.log('[Debug] Rendering topics with XP:', totalXP);
                 const topicsContainer = document.getElementById('topicsContainer');
@@ -1399,20 +1479,24 @@
                                 xpDisplay.textContent = xp;
                             }
 
+                            // IMPORTANT: Always sync completion data from server before rendering UI
+                            // This ensures we have the most up-to-date data about completed exams
+                            if (data.completed_exams && Array.isArray(data.completed_exams)) {
+                                const localExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+                                const mergedExams = [...new Set([...localExams, ...data.completed_exams])];
+                                localStorage.setItem('completedExams', JSON.stringify(mergedExams));
+                                console.log('[DEBUG] Updated localStorage completedExams from server:', {
+                                    fromServer: data.completed_exams,
+                                    merged: mergedExams
+                                });
+                            }
+
                             renderTopicsWithXP(xp);
                             
                             // Update modal XP display
                             const modalXPDisplay = document.getElementById('modalTotalXP');
                             if (modalXPDisplay) {
                                 modalXPDisplay.textContent = xp;
-                            }
-                            
-                            // If we have completedExams data from server, update localStorage
-                            if (data.completed_exams && Array.isArray(data.completed_exams)) {
-                                const localExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
-                                const mergedExams = [...new Set([...localExams, ...data.completed_exams])];
-                                localStorage.setItem('completedExams', JSON.stringify(mergedExams));
-                                console.log('[Topics UI] Updated localStorage completedExams with server data');
                             }
                         } else {
                             console.warn('[Debug] Invalid XP data format:', data);
