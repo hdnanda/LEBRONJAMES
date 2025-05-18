@@ -64,7 +64,7 @@ function triggerLessonCompleteConfetti() {
 }
 
 // Animation for correct answer feedback
-function animateCorrectFeedback(element) {
+function animateCorrectFeedback(element, explanation) {
     console.log('🎯 Starting correct answer animation...');
     
     try {
@@ -107,17 +107,19 @@ function animateCorrectFeedback(element) {
             feedbackContainer.classList.remove('hidden', 'visible', 'completion-visible');
             feedbackText.innerHTML = '';
             
-            // Get the current question for its explanation
-            const currentQuestion = window.currentQuestions ? 
-                window.currentQuestions[window.currentQuestionIndex] : null;
+            // Log the exact explanation we received
+            console.log('%c[EXPLANATION RECEIVED]', 'background: #4CAF50; color: white; padding: 2px 5px; border-radius: 3px;', explanation);
             
-            // Add feedback content with explanation
+            // FIXED: Use the explanation directly, only use fallback if null/undefined
+            const explanationToShow = explanation || "Great understanding of this financial concept!";
+            
             feedbackText.innerHTML = `
                 <span class="feedback-message">That's correct! 🎯</span>
-                <span class="explanation">${currentQuestion && currentQuestion.explanation ? 
-                    currentQuestion.explanation : 
-                    "Great understanding of this financial concept!"}</span>
+                <span class="explanation">${explanationToShow}</span>
             `;
+            
+            // Debug log to confirm explanation is being displayed
+            console.log('%c[EXPLANATION DISPLAYED] ✅', 'background: #4CAF50; color: white; padding: 2px 5px; border-radius: 3px;', explanationToShow);
             
             // Show the container with a slight delay for better UX
             setTimeout(() => {
@@ -146,7 +148,7 @@ function animateCorrectFeedback(element) {
 }
 
 // Animation for incorrect answer feedback
-function animateIncorrectFeedback(element) {
+function animateIncorrectFeedback(element, explanation) {
     console.log('🎯 Starting incorrect answer animation...');
     
     try {
@@ -186,17 +188,19 @@ function animateIncorrectFeedback(element) {
             feedbackContainer.classList.remove('hidden', 'visible', 'completion-visible');
             feedbackText.innerHTML = '';
             
-            // Get the current question for its explanation
-            const currentQuestion = window.currentQuestions ? 
-                window.currentQuestions[window.currentQuestionIndex] : null;
+            // Log the exact explanation we received
+            console.log('%c[EXPLANATION RECEIVED]', 'background: #F44336; color: white; padding: 2px 5px; border-radius: 3px;', explanation);
             
-            // Add feedback content with explanation
+            // FIXED: Use the explanation directly, only use fallback if null/undefined
+            const explanationToShow = explanation || "Remember this concept for future financial decisions.";
+            
             feedbackText.innerHTML = `
                 <span class="feedback-message">Let's understand this better 📚</span>
-                <span class="explanation">${currentQuestion && currentQuestion.explanation ? 
-                    currentQuestion.explanation : 
-                    "Remember this concept for future financial decisions."}</span>
+                <span class="explanation">${explanationToShow}</span>
             `;
+            
+            // Debug log to confirm explanation is being displayed
+            console.log('%c[EXPLANATION DISPLAYED] ❌', 'background: #F44336; color: white; padding: 2px 5px; border-radius: 3px;', explanationToShow);
             
             // Show the container with a slight delay for better UX
             setTimeout(() => {
