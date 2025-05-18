@@ -1656,9 +1656,16 @@
             const question = currentQuestions[currentQuestionIndex];
             const isCorrect = selectedIndex === correctIndex;
             
-            // Make the question accessible globally for explanations
+            // Make the question accessible globally for explanations - FIXED GLOBAL ACCESS
             window.currentQuestions = currentQuestions;
             window.currentQuestionIndex = currentQuestionIndex;
+            
+            // CRITICAL FIX: Extract the explanation directly from the question object
+            const explanation = question && question.explanation ? question.explanation : null;
+            
+            // Log explanation for debugging
+            console.log('[Debug] Current question explanation:', explanation);
+            console.log('[Debug] Full question object:', question);
             
             // Get the selected button
             const selectedButton = optionsContainer.children[selectedIndex];
@@ -1666,7 +1673,7 @@
             if (isCorrect) {
                 correctAnswers++;
                 // Use the animateCorrectFeedback function for correct answers
-                window.animateCorrectFeedback(selectedButton);
+                window.animateCorrectFeedback(selectedButton, explanation);
                 
                 // Calculate XP with bonuses
                 const currentLevel = getCurrentLevel();
@@ -1685,7 +1692,7 @@
                 }
             } else {
                 // Use the animateIncorrectFeedback function for incorrect answers
-                window.animateIncorrectFeedback(selectedButton);
+                window.animateIncorrectFeedback(selectedButton, explanation);
                 
                 // Show the correct answer
                 const correctButton = optionsContainer.children[correctIndex];
