@@ -107,10 +107,16 @@ function animateCorrectFeedback(element) {
             feedbackContainer.classList.remove('hidden', 'visible', 'completion-visible');
             feedbackText.innerHTML = '';
             
-            // Add feedback content with staggered animations
+            // Get the current question for its explanation
+            const currentQuestion = window.currentQuestions ? 
+                window.currentQuestions[window.currentQuestionIndex] : null;
+            
+            // Add feedback content with explanation
             feedbackText.innerHTML = `
-                <span class="feedback-message">Excellent! 🎉 You're getting financially smarter! 💰</span>
-                <span class="explanation">Keep up the great work!</span>
+                <span class="feedback-message">That's correct! 🎯</span>
+                <span class="explanation">${currentQuestion && currentQuestion.explanation ? 
+                    currentQuestion.explanation : 
+                    "Great understanding of this financial concept!"}</span>
             `;
             
             // Show the container with a slight delay for better UX
@@ -180,10 +186,16 @@ function animateIncorrectFeedback(element) {
             feedbackContainer.classList.remove('hidden', 'visible', 'completion-visible');
             feedbackText.innerHTML = '';
             
-            // Add feedback content with staggered animations
+            // Get the current question for its explanation
+            const currentQuestion = window.currentQuestions ? 
+                window.currentQuestions[window.currentQuestionIndex] : null;
+            
+            // Add feedback content with explanation
             feedbackText.innerHTML = `
-                <span class="feedback-message">That's not quite right 🤔 Let's learn from this!</span>
-                <span class="explanation">Every mistake is a step towards financial wisdom!</span>
+                <span class="feedback-message">Let's understand this better 📚</span>
+                <span class="explanation">${currentQuestion && currentQuestion.explanation ? 
+                    currentQuestion.explanation : 
+                    "Remember this concept for future financial decisions."}</span>
             `;
             
             // Show the container with a slight delay for better UX
