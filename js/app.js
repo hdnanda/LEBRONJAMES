@@ -639,9 +639,17 @@ async function handleAnswer(selectedIndex, correctIndex) {
         const selectedButton = optionsContainer.children[selectedIndex];
         const currentQuestion = currentQuestions[currentQuestionIndex];
         
+        // Extract the explanation from the question object
+        const explanation = currentQuestion ? currentQuestion.explanation : null;
+        
+        // Log the explanation we're going to use
+        console.log('[Debug] Explanation for feedback:', explanation);
+        console.log('[Debug] Full question object:', currentQuestion);
+        
         if (isCorrect) {
             correctAnswers++;
-            window.animateCorrectFeedback(selectedButton);
+            // Explicitly pass the explanation to animateCorrectFeedback
+            window.animateCorrectFeedback(selectedButton, explanation);
             
             // Calculate and award XP immediately for correct answer
             try {
@@ -693,7 +701,8 @@ async function handleAnswer(selectedIndex, correctIndex) {
                 console.error('[Error] Failed to initiate XP award:', error);
             }
         } else {
-            window.animateIncorrectFeedback(selectedButton);
+            // Explicitly pass the explanation to animateIncorrectFeedback
+            window.animateIncorrectFeedback(selectedButton, explanation);
             const correctButton = optionsContainer.children[correctIndex];
             correctButton.classList.add('correct');
             
