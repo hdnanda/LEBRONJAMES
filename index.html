@@ -1656,6 +1656,10 @@
             const question = currentQuestions[currentQuestionIndex];
             const isCorrect = selectedIndex === correctIndex;
             
+            // Make the question accessible globally for explanations
+            window.currentQuestions = currentQuestions;
+            window.currentQuestionIndex = currentQuestionIndex;
+            
             // Get the selected button
             const selectedButton = optionsContainer.children[selectedIndex];
             
