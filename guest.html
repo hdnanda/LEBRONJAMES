@@ -254,6 +254,7 @@
             opacity: 0;
             animation: fadeIn 0.8s forwards;
             animation-delay: 0.2s;
+            transition: height 0.5s cubic-bezier(0.4, 0.0, 0.2, 1); /* Added for height animation */
         }
 
         .step-container {
@@ -525,6 +526,7 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+            cursor: pointer; /* Added for better UX */
         }
 
         .option-btn:hover {
@@ -584,18 +586,50 @@
 
         #progress-bar {
             width: 100%;
-            height: 6px;
+            height: 8px; /* Increased from 6px to 8px */
             background-color: var(--border-color);
-            border-radius: 3px;
+            border-radius: 4px; /* Adjusted for new height */
             margin-bottom: 2rem;
             overflow: hidden;
+            position: relative; /* Added for shine pseudo-element positioning */
         }
         
         #progress-indicator {
             height: 100%;
             background-color: var(--accent-color);
-            width: 25%;
+            width: 0%; /* Start at 0% */
             transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+            border-radius: 4px; /* Ensure inner bar also has rounded corners */
+            position: relative; /* Added for shine */
+            overflow: hidden; /* Ensures shine stays within bounds */
+        }
+
+        #progress-indicator::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%; /* Start off-screen to the left */
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.3) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            animation: progressShine 2s infinite linear;
+        }
+
+        @keyframes progressShine {
+            0% {
+                left: -100%;
+            }
+            50% {
+                left: 100%;
+            }
+            100% {
+                left: 100%; /* Keep it off-screen at the end before reset */
+            }
         }
         
         /* Add transition overlay for smooth page transitions */
@@ -950,7 +984,7 @@
             opacity: 0.5;
             visibility: visible;
             pointer-events: auto;
-            z-index: 9;
+            z-index: 1000; /* Ensure this is high enough, but below feedback-container */
         }
 
         /* Add transition styles for questions */
@@ -991,21 +1025,26 @@
 
         /* Style for feedback messages */
         .step-feedback {
-            min-height: 40px;
-            margin-top: 20px;
+            /* min-height: 40px; */ /* Removed to prevent reserving space */
+            /* margin-top: 20px; */  /* Removed to prevent reserving space */
+            height: 0; /* Ensure it takes no vertical space */
+            overflow: hidden; /* Prevent any accidental content visibility */
             text-align: center;
             color: var(--accent-color);
             font-size: 1.1rem;
             font-weight: 500;
-            opacity: 0;
-            transform: translateY(10px);
-            transition: opacity 0.3s ease, transform 0.3s ease;
+            /* opacity: 0; */ /* No longer needed as it won't be shown */
+            /* transform: translateY(10px); */ /* No longer needed */
+            /* transition: opacity 0.3s ease, transform 0.3s ease; */ /* No longer needed */
         }
         
+        /* .step-feedback.active class is no longer used for visibility here, can be removed or left if other uses exist */
+        /*
         .step-feedback.active {
             opacity: 1;
             transform: translateY(0);
         }
+        */
 
         /* Financial term tooltip styling */
         .financial-term {
@@ -1355,10 +1394,526 @@
                 font-size: 1.1rem;
             }
         }
+
+        /* Add new styles for Happy Uncle animations */
+        .happy-uncle-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+            display: flex; /* Ensures flex layout */
+            flex-direction: column; /* Stacks children vertically */
+            align-items: center; /* Centers children horizontally */
+            justify-content: center;
+            width: 100%; /* Adjusted for better centering if content is wide */
+            height: 100%; /* Adjusted for better centering */
+        }
+
+        .happy-uncle-container.visible {
+            opacity: 1;
+        }
+
+        .happy-uncle-image {
+            width: 225px; /* 75% of 300px */
+            height: auto;
+            /* margin-bottom: 20px; Removed, spacing handled by message/button */
+        }
+
+        .happy-uncle-image.floating {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        /* Restore missing container animation classes */
+        .happy-uncle-container.flipped {
+            transform: translate(-50%, -50%) scaleX(-1);
+        }
+
+        .happy-uncle-container.top-left {
+            top: 20px;
+            left: 20px;
+            transform: none; /* Remove transform from the container itself */
+            width: auto;
+            height: auto;
+        }
+
+        /* Apply scaling and flipping only to the image when in top-left */
+        .happy-uncle-container.top-left .happy-uncle-image {
+            transform: scale(0.65) scaleX(-1); /* Changed from scale(0.5) */
+            /* Adjust margins if needed for positioning relative to message */
+        }
+
+        /* Adjust message style when in top-left */
+        .happy-uncle-container.top-left .uncle-message {
+            position: absolute; /* Key for placement and preventing layout shift */
+            transform: none; /* Ensure no inherited transform */
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            margin-bottom: 0; /* Not needed for absolute positioning */
+            max-width: 200px;
+            /* display: block; /* JS handles visibility via .visible class and opacity */
+            /* Positioning: above and slightly right of Jigu. Container is at top:20px, left:20px */
+            /* Jigu's image (scaled 0.65) is approx 146.25px wide. */ /* Updated comment */
+            top: -5px;  /* Adjusted from -15px to move it down */
+            left: 90px;   /* Adjusted from 70px. Position left of message ~90px from container's left. (Jigu image LTR is 0-146.25px) */ /* Updated comment and value */
+            z-index: 10; /* Ensure message is above Jigu's image */
+            opacity: 0; /* Start transparent, JS adds .visible to fade in */
+        }
+
+        .happy-uncle-container.top-left .uncle-message.visible {
+            opacity: 1; /* This will use the existing transition on .uncle-message */
+        }
+
+        /* Adjust tail for top-left message to point towards Jigu (down-left) */
+        .happy-uncle-container.top-left .uncle-message::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-top: 10px solid #2E3B4E; /* Color of the bubble */
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            /* Position tail at the bottom of the bubble, shifted left */
+            bottom: -10px; 
+            left: 30%; /* Puts the point of the tail towards the left side of the bubble */
+            transform: translateX(-50%); /* Centers the base of the tail at this 30% mark */
+        }
+
+        .happy-uncle-container.slide-out {
+            animation: slideOut 1s forwards;
+        }
+
+        .happy-uncle-container.slide-in {
+            animation: slideIn 1s forwards;
+        }
+        /* End of restored classes */
+
+        .uncle-message {
+            position: relative; /* For the tail */
+            background: #2E3B4E; /* Dark chat bubble background */
+            color: #FFFFFF; /* White text */
+            padding: 15px 20px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 1.2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            margin-bottom: 20px; /* Space between chatbox and image */
+            max-width: 320px;
+        }
+
+        .uncle-message::after { /* Chat bubble tail */
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 10px solid #2E3B4E; /* Match chatbox background */
+        }
+
+        .uncle-continue-btn {
+            margin-top: 30px;
+            padding: 12px 30px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .uncle-continue-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .uncle-continue-btn.visible {
+            opacity: 1;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translate(-50%, -50%);
+            }
+            50% {
+                transform: translate(-50%, calc(-50% - 20px));
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translate(-50%, -50%) scaleX(-1);
+            }
+            to {
+                transform: translate(150%, -50%) scaleX(-1);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translate(-150%, 0); /* Only translation, no scale or flip */
+            }
+            to {
+                transform: translate(0, 0);     /* Only translation, no scale or flip */
+            }
+        }
+
+        @keyframes float-top-left {
+            0%, 100% {
+                transform: scale(0.65) scaleX(-1) translateY(0px); /* Changed from scale(0.5) */
+            }
+            50% {
+                transform: scale(0.65) scaleX(-1) translateY(-10px); /* Gentle hover up, maintaining scale and flip */ /* Changed from scale(0.5) */
+            }
+        }
+
+        .happy-uncle-image.floating-top-left {
+            animation: float-top-left 2s ease-in-out infinite;
+        }
+
+        @keyframes float-top-left-message {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px); /* Matches Jigu image hover distance */
+            }
+        }
+
+        .happy-uncle-container.top-left .uncle-message.floating-top-left-message {
+            animation: float-top-left-message 2s ease-in-out infinite; /* Same timing as Jigu image */
+        }
+
+        /* New keyframes for individual element floating */
+        @keyframes jiguElementsFloat {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-20px); /* Vertical float distance */
+            }
+        }
+
+        /* Hide the main content initially */
+        .app-container {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        .app-container.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .happy-uncle-container.floating { /* Changed selector from .happy-uncle-image to .happy-uncle-container */
+            /* animation: float 3s ease-in-out infinite; */ /* Removed animation from container */
+        }
+
+        /* Apply new float animation to image and message when container is floating */
+        .happy-uncle-container.floating .happy-uncle-image,
+        .happy-uncle-container.floating .uncle-message {
+            animation: jiguElementsFloat 3s ease-in-out infinite;
+        }
+
+        .uncle-message.visible {
+            opacity: 1;
+        }
+
+        /* Restore missing container animation classes */
+        .happy-uncle-container.flipped {
+            transform: translate(-50%, -50%) scaleX(-1);
+        }
+
+        .happy-uncle-container.top-left {
+            top: 20px;
+            left: 20px;
+            transform: none; /* Remove transform from the container itself */
+            width: auto;
+            height: auto;
+        }
+
+        /* Apply scaling and flipping only to the image when in top-left */
+        .happy-uncle-container.top-left .happy-uncle-image {
+            transform: scale(0.65) scaleX(-1); /* Changed from scale(0.5) */
+            /* Adjust margins if needed for positioning relative to message */
+        }
+
+        /* Adjust message style when in top-left */
+        .happy-uncle-container.top-left .uncle-message {
+            position: absolute; /* Key for placement and preventing layout shift */
+            transform: none; /* Ensure no inherited transform */
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            margin-bottom: 0; /* Not needed for absolute positioning */
+            max-width: 200px;
+            /* display: block; /* JS handles visibility via .visible class and opacity */
+            /* Positioning: above and slightly right of Jigu. Container is at top:20px, left:20px */
+            /* Jigu's image (scaled 0.65) is approx 146.25px wide. */ /* Updated comment */
+            top: -5px;  /* Adjusted from -15px to move it down */
+            left: 90px;   /* Adjusted from 70px. Position left of message ~90px from container's left. (Jigu image LTR is 0-146.25px) */ /* Updated comment and value */
+            z-index: 10; /* Ensure message is above Jigu's image */
+            opacity: 0; /* Start transparent, JS adds .visible to fade in */
+        }
+
+        .happy-uncle-container.top-left .uncle-message.visible {
+            opacity: 1; /* This will use the existing transition on .uncle-message */
+        }
+
+        /* Adjust tail for top-left message to point towards Jigu (down-left) */
+        .happy-uncle-container.top-left .uncle-message::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-top: 10px solid #2E3B4E; /* Color of the bubble */
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            /* Position tail at the bottom of the bubble, shifted left */
+            bottom: -10px; 
+            left: 30%; /* Puts the point of the tail towards the left side of the bubble */
+            transform: translateX(-50%); /* Centers the base of the tail at this 30% mark */
+        }
+
+        .happy-uncle-container.slide-out {
+            animation: slideOut 1s forwards;
+        }
+
+        .happy-uncle-container.slide-in {
+            animation: slideIn 1s forwards;
+        }
+        /* End of restored classes */
+    </style>
+    <style>
+        /* Add styles for the accomplishment list */
+        .accomplishment-list {
+            list-style-type: none;
+            padding-left: 20px; /* Add some padding for alignment */
+            margin-bottom: 2rem;
+            text-align: left; /* Ensure text is aligned left */
+        }
+
+        .accomplishment-list li {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start; /* Align emoji to the top of the text */
+        }
+
+        .accomplishment-list li .emoji-bullet {
+            font-size: 1.5rem; /* Slightly larger emoji */
+            margin-right: 12px;
+            line-height: 1; /* Adjust line height for better vertical alignment with text */
+            min-width: 30px; /* Ensure consistent spacing for emoji */
+        }
+        /* End of styles for accomplishment list */
+    </style>
+    <style>
+        /* New styles for the updated quiz layout based on the image */
+        .quiz-container.active-quiz-layout #progress-bar {
+            display: none; /* Hide main progress bar when new quiz layout is active */
+        }
+
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            /* background: var(--app-bg); /* Or var(--question-bg) depending on desired look */
+            /* border-bottom: 1px solid var(--border-color); */
+            margin-bottom: 20px;
+            color: var(--text-color);
+        }
+
+        .quiz-back-button,
+        .quiz-settings-button {
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .quiz-back-button:hover,
+        .quiz-settings-button:hover {
+            color: var(--accent-color);
+        }
+
+        .quiz-progress-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-grow: 1; /* Allows it to take up space for centering progress bar */
+            margin: 0 15px; /* Spacing from buttons */
+        }
+
+        .quiz-progress-info .progress-text {
+            font-size: 0.9rem; /* Slightly smaller than before */
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        #quiz-page-progress-bar-container {
+            width: 100%;
+            max-width: 250px; /* Control max width of progress bar */
+            height: 6px;
+            background-color: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        #quiz-page-progress-bar-indicator {
+            height: 100%;
+            background-color: var(--accent-color);
+            width: 0%; /* Start at 0% */
+            transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+            border-radius: 3px;
+        }
+
+        /* Main content area for question and options */
+        .question-display-area {
+            background: var(--app-bg); /* Main background for this section */
+            border-radius: 15px;
+            padding: 20px;
+            /* box-shadow: 0 4px 15px rgba(0,0,0,0.1); */ /* Optional subtle shadow */
+        }
+
+        .question-text-wrapper {
+            background: var(--question-bg); /* Darker background for question text area */
+            color: var(--text-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px; /* Space before options */
+            display: flex;
+            align-items: center; /* Vertically align icon and text */
+            text-align: left;
+        }
+
+        .question-icon-area {
+            font-size: 1.3rem; /* Adjust icon size as needed */
+            margin-right: 15px; /* Space between icons and text */
+            display: flex;
+            align-items: center;
+        }
+
+        /* Overriding existing #question-text to match the new design */
+        #question-text {
+            font-size: 1.25rem; /* As per image */
+            color: var(--text-color);
+            margin: 0; /* Remove previous margins */
+            line-height: 1.4;
+            flex-grow: 1; /* Allow text to take remaining space */
+            text-align: left; /* Ensure it stays left */
+        }
+
+        /* Overriding existing #options-container for the 2x2 grid layout */
+        #options-container {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important; /* Force 2 columns */
+            grid-gap: 15px;
+            margin-top: 0; /* Reset from previous margin */
+            width: 100%;
+        }
+
+        /* Overriding existing .option-btn styles */
+        .option-btn {
+            background: var(--question-bg); /* Darker background like question wrapper */
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 0.95rem; /* Adjust as needed for text fit */
+            text-align: left;
+            width: 100%; /* Ensure buttons take full width of grid cell */
+            box-sizing: border-box;
+            line-height: 1.3;
+            min-height: 60px; /* Ensure buttons have a decent tap target height */
+            display: flex; /* For vertical centering of text if needed */
+            align-items: center; /* For vertical centering of text if needed */
+            cursor: pointer; /* Added for better UX */
+        }
+
+        .option-btn:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Ensure quiz container takes up appropriate space */
+        .quiz-container {
+            width: 100%;
+            max-width: 100%; /* Ensures it uses app-container width */
+            /* padding: 0 10px; Remove padding if app-container provides it */
+            box-sizing: border-box;
+        }
+
+        /* Ensure app-container adjusts height when quiz is shown */
+        .app-container.quiz-active {
+            height: auto !important; /* Allow height to be determined by content */
+        }
+
+        /* Hide the previous question-wrapper when new layout is active */
+        .quiz-container.active-quiz-layout .question-wrapper {
+             display: none;
+        }
+
+        /* Mobile adjustments for new quiz layout */
+        @media (max-width: 600px) {
+            .quiz-header {
+                padding: 10px 15px;
+                margin-bottom: 15px;
+            }
+            .question-display-area {
+                padding: 15px;
+            }
+            .question-text-wrapper {
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+            #question-text {
+                font-size: 1.1rem;
+            }
+            .question-icon-area {
+                font-size: 1.1rem;
+                margin-right: 10px;
+            }
+            #options-container {
+                grid-template-columns: 1fr !important; /* Single column on mobile */
+                grid-gap: 10px;
+            }
+            .option-btn {
+                padding: 12px;
+                font-size: 0.9rem;
+                min-height: 50px;
+            }
+            .quiz-progress-info .progress-text {
+                font-size: 0.8rem;
+            }
+            #quiz-page-progress-bar-container {
+                 max-width: 180px;
+            }
+        }
     </style>
 </head>
 
 <body>
+    <!-- Add Happy Uncle container -->
+    <div class="happy-uncle-container">
+        <div class="uncle-message">Hi There! Im Jignesh, but you can call me Jigu</div>
+        <img src="assets/images/happy uncle.png" alt="Happy Uncle" class="happy-uncle-image">
+        <button class="uncle-continue-btn">Continue</button>
+    </div>
+
     <div class="page-transition-overlay" id="page-transition"></div>
     
     <div class="background-illustrations">
@@ -1387,10 +1942,6 @@
                 <div class="option-item" data-value="stop_wasting">
                     <div class="option-checkbox"></div>
                     <span class="option-label">I want to stop wasting money</span>
-                </div>
-                <div class="option-item" data-value="build_habits">
-                    <div class="option-checkbox"></div>
-                    <span class="option-label">I want to build good habits early</span>
                 </div>
                 <div class="option-item" data-value="smarter_than_parents">
                     <div class="option-checkbox"></div>
@@ -1461,6 +2012,18 @@
             </div>
         </div>
 
+        <!-- Step 3.5: What you'll accomplish -->
+        <div class="step-container" id="step3_5">
+            <h2 class="step-title">What you'll accomplish:</h2>
+            <ul class="accomplishment-list" id="accomplishmentList">
+                <!-- Accomplishments will be dynamically inserted here -->
+            </ul>
+            <div class="navigation">
+                <button class="nav-btn prev">Back</button>
+                <button class="nav-btn next" id="next3_5">Next</button>
+            </div>
+        </div>
+
         <!-- Step 4 -->
         <div class="step-container" id="step4">
             <h2 class="step-title">Start your first challenge</h2>
@@ -1475,16 +2038,29 @@
 
         <!-- New Quiz Container (Styled like index.html) -->
         <div class="quiz-container" id="quiz-container">
-            <div class="progress-container">
-                <span id="quiz-progress-text" class="progress-text">Question 1/6</span>
-            </div>
-            
-            <div class="main-interface">
-                <div id="current-question-container" class="question-wrapper">
-                    <h2 id="question-text">What is compound interest?</h2>
-                    <div id="options-container">
-                        <!-- Options will be dynamically filled -->
+            <!-- New Quiz Header -->
+            <div class="quiz-header">
+                <span class="quiz-back-button"><i class="fas fa-arrow-left" aria-hidden="true"></i></span>
+                <div class="quiz-progress-info">
+                    <span id="quiz-progress-text" class="progress-text">1/X</span>
+                    <div id="quiz-page-progress-bar-container">
+                        <div id="quiz-page-progress-bar-indicator"></div>
                     </div>
+                </div>
+                <span class="quiz-settings-button"><i class="fas fa-cog" aria-hidden="true"></i></span>
+            </div>
+
+            <!-- Main quiz content: question and options -->
+            <div id="current-question-display" class="question-display-area">
+                <div class="question-text-wrapper">
+                    <span class="question-icon-area">
+                        <!-- Placeholder icons, can be changed or made dynamic if needed -->
+                        <i class="fas fa-chart-line" aria-hidden="true" style="color: #5cacee;"></i><i class="fas fa-home" aria-hidden="true" style="color: #f7aa47; margin-left: 5px;"></i>
+                    </span>
+                    <h2 id="question-text">What is a property lien?</h2>
+                </div>
+                <div id="options-container">
+                    <!-- Options will be dynamically filled by JavaScript -->
                 </div>
             </div>
         </div>
@@ -1502,6 +2078,101 @@
     <script src="https://unpkg.com/tippy.js@6"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Add new script for Happy Uncle animations
+            const happyUncleContainer = document.querySelector('.happy-uncle-container');
+            const uncleMessage = document.querySelector('.uncle-message');
+            const uncleContinueBtn = document.querySelector('.uncle-continue-btn');
+            const appContainer = document.querySelector('.app-container');
+            const happyUncleImage = document.querySelector('.happy-uncle-image'); // Define happyUncleImage
+            let animationStep = 0;
+
+            // Hide the main content initially
+            appContainer.style.visibility = 'hidden';
+            appContainer.style.opacity = '0';
+
+            // Start the animation sequence
+            setTimeout(() => {
+                happyUncleContainer.classList.add('visible');
+                setTimeout(() => {
+                    happyUncleContainer.classList.add('floating');
+                    setTimeout(() => {
+                        uncleMessage.classList.add('visible');
+                        setTimeout(() => {
+                            uncleContinueBtn.classList.add('visible');
+                        }, 500);
+                    }, 500);
+                }, 500);
+            }, 500);
+
+            // Handle continue button clicks
+            uncleContinueBtn.addEventListener('click', () => {
+                // Fade out current message
+                uncleMessage.classList.remove('visible');
+
+                setTimeout(() => {
+                    if (animationStep === 0) {
+                        // After "Hi There! Im Jignesh..."
+                        uncleMessage.textContent = "Let's get started!";
+                        animationStep++;
+                    } else if (animationStep === 1) {
+                        // After "Let's get started!"
+                        uncleMessage.textContent = "I'm going to ask you some questions so I can get to know you better!";
+                        animationStep++;
+                    } else if (animationStep === 2) {
+                        // After "I'm going to ask you some questions..."
+                        // This part handles Jigu moving to the top-left, so message visibility is handled differently here.
+                        happyUncleContainer.classList.remove('floating'); // Stop central floating
+                        // uncleMessage.classList.remove('visible'); // Already removed above for the text change fade
+                        uncleContinueBtn.classList.remove('visible'); // Triggers 0.5s opacity transition
+
+                        setTimeout(() => { // Wait for button to fade out (0.5s)
+                            uncleMessage.style.display = 'none'; // Now remove from layout
+                            uncleContinueBtn.style.display = 'none'; // Now remove from layout
+
+                            happyUncleContainer.classList.add('flipped');
+
+                            setTimeout(() => { // Wait for flip to be noticeable (e.g., 0.3s)
+                                happyUncleContainer.classList.add('slide-out');
+
+                                // Listen for the end of the slide-out animation
+                                happyUncleContainer.addEventListener('animationend', function handleSlideOutAnimationEnd(event) {
+                                    if (event.animationName === 'slideOut') {
+                                        happyUncleContainer.removeEventListener('animationend', handleSlideOutAnimationEnd);
+
+                                        happyUncleContainer.classList.remove('visible');
+                                        happyUncleContainer.classList.remove('slide-out');
+                                        happyUncleContainer.classList.remove('flipped');
+
+                                        happyUncleContainer.classList.add('top-left');
+                                        
+                                        void happyUncleContainer.offsetWidth;
+                                        happyUncleContainer.classList.add('visible');
+                                        happyUncleContainer.classList.add('slide-in');
+
+                                        appContainer.style.visibility = 'visible';
+                                        appContainer.classList.add('visible');
+
+                                        happyUncleContainer.addEventListener('animationend', function handleSlideInAnimationEnd(event) {
+                                            if (event.animationName === 'slideIn') {
+                                                happyUncleContainer.removeEventListener('animationend', handleSlideInAnimationEnd);
+                                                happyUncleImage.classList.add('floating-top-left');
+                                                if (uncleMessage.classList.contains('visible')) {
+                                                    uncleMessage.classList.add('floating-top-left-message');
+                                                }
+                                            }
+                                        });
+                                    }
+                                });
+                            }, 300); 
+                        }, 500); 
+                        animationStep++;
+                        return; // Exit early to prevent message fade-in if Jigu is moving
+                    }
+                    // Fade in new message
+                    uncleMessage.classList.add('visible');
+                }, 500); // This timeout matches the opacity transition duration (0.5s)
+            });
+
             // Add the index.html styles for feedback
             const feedbackStyles = document.createElement('style');
             feedbackStyles.textContent = `
@@ -1524,7 +2195,7 @@
                     opacity: 0.5;
                     visibility: visible;
                     pointer-events: auto;
-                    z-index: 9;
+                    z-index: 1000; /* Ensure this is high enough, but below feedback-container */
                 }
 
                 #feedback-container {
@@ -1797,6 +2468,20 @@
 
             // Show the current step with luxury fade transitions
             function showStep(stepIndex) {
+                // Hide Jigu's previous option-specific message when changing steps
+                if (uncleMessage && happyUncleContainer.classList.contains('top-left')) {
+                    if (uncleMessage.classList.contains('visible')) {
+                        uncleMessage.classList.remove('visible');
+                        uncleMessage.classList.remove('floating-top-left-message'); // Stop floating when message hides
+                        // After transition, set display to none so it doesn't occupy space
+                        setTimeout(() => {
+                            if (!uncleMessage.classList.contains('visible')) { // Check again in case it was made visible quickly
+                                uncleMessage.style.display = 'none';
+                            }
+                        }, 500); // Matches opacity transition duration (0.5s)
+                    }
+                }
+
                 // Handle transitions smoothly
                 let activeStep = null;
                 
@@ -1844,10 +2529,44 @@
                     });
                     
                     // Update progress bar
-                    progressIndicator.style.width = `${(stepIndex + 1) * 25}%`;
+                    progressIndicator.style.width = `${(stepIndex + 1) * 20}%`; // Adjusted for 5 steps
                 }
                 
                 currentStep = stepIndex;
+
+                // If showing step3_5, populate accomplishments
+                if (steps[stepIndex].id === 'step3_5') {
+                    populateAccomplishments();
+                    // Enable the Next button for step3_5 as it has no user selections
+                    const nextButtonStep3_5 = document.querySelector('#step3_5 .nav-btn.next');
+                    if (nextButtonStep3_5) {
+                        nextButtonStep3_5.removeAttribute('disabled');
+                    }
+                }
+
+                // Calculate and set the height for the app-container for the incoming step
+                const appContainer = document.querySelector('.app-container');
+                const progressBarHeight = document.getElementById('progress-bar').offsetHeight;
+                const incomingStepElement = steps[stepIndex];
+                
+                // Temporarily display the incoming step to measure its height
+                incomingStepElement.style.visibility = 'hidden'; // Keep it hidden from user
+                incomingStepElement.style.display = 'block'; // Needs to be block to measure
+                incomingStepElement.style.position = 'absolute'; // Take out of flow to not affect current layout
+                const incomingStepHeight = incomingStepElement.scrollHeight;
+                incomingStepElement.style.visibility = ''; // Reset visibility
+                incomingStepElement.style.display = ''; // Reset display
+                incomingStepElement.style.position = ''; // Reset position
+
+                const targetHeight = incomingStepHeight + progressBarHeight + 60; // 60 for padding/margins
+                appContainer.style.height = `${targetHeight}px`;
+
+                // After the transition, set height to auto to allow for responsive content
+                setTimeout(() => {
+                    if (steps[stepIndex].classList.contains('active')) { // Only if this step is still active
+                         appContainer.style.height = 'auto';
+                    }
+                }, 800); // Match the transition duration + a small buffer
             }
 
             // Feedback message library
@@ -1964,147 +2683,262 @@
                     // Enable next button for this step
                     document.querySelector(`#${stepId} .nav-btn.next`).removeAttribute('disabled');
                     
-                    // Show feedback message
-                    const feedbackContainer = document.getElementById(`${stepId}-feedback`);
-                    if (feedbackContainer && feedbackMessages[stepId] && feedbackMessages[stepId][optionValue]) {
-                        // Get random message for this option
+                    // Hide old feedback message container
+                    const oldFeedbackContainer = document.getElementById(`${stepId}-feedback`);
+                    if (oldFeedbackContainer) {
+                        oldFeedbackContainer.classList.remove('active');
+                        oldFeedbackContainer.style.display = 'none'; // Remove from layout
+                    }
+                    
+                    // Show feedback message via Jigu's speech bubble
+                    if (feedbackMessages[stepId] && feedbackMessages[stepId][optionValue]) {
                         const messages = feedbackMessages[stepId][optionValue];
                         const randomMessage = messages[Math.floor(Math.random() * messages.length)];
                         
-                        // Reset any existing feedback animation
-                        feedbackContainer.classList.remove('active');
-                        
-                        // Force DOM reflow to restart animation
-                        void feedbackContainer.offsetWidth;
-                        
-                        // Set new message and animate
-                        feedbackContainer.textContent = randomMessage;
-                        feedbackContainer.classList.add('active');
+                        if (uncleMessage && happyUncleContainer.classList.contains('top-left')) {
+                            uncleMessage.textContent = randomMessage;
+                            uncleMessage.style.display = ''; // Reset display if it was 'none'
+                            
+                            // Force reflow to ensure opacity transition plays
+                            void uncleMessage.offsetWidth; 
+                            
+                            uncleMessage.classList.add('visible');
+                            // If Jigu is floating in the top-left, make the message float too
+                            if (happyUncleImage.classList.contains('floating-top-left')) {
+                                uncleMessage.classList.add('floating-top-left-message');
+                            }
+                            
+                            // Ensure the main happy-uncle-container is also visible
+                            happyUncleContainer.classList.add('visible');
+                        }
                     }
                 });
             });
 
             // Next button functionality
-            nextButtons.forEach((btn, index) => {
+            nextButtons.forEach(btn => {
                 btn.addEventListener('click', function() {
-                    // Special handling for step 3 to step 4
-                    if (index === 2) { // This is next3 button
+                    const currentStepElement = this.closest('.step-container');
+                    let nextStepNodeListIndex = -1;
+
+                    if (currentStepElement.id === 'step1') {
+                        nextStepNodeListIndex = Array.from(steps).findIndex(s => s.id === 'step2');
+                    } else if (currentStepElement.id === 'step2') {
+                        nextStepNodeListIndex = Array.from(steps).findIndex(s => s.id === 'step3');
+                    } else if (currentStepElement.id === 'step3') {
+                        nextStepNodeListIndex = Array.from(steps).findIndex(s => s.id === 'step3_5');
+                         // Special handling for step 3 if quiz is selected for redirection later
                         if (selectedOptions.step3 === 'quiz') {
-                            // The quiz will be shown after "Let's Go" button click
-                            // Just proceed to step 4 as normal
+                            // Logic for quiz redirection is handled when gold button is clicked in step4
                         }
+                    } else if (currentStepElement.id === 'step3_5') {
+                        nextStepNodeListIndex = Array.from(steps).findIndex(s => s.id === 'step4');
+                    }
+
+                    if (nextStepNodeListIndex === -1) {
+                        console.error("Could not determine next step for button:", this.id, "in step:", currentStepElement.id);
+                        return;
                     }
                     
-                    // Move to the next step
-                    showStep(index + 1);
+                    showStep(nextStepNodeListIndex);
                     
-                    // Special handling for step 4
-                    if (index === 2) { // Moving to step 4
-                        // Create and add the gold button immediately
+                    // Special handling for when step 4 becomes active
+                    if (steps[nextStepNodeListIndex] && steps[nextStepNodeListIndex].id === 'step4') {
                         const goldButton = document.createElement('button');
                         goldButton.className = 'gold-button';
                         goldButton.textContent = 'Let\'s Go';
                         goldButton.addEventListener('click', startQuiz);
+                        letsgoButtonContainer.innerHTML = ''; 
                         letsgoButtonContainer.appendChild(goldButton);
                         
-                        // Fade in the button immediately
                         goldButton.style.display = 'block';
                         setTimeout(() => {
                             goldButton.style.opacity = '1';
                             goldButton.style.animation = 'pulse 1.5s infinite';
-                        }, 50); // Small delay to ensure display:block is applied
+                        }, 50);
                     }
                 });
             });
 
             // Previous button functionality
-            prevButtons.forEach((btn, index) => {
+            prevButtons.forEach(btn => {
                 btn.addEventListener('click', function() {
-                    // If we're in the quiz and going back
+                    const currentStepElement = this.closest('.step-container');
+                    let prevStepNodeListIndex = -1;
+
                     if (quizContainer.style.display === 'block') {
                         quizContainer.style.display = 'none';
-                        showStep(2); // Go back to step 3
+                        prevStepNodeListIndex = Array.from(steps).findIndex(s => s.id === 'step3_5');
+                        if (prevStepNodeListIndex !== -1) {
+                            showStep(prevStepNodeListIndex);
+                        } else {
+                            console.error("Could not determine previous step from quiz to step3_5");
+                        }
+                        return; 
+                    }
+
+                    if (currentStepElement.id === 'step2') {
+                        prevStepNodeListIndex = Array.from(steps).findIndex(s => s.id === 'step1');
+                    } else if (currentStepElement.id === 'step3') {
+                        prevStepNodeListIndex = Array.from(steps).findIndex(s => s.id === 'step2');
+                    } else if (currentStepElement.id === 'step3_5') {
+                        prevStepNodeListIndex = Array.from(steps).findIndex(s => s.id === 'step3');
+                    } else if (currentStepElement.id === 'step4') {
+                        prevStepNodeListIndex = Array.from(steps).findIndex(s => s.id === 'step3_5');
+                    }
+
+                    if (prevStepNodeListIndex === -1 && currentStepElement.id !== 'step1') { // step1 has no prev
+                        console.error("Could not determine previous step for button in step:", currentStepElement.id);
                         return;
                     }
                     
-                    showStep(index - 1);
+                    if (prevStepNodeListIndex !== -1) {
+                         showStep(prevStepNodeListIndex);
+                    }
                 });
             });
 
+            // Function to generate dynamic accomplishments
+            function generateAccomplishments(options) {
+                const accomplishments = [];
+                const emojis = ['🎯', '📈', '💡', '🚀', '💰', '🧠', '🌟', '🏆', '🔑'];
+                let emojiIndex = 0;
+
+                const getRandomEmoji = () => {
+                    const emoji = emojis[emojiIndex % emojis.length];
+                    emojiIndex++;
+                    return emoji;
+                };
+
+                // Step 1: Why are you here?
+                switch (options.step1) {
+                    case 'save_better':
+                        accomplishments.push({ emoji: getRandomEmoji(), text: 'Develop consistent saving habits that stick.' });
+                        break;
+                    case 'stop_wasting':
+                        accomplishments.push({ emoji: getRandomEmoji(), text: 'Identify and eliminate unnecessary spending.' });
+                        break;
+                    case 'smarter_than_parents':
+                        accomplishments.push({ emoji: getRandomEmoji(), text: 'Gain modern financial knowledge to surpass previous generations.' });
+                        break;
+                    case 'exploring':
+                        accomplishments.push({ emoji: getRandomEmoji(), text: 'Discover key financial concepts at your own pace.' });
+                        break;
+                    default:
+                        accomplishments.push({ emoji: getRandomEmoji(), text: 'Build a strong foundation in personal finance.' });
+                }
+
+                // Step 2: How much time can you give it?
+                switch (options.step2) {
+                    case 'casual':
+                        accomplishments.push({ emoji: getRandomEmoji(), text: 'Learn valuable money skills in just a few minutes a day.' });
+                        break;
+                    case 'focused':
+                        accomplishments.push({ emoji: getRandomEmoji(), text: 'Make significant progress with focused daily learning.' });
+                        break;
+                    case 'olympian':
+                        accomplishments.push({ emoji: getRandomEmoji(), text: 'Achieve financial mastery with dedicated effort.' });
+                        break;
+                    default:
+                        accomplishments.push({ emoji: getRandomEmoji(), text: 'Efficiently absorb financial wisdom tailored to your schedule.' });
+                }
+
+                // Step 3: Pick your starting point
+                switch (options.step3) {
+                    case 'zero':
+                        accomplishments.push({ emoji: getRandomEmoji(), text: 'Go from knowing nothing to confidently managing your money.' });
+                        break;
+                    case 'some_knowledge':
+                        accomplishments.push({ emoji: getRandomEmoji(), text: 'Expand your existing knowledge and fill any gaps.' });
+                        break;
+                    case 'quiz':
+                        accomplishments.push({ emoji: getRandomEmoji(), text: 'Pinpoint your current level and accelerate your learning.' });
+                        break;
+                    default:
+                        accomplishments.push({ emoji: getRandomEmoji(), text: 'Embark on a personalized learning journey.' });
+                }
+                
+                // Ensure there are always 3 unique bullet points, even if some default cases were hit
+                const allPossibleAccomplishments = [
+                    { emoji: '🎯', text: 'Set and achieve clear financial goals.' },
+                    { emoji: '📈', text: 'Understand how to grow your money effectively.' },
+                    { emoji: '💡', text: 'Make smarter financial decisions every day.' },
+                    { emoji: '🚀', text: 'Fast-track your journey to financial independence.' },
+                    { emoji: '💰', text: 'Take control of your financial future.' },
+                    { emoji: '🧠', text: 'Develop a strong financial mindset.' },
+                    { emoji: '🌟', text: 'Unlock new opportunities through financial literacy.' },
+                    { emoji: '🏆', text: 'Become a champion of your own finances.' },
+                    { emoji: '🔑', text: 'Discover the keys to building long-term wealth.' }
+                ];
+
+                // Add more generic accomplishments if fewer than 3 were generated
+                let currentAccomplishmentsTexts = accomplishments.map(a => a.text);
+                while (accomplishments.length < 3) {
+                    const potentialAccomplishment = allPossibleAccomplishments[Math.floor(Math.random() * allPossibleAccomplishments.length)];
+                    if (!currentAccomplishmentsTexts.includes(potentialAccomplishment.text)) {
+                        accomplishments.push({ emoji: getRandomEmoji(), text: potentialAccomplishment.text });
+                        currentAccomplishmentsTexts.push(potentialAccomplishment.text);
+                    }
+                }
+
+                return accomplishments.slice(0, 3); // Return exactly 3 accomplishments
+            }
+
+            // Function to populate accomplishments in the list
+            function populateAccomplishments() {
+                const accomplishmentList = document.getElementById('accomplishmentList');
+                const items = generateAccomplishments(selectedOptions);
+                accomplishmentList.innerHTML = ''; // Clear existing items
+
+                items.forEach(item => {
+                    const listItem = document.createElement('li');
+                    listItem.innerHTML = `<span class="emoji-bullet">${item.emoji}</span><span>${item.text}</span>`;
+                    accomplishmentList.appendChild(listItem);
+                });
+            }
+
             // Load a quiz question with animation
             function loadQuestion(index) {
-                const questionContainer = document.getElementById('current-question-container');
+                const questionDisplayArea = document.getElementById('current-question-display');
                 const questionData = quizQuestions[index];
-                
-                // Add exit animation to current question - enhanced for smoothness
-                questionContainer.classList.add('slide-out-left');
-                
-                setTimeout(() => {
-                    // Update question content
-                    document.getElementById('question-text').textContent = questionData.question;
-                    document.getElementById('quiz-progress-text').textContent = `Question ${index + 1}/${quizQuestions.length}`;
-                    
-                    // Update progress indicator with animation
-                    const progressPercent = ((index + 1) / quizQuestions.length) * 100;
-                    const progressIndicator = document.getElementById('progress-indicator');
-                    progressIndicator.classList.add('progress-indicator-animate');
-                    progressIndicator.style.width = `${progressPercent}%`;
-                    
-                    // Add options with entrance animation
-                    const optionsContainer = document.getElementById('options-container');
-                    optionsContainer.innerHTML = '';
-                    
-                    // Check if we're on mobile for different styling
-                    const isMobile = document.documentElement.getAttribute('data-device') === 'mobile';
-                    
-                    // Apply mobile-specific styling if needed
-                    if (isMobile) {
-                        // Ensure we're using single column for options on mobile
-                        optionsContainer.style.gridTemplateColumns = '1fr';
-                        
-                        // Set up centering for index.html style
-                        questionContainer.style.justifyContent = 'center';
-                        questionContainer.style.alignItems = 'center';
-                        
-                        // For index.html style, center the question text
-                        document.getElementById('question-text').style.textAlign = 'center';
-                    }
-                    
-                    questionData.options.forEach((option, optIndex) => {
-                        const optionButton = document.createElement('button');
-                        optionButton.className = 'option-btn';
-                        optionButton.textContent = option;
-                        optionButton.style.opacity = '0';
-                        optionButton.style.transform = 'translateY(20px)';
-                        optionButton.onclick = () => handleAnswer(optIndex, questionData.correctIndex, questionData.explanation);
-                        optionsContainer.appendChild(optionButton);
-                        
-                        // If on mobile, use the mobile question style from index.html
-                        if (isMobile) {
-                            optionButton.style.position = 'static';
-                            optionButton.style.width = '100%'; 
-                            optionButton.style.boxSizing = 'border-box';
-                            optionButton.style.transition = 'all 0.3s ease'; // Use the simpler transition from index.html
-                        }
-                        
-                        // Stagger the animation of each option
-                        setTimeout(() => {
-                            optionButton.style.transition = isMobile ? 
-                                'all 0.3s ease' : // index.html style transition 
-                                'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'; // original transition
-                            optionButton.style.opacity = '1';
-                            optionButton.style.transform = 'translateY(0)';
-                        }, 100 + (optIndex * 50));
+
+                // 1. Update content immediately
+                document.getElementById('question-text').textContent = questionData.question;
+                document.getElementById('quiz-progress-text').textContent = `Question ${index + 1}/${quizQuestions.length}`;
+                const progressPercent = ((index + 1) / quizQuestions.length) * 100;
+                document.getElementById('quiz-page-progress-bar-indicator').style.width = `${progressPercent}%`;
+
+                const optionsContainer = document.getElementById('options-container');
+                optionsContainer.innerHTML = ''; // Clear previous options
+
+                questionData.options.forEach((option, optIndex) => {
+                    const optionButton = document.createElement('button');
+                    optionButton.className = 'option-btn';
+                    optionButton.textContent = option;
+                    optionButton.addEventListener('click', () => {
+                        handleAnswer(optIndex, questionData.correctIndex, questionData.explanation);
                     });
-                    
-                    // Remove exit animation and add entrance animation
-                    questionContainer.classList.remove('slide-out-left', 'question-exit', 'question-enter');
-                    questionContainer.classList.add('slide-in-right');
-                    
-                    // Force reflow
-                    void questionContainer.offsetWidth;
-                    
-                }, 300);
+                    optionsContainer.appendChild(optionButton);
+
+                    // Set initial state for individual button animation (they fade/slide in with the question)
+                    optionButton.style.opacity = '0';
+                    optionButton.style.transform = 'translateY(20px)';
+                    setTimeout(() => {
+                        optionButton.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'; // Ensure transition is defined here
+                        optionButton.style.opacity = '1';
+                        optionButton.style.transform = 'translateY(0)';
+                    }, 50 + (optIndex * 50)); // Staggered appearance
+                });
+
+                // 2. Animate the questionDisplayArea IN
+                // Remove potentially lingering animation classes from previous question
+                questionDisplayArea.classList.remove('slide-out-left', 'slide-in-right');
+                
+                // Force a reflow to ensure the class removal is processed and animation can restart cleanly
+                void questionDisplayArea.offsetWidth; 
+
+                // Add class to slide in the new question
+                questionDisplayArea.classList.add('slide-in-right');
             }
             
             // Handle quiz answer selection - index.html style
@@ -2162,12 +2996,16 @@
                     `<strong>Correct!</strong><br><br>${explanation}` : 
                     `<strong>Incorrect</strong><br><br>${explanation}`;
                 
-                // Fix continue button visibility and enhance the shine effect
+                // Manage visibility for continue button and feedback container
                 const continueBtn = document.getElementById('continue-btn');
-                continueBtn.style.opacity = "1";
-                continueBtn.style.visibility = "visible";
-                continueBtn.style.display = "block";
-                continueBtn.style.overflow = "hidden"; // Ensure shine is contained
+                // Clear any potentially conflicting inline styles first
+                continueBtn.style.opacity = ''; 
+                continueBtn.style.visibility = '';
+                continueBtn.style.display = ''; // Let CSS handle display type (block/flex)
+
+                feedbackContainer.style.opacity = '';
+                feedbackContainer.style.visibility = '';
+                feedbackContainer.style.display = ''; // Let CSS handle display type (flex)
                 
                 console.log("Setting up to show feedback in 800ms");
                 
@@ -2178,10 +3016,8 @@
                     feedbackContainer.classList.remove('hidden');
                     feedbackContainer.classList.add('visible');
                     
-                    // Ensure feedback container is visible
-                    feedbackContainer.style.display = "block";
-                    feedbackContainer.style.visibility = "visible";
-                    feedbackContainer.style.opacity = "1";
+                    // Explicitly ensure continue button is visible using classes if defined, or rely on feedbackContainer being visible
+                    // The existing CSS for #feedback-container.visible should make #continue-btn display appropriately.
                 }, 800);
             }
             
@@ -2189,20 +3025,16 @@
             document.getElementById('continue-btn').addEventListener('click', function() {
                 const overlay = document.getElementById('overlay');
                 const feedbackContainer = document.getElementById('feedback-container');
-                const questionContainer = document.getElementById('current-question-container');
+                const questionDisplayArea = document.getElementById('current-question-display'); // Changed from questionContainer
                 
                 // Hide feedback
                 overlay.classList.remove('active');
                 feedbackContainer.classList.remove('visible');
                 feedbackContainer.classList.add('hidden');
                 
-                // Force hide the feedback container through inline styles
-                feedbackContainer.style.display = "none";
-                feedbackContainer.style.visibility = "hidden";
-                feedbackContainer.style.opacity = "0";
-                
-                // Add animation to current question
-                questionContainer.classList.add('slide-out-left');
+                // Add animation to current question display area
+                questionDisplayArea.classList.remove('slide-in-right'); // Ensure this is removed before adding slide-out
+                questionDisplayArea.classList.add('slide-out-left');
                 
                 setTimeout(() => {
                     isProcessingAnswer = false;
@@ -2214,48 +3046,158 @@
                     } else {
                         finishQuiz();
                     }
-                }, 300);
+                }, 300); // Match slide-out animation duration
             });
             
             // Start the quiz with transition
             function startQuiz() {
-                // Show transition effect
-                pageTransition.classList.add('active');
-                
-                // Hide step containers after transition
-                setTimeout(() => {
-                    steps.forEach(step => {
-                        step.classList.remove('active');
-                    });
-                    
-                    // Show and fade in quiz container
-                    quizContainer.style.display = 'block';
-                    progressIndicator.style.width = '0%';
-                    
-                    // Apply device-specific layouts for quiz
-                    if (document.documentElement.getAttribute('data-device') === 'mobile') {
-                        console.log("Applying mobile-specific quiz layout");
-                        // Apply mobile-specific layouts and styles
-                        document.querySelector('.quiz-container').classList.add('mobile-quiz');
-                        
-                        // Force options to be in a single column on mobile
-                        if (document.getElementById('options-container')) {
-                            document.getElementById('options-container').style.gridTemplateColumns = '1fr';
-                        }
-                    }
-                    
-                    // Load first question
-                    currentQuestionIndex = 0;
-                    correctAnswers = 0;
-                    loadQuestion(currentQuestionIndex);
-                    
-                    // Complete the transition
+                const happyUncleContainer = document.querySelector('.happy-uncle-container');
+                const uncleMessage = document.querySelector('.uncle-message');
+                const uncleContinueBtn = document.querySelector('.uncle-continue-btn');
+                const happyUncleImage = document.querySelector('.happy-uncle-image');
+                const currentStep4 = document.getElementById('step4');
+                const appContainer = document.querySelector('.app-container'); // Get app-container
+
+                // 0. Hide app-container and its contents (Step 4, other steps)
+                if (appContainer) {
+                    appContainer.style.transition = 'opacity 0.3s ease';
+                    appContainer.style.opacity = '0';
                     setTimeout(() => {
-                        pageTransition.classList.remove('active');
-                        quizContainer.style.opacity = '1';
-                        quizContainer.style.transform = 'translateY(0)';
-                    }, 300);
-                }, 500);
+                        if (appContainer.style.opacity === '0') appContainer.style.visibility = 'hidden';
+                    }, 300); // Match opacity transition
+                }
+                // currentStep4 and other steps are inside appContainer, so they will be hidden with it.
+                // However, explicitly remove 'active' and set display to 'none' for them as well to be safe.
+                if (currentStep4) {
+                    currentStep4.classList.remove('active');
+                    currentStep4.style.display = 'none';
+                }
+                steps.forEach(s => { 
+                    if (s.id !== 'step4') { 
+                        s.classList.remove('active');
+                        s.style.display = 'none';
+                    }
+                });
+                
+                let delayForReposition = 0;
+
+                if (happyUncleContainer.classList.contains('top-left')) {
+                    happyUncleImage.classList.remove('floating-top-left');
+                    if (uncleMessage.classList.contains('floating-top-left-message')) {
+                        uncleMessage.classList.remove('floating-top-left-message');
+                    }
+                    if (uncleMessage.classList.contains('visible')) {
+                        uncleMessage.classList.remove('visible');
+                        setTimeout(() => {
+                            if (!uncleMessage.classList.contains('visible')) uncleMessage.style.display = 'none';
+                        }, 500); 
+                    }
+                    happyUncleContainer.classList.remove('slide-in');
+
+                    happyUncleContainer.style.transition = 'top 0.8s ease-in-out, left 0.8s ease-in-out, transform 0.8s ease-in-out';
+                    happyUncleImage.style.transition = 'transform 0.8s ease-in-out';
+
+                    happyUncleContainer.style.top = '50%';
+                    happyUncleContainer.style.left = '50%';
+                    happyUncleContainer.style.transform = 'translate(-50%, -50%)';
+                    happyUncleImage.style.transform = 'scaleX(-1)'; 
+
+                    delayForReposition = 800; 
+
+                    setTimeout(() => { 
+                        happyUncleContainer.classList.remove('top-left');
+                    }, 50);
+
+                } else {
+                    happyUncleContainer.style.top = '50%';
+                    happyUncleContainer.style.left = '50%';
+                    happyUncleContainer.style.transform = 'translate(-50%, -50%)';
+                    happyUncleImage.style.transform = 'scaleX(-1)';
+                    happyUncleContainer.classList.add('visible'); 
+                }
+
+                setTimeout(() => {
+                    happyUncleContainer.style.transition = '';
+                    happyUncleImage.style.transition = '';
+
+                    uncleMessage.textContent = "Well, I'll be leaving now, you can always find me on the main menu, see you";
+                    uncleMessage.style.display = ''; 
+                    uncleMessage.classList.add('visible');
+
+                    uncleContinueBtn.style.display = ''; 
+                    uncleContinueBtn.classList.add('visible');
+
+                    happyUncleContainer.classList.add('floating');
+
+                    uncleContinueBtn.onclick = () => {
+                        if(pageTransition) pageTransition.classList.add('active');
+
+                        happyUncleContainer.classList.remove('floating');
+                        uncleMessage.classList.remove('visible');
+                        uncleContinueBtn.classList.remove('visible');
+
+                        setTimeout(() => {
+                            uncleMessage.style.display = 'none';
+                            uncleContinueBtn.style.display = 'none';
+
+                            happyUncleContainer.classList.add('flipped');
+
+                            setTimeout(() => {
+                                happyUncleContainer.classList.add('slide-out');
+
+                                happyUncleContainer.addEventListener('animationend', function handleJiguFarewellSlideOut(event) {
+                                    if (event.animationName === 'slideOut' && event.target === happyUncleContainer) {
+                                        happyUncleContainer.removeEventListener('animationend', handleJiguFarewellSlideOut);
+                                        happyUncleContainer.classList.remove('visible', 'slide-out', 'flipped');
+                                        happyUncleImage.style.transform = ''; 
+                                        happyUncleContainer.style.display = 'none'; // Explicitly hide Jigu
+
+                                        // Deactivate page transition overlay EARLIER, before loading questions
+                                        if(pageTransition) pageTransition.classList.remove('active');
+
+                                        setTimeout(() => {
+                                            // Make app-container visible again (behind the pageTransition)
+                                            if (appContainer) {
+                                                appContainer.style.visibility = 'visible';
+                                                appContainer.style.opacity = '1'; // It will be revealed when pageTransition fades
+                                                appContainer.classList.add('quiz-active'); // Add class for height adjustment
+                                            }
+                                            steps.forEach(s => { s.style.display = 'none'; s.classList.remove('active');});
+                                            if (currentStep4) currentStep4.style.display = 'none';
+
+                                            quizContainer.style.display = 'block';
+                                            quizContainer.classList.add('active-quiz-layout'); // Activate new layout styles
+                                            quizContainer.style.opacity = '0';
+                                            quizContainer.style.transform = 'translateY(20px)';
+
+                                            // The main progress bar (#progress-bar) is now hidden by CSS
+                                            // The old progress-indicator inside #progress-bar is no longer updated here.
+                                            // The new quiz-page-progress-bar-indicator will be handled by loadQuestion.
+
+                                            // Removed mobile-quiz class logic as new CSS handles responsiveness
+                                            // if (document.documentElement.getAttribute('data-device') === 'mobile') {
+                                            //     document.querySelector('.quiz-container').classList.add('mobile-quiz');
+                                            //     if (document.getElementById('options-container')) {
+                                            //         document.getElementById('options-container').style.gridTemplateColumns = '1fr';
+                                            //     }
+                                            // }
+
+                                            currentQuestionIndex = 0; 
+                                            correctAnswers = 0;
+                                            loadQuestion(currentQuestionIndex); 
+
+                                            setTimeout(() => {
+                                                // if(pageTransition) pageTransition.classList.remove('active'); // Moved earlier
+                                                quizContainer.style.opacity = '1';
+                                                quizContainer.style.transform = 'translateY(0)';
+                                            }, 50); // This delay is for quizContainer fade-in
+                                        }, 500); // Delay after Jigu slides out before showing quiz content
+                                    }
+                                });
+                            }, 300);
+                        }, 500); 
+                    };
+                }, delayForReposition);
             }
 
             // Finish the quiz and redirect
