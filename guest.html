@@ -717,6 +717,8 @@
             position: relative;
             z-index: 100;
             overflow: hidden;
+            opacity: 1; /* Ensure button is not transparent */
+            visibility: visible; /* Ensure button is visible */
         }
 
         #continue-btn:hover {
@@ -2049,7 +2051,7 @@
                 </div>
                 <span class="quiz-settings-button"><i class="fas fa-cog" aria-hidden="true"></i></span>
             </div>
-
+            
             <!-- Main quiz content: question and options -->
             <div id="current-question-display" class="question-display-area">
                 <div class="question-text-wrapper">
@@ -2059,7 +2061,7 @@
                     </span>
                     <h2 id="question-text">What is a property lien?</h2>
                 </div>
-                <div id="options-container">
+                    <div id="options-container">
                     <!-- Options will be dynamically filled by JavaScript -->
                 </div>
             </div>
@@ -2901,42 +2903,42 @@
             function loadQuestion(index) {
                 const questionDisplayArea = document.getElementById('current-question-display');
                 const questionData = quizQuestions[index];
-
+                
                 // 1. Update content immediately
-                document.getElementById('question-text').textContent = questionData.question;
-                document.getElementById('quiz-progress-text').textContent = `Question ${index + 1}/${quizQuestions.length}`;
-                const progressPercent = ((index + 1) / quizQuestions.length) * 100;
+                    document.getElementById('question-text').textContent = questionData.question;
+                    document.getElementById('quiz-progress-text').textContent = `Question ${index + 1}/${quizQuestions.length}`;
+                    const progressPercent = ((index + 1) / quizQuestions.length) * 100;
                 document.getElementById('quiz-page-progress-bar-indicator').style.width = `${progressPercent}%`;
-
-                const optionsContainer = document.getElementById('options-container');
+                    
+                    const optionsContainer = document.getElementById('options-container');
                 optionsContainer.innerHTML = ''; // Clear previous options
-
-                questionData.options.forEach((option, optIndex) => {
-                    const optionButton = document.createElement('button');
-                    optionButton.className = 'option-btn';
-                    optionButton.textContent = option;
+                    
+                    questionData.options.forEach((option, optIndex) => {
+                        const optionButton = document.createElement('button');
+                        optionButton.className = 'option-btn';
+                        optionButton.textContent = option;
                     optionButton.addEventListener('click', () => {
                         handleAnswer(optIndex, questionData.correctIndex, questionData.explanation);
                     });
-                    optionsContainer.appendChild(optionButton);
-
+                        optionsContainer.appendChild(optionButton);
+                        
                     // Set initial state for individual button animation (they fade/slide in with the question)
                     optionButton.style.opacity = '0';
                     optionButton.style.transform = 'translateY(20px)';
-                    setTimeout(() => {
+                        setTimeout(() => {
                         optionButton.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'; // Ensure transition is defined here
-                        optionButton.style.opacity = '1';
-                        optionButton.style.transform = 'translateY(0)';
+                            optionButton.style.opacity = '1';
+                            optionButton.style.transform = 'translateY(0)';
                     }, 50 + (optIndex * 50)); // Staggered appearance
-                });
-
+                    });
+                    
                 // 2. Animate the questionDisplayArea IN
                 // Remove potentially lingering animation classes from previous question
                 questionDisplayArea.classList.remove('slide-out-left', 'slide-in-right');
                 
                 // Force a reflow to ensure the class removal is processed and animation can restart cleanly
                 void questionDisplayArea.offsetWidth; 
-
+                    
                 // Add class to slide in the new question
                 questionDisplayArea.classList.add('slide-in-right');
             }
@@ -3016,8 +3018,10 @@
                     feedbackContainer.classList.remove('hidden');
                     feedbackContainer.classList.add('visible');
                     
-                    // Explicitly ensure continue button is visible using classes if defined, or rely on feedbackContainer being visible
-                    // The existing CSS for #feedback-container.visible should make #continue-btn display appropriately.
+                    const continueBtn = document.getElementById('continue-btn');
+                    if (continueBtn) {
+                        continueBtn.style.display = ''; // Reset inline display style
+                    }
                 }, 800);
             }
             
