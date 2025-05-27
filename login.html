@@ -1,3 +1,4 @@
+@@ -0,0 +1,384 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -288,7 +289,7 @@
         <div class="logo" onclick="window.location.href='homepage.html'">T</div>
         <h1 class="login-title">Welcome to TheMoneyOlympics</h1>
         
-        <form id="login-form" class="login-form" method="POST" onsubmit="handleLogin(event)">
+        <form id="login-form" class="login-form" method="POST" action="/perform_login">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" required 
@@ -325,15 +326,15 @@
         <div class="social-login">
             <p>Or login with</p>
             <div class="social-buttons">
-                <button class="social-btn" onclick="handleGoogleLogin()">
+                <a href="/auth/google" class="social-btn" aria-label="Login with Google">
                     <i class="fab fa-google"></i>
-                </button>
-                <button class="social-btn" onclick="handleFacebookLogin()">
+                </a>
+                <a href="/auth/facebook" class="social-btn" aria-label="Login with Facebook">
                     <i class="fab fa-facebook-f"></i>
-                </button>
-                <button class="social-btn" onclick="handleAppleLogin()">
+                </a>
+                <a href="/auth/apple" class="social-btn" aria-label="Login with Apple">
                     <i class="fab fa-apple"></i>
-                </button>
+                </a>
             </div>
         </div>
     </div>
@@ -342,7 +343,7 @@
         <div class="logo">T</div>
         <h1 class="login-title">Create Account</h1>
         
-        <form id="signup-form" class="signup-form" method="POST" onsubmit="handleSignup(event)">
+        <form id="signup-form" class="signup-form" method="POST" action="/perform_signup">
             <div class="form-group">
                 <label for="signupName">Full Name</label>
                 <input type="text" id="signupName" name="name" required 
