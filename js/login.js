@@ -312,6 +312,17 @@ document.addEventListener('DOMContentLoaded', function() {
             redirectToMainApp();
             return;
         }
+
+        // Attach the event listener for the login form
+        if (loginForm) {
+            loginForm.addEventListener('submit', handleLogin);
+        }
+
+        // Attach the event listener for the signup form if you want client-side JS handling for it too
+        // For now, focusing on fixing the login form as requested.
+        // if (signupForm) {
+        //     signupForm.addEventListener('submit', handleSignup);
+        // }
         
         // Add additional initialization if needed
         console.log('Initialization complete');
