@@ -938,39 +938,27 @@
                         completed_exams: result.completed_exams
                     });
                 
-                    // Update local storage with server data
-                    if (result.completed_levels && Array.isArray(result.completed_levels)) {
-                        const localLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
-                        // Need to merge objects by their topic and sublevel IDs
-                        const mergedLevels = [...localLevels];
-                        result.completed_levels.forEach(serverLevel => {
-                            // Only add if not already in local levels
-                            const exists = localLevels.some(localLevel => 
-                                localLevel.topicId === serverLevel.topicId && 
-                                localLevel.subLevelId === serverLevel.subLevelId
-                            );
-                            if (!exists) {
-                                mergedLevels.push(serverLevel);
-                            }
-                        });
-                        localStorage.setItem('completedLevels', JSON.stringify(mergedLevels));
-                        console.log('[DEBUG] Updated local completedLevels with server data:', mergedLevels);
+                    // Update local storage with server data. Prioritize server data.
+                    if (result.hasOwnProperty('completed_levels') && Array.isArray(result.completed_levels)) {
+                        localStorage.setItem('completedLevels', JSON.stringify(result.completed_levels));
+                        console.log('[DEBUG] Overwrote local completedLevels with server data:', result.completed_levels);
+                    } else if (result.success) { // If success but field is missing or not an array, means empty on server or bad format
+                        localStorage.setItem('completedLevels', '[]');
+                        console.log('[DEBUG] Server data for completedLevels missing, not an array, or null; reset local to empty.');
                     }
-                    
-                    // IMPORTANT FIX: Prioritize server completed_exams data over local storage
-                    if (result.completed_exams && Array.isArray(result.completed_exams)) {
-                        const localExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
-                        const mergedExams = [...new Set([...localExams, ...result.completed_exams])];
-                        localStorage.setItem('completedExams', JSON.stringify(mergedExams));
-                        
-                        console.log('[DEBUG] Merged completedExams:', {
-                            fromServer: result.completed_exams,
-                            fromLocal: localExams, 
-                            merged: mergedExams
-                        });
+
+                    if (result.hasOwnProperty('completed_exams') && Array.isArray(result.completed_exams)) {
+                        localStorage.setItem('completedExams', JSON.stringify(result.completed_exams));
+                        console.log('[DEBUG] Overwrote local completedExams with server data:', result.completed_exams);
+                    } else if (result.success) { // If success but field is missing or not an array, means empty on server or bad format
+                        localStorage.setItem('completedExams', '[]');
+                        console.log('[DEBUG] Server data for completedExams missing, not an array, or null; reset local to empty.');
                     }
                     
                     return true;
+                } else {
+                    // If result.success is false, log the reason if available
+                    console.warn('[DEBUG] Sync failed or ConnectionHelper.getUserXP indicated failure:', result.message || 'No message');
                 }
             } catch (error) {
                 console.error('Error syncing completed data from server:', error);
@@ -1255,6 +1243,233 @@
             });
         }
 
+        // Moved function definitions to global script scope
+        function renderTopicsWithXP(totalXP) {
+            console.log('[Debug] Rendering topics with XP:', totalXP);
+            const topicsContainer = document.getElementById('topicsContainer');
+            if (!topicsContainer) {
+                console.error('[Error] Missing topicsContainer element');
+                return;
+            }
+            
+            // Create fallback topics data if window.topicsData is not available
+            if (!window.topicsData || !Array.isArray(window.topicsData) || window.topicsData.length === 0) {
+                console.warn('[Warn] Topics data not loaded, using fallback data');
+                window.topicsData = [
+                    { 
+                        id: 1, 
+                        title: "Basic Banking", 
+                        icon: "🏦",
+                        subLevels: [
+                            { id: 1.1, title: "Account Types", xpRequired: 0, xpReward: 50 },
+                            { id: 1.2, title: "Banking Services", xpRequired: 50, xpReward: 50 },
+                            { id: 1.3, title: "Online Banking", xpRequired: 100, xpReward: 50 },
+                            { id: 1.4, title: "Final Exam", xpRequired: 150, isExam: true, xpReward: 100 }
+                        ]
+                    },
+                    { 
+                        id: 2, 
+                        title: "Saving Basics", 
+                        icon: "💰",
+                        subLevels: [
+                            { id: 2.1, title: "Savings Goals", xpRequired: 200, xpReward: 50 },
+                            { id: 2.2, title: "Interest Rates", xpRequired: 250, xpReward: 50 },
+                            { id: 2.3, title: "Emergency Funds", xpRequired: 300, xpReward: 50 },
+                            { id: 2.4, title: "Final Exam", xpRequired: 350, isExam: true, xpReward: 100 }
+                        ]
+                    }
+                ];
+            }
+
+            // DEBUG LOG: Show completed exams before rendering topics
+            const examsBeforeRender = JSON.parse(localStorage.getItem('completedExams') || '[]');
+            console.log('[DEBUG] Completed exams before rendering topics:', examsBeforeRender);
+
+            topicsContainer.innerHTML = '';
+
+            window.topicsData.forEach(topic => {
+                const topicContainer = document.createElement('div');
+                topicContainer.className = 'topic-container';
+
+                // Check if this topic is unlocked based on previous topic completion
+                const isTopicLocked = !isTopicUnlocked(topic.id, totalXP);
+                
+                // DEBUG LOG: Show topic lock status
+                console.log(`[DEBUG] Topic ${topic.id}: ${topic.title} - Locked: ${isTopicLocked}`);
+
+                // Create topic header
+                const topicHeader = document.createElement('div');
+                topicHeader.className = 'topic-header';
+                
+                // Add locked class if topic is locked
+                if (isTopicLocked) {
+                    topicHeader.classList.add('locked-topic');
+                }
+                
+                topicHeader.innerHTML = `
+                    <div class="level-content">
+                        <div class="topic-icon">${isTopicLocked ? '🔒' : topic.icon}</div>
+                        <div class="topic-text">
+                            <div class="topic-number">Topic ${topic.id}</div>
+                            <div class="topic-title">${topic.title}</div>
+                            ${isTopicLocked ? '<div class="topic-locked-message">Complete previous topic\'s final exam to unlock</div>' : ''}
+                        </div>
+                    </div>
+                `;
+
+                // Create sub-levels container
+                const subLevelsContainer = document.createElement('div');
+                subLevelsContainer.className = 'sub-levels-container';
+
+                const subLevelCards = [];
+
+                topic.subLevels.forEach(subLevel => {
+                    const subLevelCard = document.createElement('div');
+                    // A sublevel is locked if either:
+                    // 1. The entire topic is locked, or
+                    // 2. The user doesn't have enough XP for this specific sublevel
+                    const isLocked = isTopicLocked || totalXP < subLevel.xpRequired;
+                    const isCompleted = isLevelCompleted(topic.id, subLevel.id);
+
+                    subLevelCard.className = `sub-level-card ${isLocked ? 'locked' : ''} ${isCompleted ? 'completed' : ''} ${subLevel.isExam ? 'exam-card' : ''}`;
+
+                    let tooltipContent = `
+                        <div class="level-tooltip">
+                            <div class="tooltip-title">${subLevel.title}</div>
+                            <div class="tooltip-overview">${subLevel.overview || 'Learn about this topic'}</div>
+                            <div class="tooltip-xp">XP Reward: ${subLevel.xpReward || 50}</div>
+                            ${!isLocked ? '<button class="start-lesson-btn">Start Lesson</button>' : ''}
+                    `;
+
+                    if (isLocked) {
+                        if (isTopicLocked) {
+                            tooltipContent += `<div class="tooltip-xp">Complete previous topic's final exam to unlock</div>`;
+                        } else {
+                            tooltipContent += `<div class="tooltip-xp">XP Required: ${subLevel.xpRequired}</div>`;
+                        }
+                    }
+
+                    tooltipContent += `</div>`;
+
+                    subLevelCard.innerHTML = `
+                        <div class="level-icon">${isLocked ? '🔒' : subLevel.isExam ? '📝' : '📚'}</div>
+                        ${tooltipContent}
+                    `;
+
+                    if (!isLocked) {
+                        const startButton = subLevelCard.querySelector('.start-lesson-btn');
+                        if (startButton) {
+                            startButton.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                window.location.href = `loading-screen.html?topic=${topic.id}&sublevel=${subLevel.id}`;
+                            });
+                        }
+                    }
+
+                    subLevelsContainer.appendChild(subLevelCard);
+                    subLevelCards.push(subLevelCard);
+                });
+
+                // Create connecting lines
+                if (subLevelCards.length > 1) {
+                    requestAnimationFrame(() => {
+                        createConnectingLines(subLevelsContainer, subLevelCards);
+                    });
+                }
+
+                topicContainer.appendChild(topicHeader);
+                topicContainer.appendChild(subLevelsContainer);
+                topicsContainer.appendChild(topicContainer);
+            });
+        }
+
+        // Use ConnectionHelper to get user XP
+        function loadUserXP() {
+            // Show loading indicator
+            const xpDisplay = document.getElementById('totalXP');
+            if (xpDisplay) {
+                xpDisplay.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            }
+
+            ConnectionHelper.getUserXP()
+                .then(data => {
+                    console.log('[Debug] XP Data:', data);
+                    
+                    // DEBUG LOG: Focus specifically on completed exams from server
+                    if (data && data.completed_exams) {
+                        console.log('[DEBUG] Server returned completed exams:', data.completed_exams);
+                    } else {
+                        console.log('[DEBUG] No completed exams data from server');
+                    }
+                    
+                    if (data && typeof data.xp !== 'undefined') {
+                        const xp = parseInt(data.xp) || 0;
+                        if (xpDisplay) {
+                            xpDisplay.textContent = xp;
+                        }
+
+                        // IMPORTANT: Always sync completion data from server before rendering UI
+                        // This ensures we have the most up-to-date data about completed exams
+                        // This specific block might be redundant if syncCompletedDataFromServer already handles this robustly.
+                        // However, keeping it ensures that even a direct call to loadUserXP attempts to reconcile.
+                        if (data.completed_exams && Array.isArray(data.completed_exams)) {
+                            const localExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+                            // Using the server's version directly after sync is preferred, 
+                            // but if loadUserXP is called independently, merging is safer.
+                            const mergedExams = [...new Set([...localExams, ...data.completed_exams])];
+                            localStorage.setItem('completedExams', JSON.stringify(mergedExams));
+                            console.log('[DEBUG] (loadUserXP) Updated localStorage completedExams from server:', {
+                                fromServer: data.completed_exams,
+                                merged: mergedExams
+                            });
+                        }
+                         if (data.completed_levels && Array.isArray(data.completed_levels)) {
+                            const localLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
+                            const serverLevels = data.completed_levels;
+                            const mergedLevelsMap = new Map();
+
+                            localLevels.forEach(level => mergedLevelsMap.set(`${level.topicId}-${level.subLevelId}`, level));
+                            serverLevels.forEach(level => mergedLevelsMap.set(`${level.topicId}-${level.subLevelId}`, level));
+                            
+                            const mergedLevels = Array.from(mergedLevelsMap.values());
+                            localStorage.setItem('completedLevels', JSON.stringify(mergedLevels));
+                             console.log('[DEBUG] (loadUserXP) Updated localStorage completedLevels from server:', {
+                                fromServer: serverLevels,
+                                merged: mergedLevels
+                            });
+                        }
+
+
+                        renderTopicsWithXP(xp);
+                        
+                        // Update modal XP display
+                        const modalXPDisplay = document.getElementById('modalTotalXP');
+                        if (modalXPDisplay) {
+                            modalXPDisplay.textContent = xp;
+                        }
+                    } else {
+                        console.warn('[Debug] Invalid XP data format:', data);
+                        // Show error and use 0 XP
+                        if (xpDisplay) {
+                            xpDisplay.textContent = '0';
+                        }
+                        renderTopicsWithXP(0);
+                    }
+                })
+                .catch(error => {
+                    console.error('[Error] Failed to fetch XP:', error);
+                    if (xpDisplay) {
+                        xpDisplay.textContent = '0';
+                    }
+                    renderTopicsWithXP(0);
+                });
+        }
+
+        // Define the initialize function
+        function initializeTopicsUI() {
+            // Load user XP data which will render topics
+            loadUserXP();
+        }
         // Main initialization
         document.addEventListener('DOMContentLoaded', function() {
             console.log('[Debug] DOM Content Loaded');
@@ -1321,213 +1536,6 @@
                     });
                 });
             }
-
-            function renderTopicsWithXP(totalXP) {
-                console.log('[Debug] Rendering topics with XP:', totalXP);
-                const topicsContainer = document.getElementById('topicsContainer');
-                if (!topicsContainer) {
-                    console.error('[Error] Missing topicsContainer element');
-                    return;
-                }
-                
-                // Create fallback topics data if window.topicsData is not available
-                if (!window.topicsData || !Array.isArray(window.topicsData) || window.topicsData.length === 0) {
-                    console.warn('[Warn] Topics data not loaded, using fallback data');
-                    window.topicsData = [
-                        { 
-                            id: 1, 
-                            title: "Basic Banking", 
-                            icon: "🏦",
-                            subLevels: [
-                                { id: 1.1, title: "Account Types", xpRequired: 0, xpReward: 50 },
-                                { id: 1.2, title: "Banking Services", xpRequired: 50, xpReward: 50 },
-                                { id: 1.3, title: "Online Banking", xpRequired: 100, xpReward: 50 },
-                                { id: 1.4, title: "Final Exam", xpRequired: 150, isExam: true, xpReward: 100 }
-                            ]
-                        },
-                        { 
-                            id: 2, 
-                            title: "Saving Basics", 
-                            icon: "💰",
-                            subLevels: [
-                                { id: 2.1, title: "Savings Goals", xpRequired: 200, xpReward: 50 },
-                                { id: 2.2, title: "Interest Rates", xpRequired: 250, xpReward: 50 },
-                                { id: 2.3, title: "Emergency Funds", xpRequired: 300, xpReward: 50 },
-                                { id: 2.4, title: "Final Exam", xpRequired: 350, isExam: true, xpReward: 100 }
-                            ]
-                        }
-                    ];
-                }
-
-                // DEBUG LOG: Show completed exams before rendering topics
-                const examsBeforeRender = JSON.parse(localStorage.getItem('completedExams') || '[]');
-                console.log('[DEBUG] Completed exams before rendering topics:', examsBeforeRender);
-
-                topicsContainer.innerHTML = '';
-
-                window.topicsData.forEach(topic => {
-                    const topicContainer = document.createElement('div');
-                    topicContainer.className = 'topic-container';
-
-                    // Check if this topic is unlocked based on previous topic completion
-                    const isTopicLocked = !isTopicUnlocked(topic.id, totalXP);
-                    
-                    // DEBUG LOG: Show topic lock status
-                    console.log(`[DEBUG] Topic ${topic.id}: ${topic.title} - Locked: ${isTopicLocked}`);
-
-                    // Create topic header
-                    const topicHeader = document.createElement('div');
-                    topicHeader.className = 'topic-header';
-                    
-                    // Add locked class if topic is locked
-                    if (isTopicLocked) {
-                        topicHeader.classList.add('locked-topic');
-                    }
-                    
-                    topicHeader.innerHTML = `
-                        <div class="level-content">
-                            <div class="topic-icon">${isTopicLocked ? '🔒' : topic.icon}</div>
-                            <div class="topic-text">
-                                <div class="topic-number">Topic ${topic.id}</div>
-                                <div class="topic-title">${topic.title}</div>
-                                ${isTopicLocked ? '<div class="topic-locked-message">Complete previous topic\'s final exam to unlock</div>' : ''}
-                            </div>
-                        </div>
-                    `;
-
-                    // Create sub-levels container
-                    const subLevelsContainer = document.createElement('div');
-                    subLevelsContainer.className = 'sub-levels-container';
-
-                    const subLevelCards = [];
-
-                    topic.subLevels.forEach(subLevel => {
-                        const subLevelCard = document.createElement('div');
-                        // A sublevel is locked if either:
-                        // 1. The entire topic is locked, or
-                        // 2. The user doesn't have enough XP for this specific sublevel
-                        const isLocked = isTopicLocked || totalXP < subLevel.xpRequired;
-                        const isCompleted = isLevelCompleted(topic.id, subLevel.id);
-
-                        subLevelCard.className = `sub-level-card ${isLocked ? 'locked' : ''} ${isCompleted ? 'completed' : ''} ${subLevel.isExam ? 'exam-card' : ''}`;
-
-                        let tooltipContent = `
-                            <div class="level-tooltip">
-                                <div class="tooltip-title">${subLevel.title}</div>
-                                <div class="tooltip-overview">${subLevel.overview || 'Learn about this topic'}</div>
-                                <div class="tooltip-xp">XP Reward: ${subLevel.xpReward || 50}</div>
-                                ${!isLocked ? '<button class="start-lesson-btn">Start Lesson</button>' : ''}
-                        `;
-
-                        if (isLocked) {
-                            if (isTopicLocked) {
-                                tooltipContent += `<div class="tooltip-xp">Complete previous topic's final exam to unlock</div>`;
-                            } else {
-                                tooltipContent += `<div class="tooltip-xp">XP Required: ${subLevel.xpRequired}</div>`;
-                            }
-                        }
-
-                        tooltipContent += `</div>`;
-
-                        subLevelCard.innerHTML = `
-                            <div class="level-icon">${isLocked ? '🔒' : subLevel.isExam ? '📝' : '📚'}</div>
-                            ${tooltipContent}
-                        `;
-
-                        if (!isLocked) {
-                            const startButton = subLevelCard.querySelector('.start-lesson-btn');
-                            if (startButton) {
-                                startButton.addEventListener('click', (e) => {
-                                    e.stopPropagation();
-                                    window.location.href = `loading-screen.html?topic=${topic.id}&sublevel=${subLevel.id}`;
-                                });
-                            }
-                        }
-
-                        subLevelsContainer.appendChild(subLevelCard);
-                        subLevelCards.push(subLevelCard);
-                    });
-
-                    // Create connecting lines
-                    if (subLevelCards.length > 1) {
-                        requestAnimationFrame(() => {
-                            createConnectingLines(subLevelsContainer, subLevelCards);
-                        });
-                    }
-
-                    topicContainer.appendChild(topicHeader);
-                    topicContainer.appendChild(subLevelsContainer);
-                    topicsContainer.appendChild(topicContainer);
-                });
-            }
-
-            // First render with 0 XP to show something immediately
-            renderTopicsWithXP(0);
-
-            // Use ConnectionHelper to get user XP
-            function loadUserXP() {
-                // Show loading indicator
-                const xpDisplay = document.getElementById('totalXP');
-                if (xpDisplay) {
-                    xpDisplay.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                }
-
-                ConnectionHelper.getUserXP()
-                    .then(data => {
-                        console.log('[Debug] XP Data:', data);
-                        
-                        // DEBUG LOG: Focus specifically on completed exams from server
-                        if (data && data.completed_exams) {
-                            console.log('[DEBUG] Server returned completed exams:', data.completed_exams);
-                        } else {
-                            console.log('[DEBUG] No completed exams data from server');
-                        }
-                        
-                        if (data && typeof data.xp !== 'undefined') {
-                            const xp = parseInt(data.xp) || 0;
-                            if (xpDisplay) {
-                                xpDisplay.textContent = xp;
-                            }
-
-                            // IMPORTANT: Always sync completion data from server before rendering UI
-                            // This ensures we have the most up-to-date data about completed exams
-                            if (data.completed_exams && Array.isArray(data.completed_exams)) {
-                                const localExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
-                                const mergedExams = [...new Set([...localExams, ...data.completed_exams])];
-                                localStorage.setItem('completedExams', JSON.stringify(mergedExams));
-                                console.log('[DEBUG] Updated localStorage completedExams from server:', {
-                                    fromServer: data.completed_exams,
-                                    merged: mergedExams
-                                });
-                            }
-
-                            renderTopicsWithXP(xp);
-                            
-                            // Update modal XP display
-                            const modalXPDisplay = document.getElementById('modalTotalXP');
-                            if (modalXPDisplay) {
-                                modalXPDisplay.textContent = xp;
-                            }
-                        } else {
-                            console.warn('[Debug] Invalid XP data format:', data);
-                            // Show error and use 0 XP
-                            if (xpDisplay) {
-                                xpDisplay.textContent = '0';
-                            }
-                            renderTopicsWithXP(0);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('[Error] Failed to fetch XP:', error);
-                        if (xpDisplay) {
-                            xpDisplay.textContent = '0';
-                        }
-                        renderTopicsWithXP(0);
-                    });
-            }
-
-            // Load user XP data
-            loadUserXP();
 
             // Set up event listeners for settings
             document.getElementById('soundToggle').addEventListener('change', function(e) {
@@ -1602,12 +1610,6 @@
                 }
             };
         });
-
-        // Define the initialize function
-        function initializeTopicsUI() {
-            // Load user XP data which will render topics
-            loadUserXP();
-        }
     </script>
     
     <!-- Feedback container -->
