@@ -240,6 +240,9 @@ const ConnectionHelper = {
                     success: true,
                     xp: parseInt(data.xp) || 0,
                     level: parseInt(data.level) || 1,
+                    completed_levels: data.completed_levels || [],
+                    completed_exams: data.completed_exams || [],
+                    last_completed_topic_exam: parseInt(data.last_completed_topic_exam) || 0,
                     message: data.message || 'XP retrieved successfully'
                 };
             } else {
@@ -248,6 +251,9 @@ const ConnectionHelper = {
                     success: false,
                     xp: 0,
                     level: 1,
+                    completed_levels: [],
+                    completed_exams: [],
+                    last_completed_topic_exam: 0,
                     message: 'Invalid response format from server'
                 };
             }
@@ -258,6 +264,9 @@ const ConnectionHelper = {
                 success: false,
                 xp: 0,
                 level: 1,
+                completed_levels: [],
+                completed_exams: [],
+                last_completed_topic_exam: 0,
                 message: 'Could not connect to server: ' + (error.message || 'Unknown error')
             };
         }
@@ -267,10 +276,11 @@ const ConnectionHelper = {
      * Update user XP on the server
      * @param {number} xp - The new XP value
      * @param {Array} completedLevels - Optional array of completed levels
-     * @param {Array} completedExams - Optional array of completed exams
+     * @param {Array} completedExams - Optional array of completed exams (will become unused)
+     * @param {number} lastCompletedTopicExam - Optional new field for the last topic exam completed
      * @returns {Promise} - Promise resolving to updated user data
      */
-    updateXP: async function(xp, completedLevels = [], completedExams = []) {
+    updateXP: async function(xp, completedLevels = [], completedExams = [], lastCompletedTopicExam = null) {
         try {
             // Get username with better fallback mechanism
             let username = 'guest';
@@ -300,6 +310,11 @@ const ConnectionHelper = {
                 username: username // Include username in body
             };
             
+            // Only include last_completed_topic_exam if it's a number (and not null)
+            if (typeof lastCompletedTopicExam === 'number') {
+                data.last_completed_topic_exam = lastCompletedTopicExam;
+            }
+            
             // Force direct backend URL for xp_handler.php
             const directUrl = `${API_CONFIG.BACKEND_URL}/xp_handler.php`;
             console.log(`[ConnectionHelper] Using direct backend URL: ${directUrl}`);
@@ -327,6 +342,9 @@ const ConnectionHelper = {
                     success: true,
                     xp: parseInt(result.xp) || 0,
                     level: parseInt(result.level) || 1,
+                    completed_levels: result.completed_levels || [],
+                    completed_exams: result.completed_exams || [],
+                    last_completed_topic_exam: parseInt(result.last_completed_topic_exam) || 0,
                     message: result.message || 'XP updated successfully'
                 };
             } else {
@@ -334,6 +352,9 @@ const ConnectionHelper = {
                 return {
                     success: false,
                     xp: xp, // Return the XP we tried to set
+                    completed_levels: completedLevels,
+                    completed_exams: completedExams,
+                    last_completed_topic_exam: lastCompletedTopicExam,
                     message: 'Invalid response format from server'
                 };
             }
@@ -342,6 +363,9 @@ const ConnectionHelper = {
             return {
                 success: false,
                 xp: xp, // Return the XP we tried to set
+                completed_levels: completedLevels,
+                completed_exams: completedExams,
+                last_completed_topic_exam: lastCompletedTopicExam,
                 message: 'Failed to update XP on server: ' + (error.message || 'Unknown error')
             };
         }
