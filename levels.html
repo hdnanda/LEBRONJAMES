@@ -888,6 +888,36 @@
             return isCompletedLocal;
         }
 
+        // Check if the final exam of a topic has been completed
+        function isTopicExamCompleted(topicId) {
+            topicId = parseInt(topicId);
+            
+            // Find the topic data
+            const topic = window.topicsData.find(t => parseInt(t.id) === topicId);
+            if (!topic) return false;
+            
+            // Find the final exam sublevel (should be the last one and have isExam flag)
+            const finalExam = topic.subLevels.find(sl => sl.isExam === true);
+            if (!finalExam) return false;
+            
+            // Format key for checking completedExams array
+            const examKey = `${topicId}.${finalExam.id}`;
+            
+            // First check localStorage
+            const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+            const isExamCompletedLocal = completedExams.includes(examKey);
+            
+            // DEBUG LOG: Show exam completion check
+            console.log(`[DEBUG] Checking if exam ${examKey} is completed:`, isExamCompletedLocal);
+            console.log(`[DEBUG] All completed exams from localStorage:`, completedExams);
+            
+            // If found in localStorage, return true immediately
+            if (isExamCompletedLocal) return true;
+            
+            // Otherwise, also check if the level itself is completed
+            return isLevelCompleted(topicId, finalExam.id);
+        }
+
         // Load completed data from server
         async function syncCompletedDataFromServer() {
             // Only proceed if ConnectionHelper is available
@@ -900,6 +930,7 @@
                 const result = await window.ConnectionHelper.getUserXP();
                 
                 if (result.success) {
+                    // DEBUG LOG: Show server response data
                     console.log('[DEBUG] Server returned user data:', result);
                 
                     // Handle completed_levels
@@ -910,23 +941,21 @@
                         } else {
                             console.warn('[DEBUG] Server sent completed_levels, but it was not an array. Local completedLevels preserved. Server value:', result.completed_levels);
                         }
-                    } 
-
-                    // Store last_completed_topic_exam from server
-                    if (result.hasOwnProperty('last_completed_topic_exam') && typeof result.last_completed_topic_exam === 'number') {
-                        localStorage.setItem('lastCompletedTopicExam', result.last_completed_topic_exam.toString());
-                        console.log('[DEBUG] Updated local lastCompletedTopicExam with server data:', result.last_completed_topic_exam);
-                    } else if (result.success && !result.hasOwnProperty('last_completed_topic_exam')) {
-                        // If field is missing on a successful response, means it's 0 on server (or new user)
-                        localStorage.setItem('lastCompletedTopicExam', '0');
-                        console.log('[DEBUG] last_completed_topic_exam missing from server, set local to 0.');
-                    } else if (result.hasOwnProperty('last_completed_topic_exam')) {
-                         console.warn('[DEBUG] Server sent last_completed_topic_exam, but it was not a number. Local value preserved. Server value:', result.last_completed_topic_exam);
                     }
-                    // Note: completed_exams is no longer primarily used for unlocking logic by the client
+                    
+                    // Handle completed_exams
+                    if (result.hasOwnProperty('completed_exams')) { 
+                        if (Array.isArray(result.completed_exams)) {
+                            localStorage.setItem('completedExams', JSON.stringify(result.completed_exams));
+                            console.log('[DEBUG] Overwrote local completedExams with server data:', result.completed_exams);
+                        } else {
+                            console.warn('[DEBUG] Server sent completed_exams, but it was not an array. Local completedExams preserved. Server value:', result.completed_exams);
+                        }
+                    }
                     
                     return true;
                 } else {
+                    // If result.success is false, log the reason if available
                     console.warn('[DEBUG] Sync failed or ConnectionHelper.getUserXP indicated failure:', result.message || 'No message');
                 }
             } catch (error) {
@@ -937,43 +966,37 @@
         }
 
         // Check if a topic should be unlocked
-        function isTopicUnlocked(topicId) {
+        function isTopicUnlocked(topicId, totalXP) {
             topicId = parseInt(topicId);
             
             // First topic is always unlocked
             if (topicId === 1) return true;
             
-            const lastCompletedTopicExam = parseInt(localStorage.getItem('lastCompletedTopicExam') || '0');
+            // For other topics, check if the previous topic's final exam is completed
+            const previousTopicId = topicId - 1;
             
-            const isUnlocked = lastCompletedTopicExam >= (topicId - 1);
+            // Force sync from server before checking exam completion (for better cross-browser experience)
+            const isUnlocked = isTopicExamCompleted(previousTopicId);
             
-            console.log(`[DEBUG] Is topic ${topicId} unlocked? ${isUnlocked} (Last completed topic exam: ${lastCompletedTopicExam})`);
+            // DEBUG LOG: Show topic unlocking check
+            console.log(`[DEBUG] Is topic ${topicId} unlocked? ${isUnlocked} (previous topic exam completed: ${isUnlocked})`);
             
             return isUnlocked;
         }
 
         // Mark a level as completed
         window.markLevelCompleted = function(currentLevel, passed) {
-            console.log('[markLevelCompleted] Called with currentLevel:', JSON.parse(JSON.stringify(currentLevel)), 'passed:', passed);
-
-            if (!currentLevel || !passed) {
-                console.log('[markLevelCompleted] Exiting: currentLevel is null or passed is false.');
-                return false;
-            }
+            if (!currentLevel || !passed) return false;
 
             const topicId = parseInt(currentLevel.topicId);
             const subLevelId = parseFloat(currentLevel.subLevelId);
-            console.log(`[markLevelCompleted] Parsed topicId: ${topicId}, subLevelId: ${subLevelId}`);
-
-            if (typeof window.topicsData === 'undefined' || !window.topicsData) {
-                console.error('[markLevelCompleted] CRITICAL: window.topicsData is undefined or null!');
-            } else if (!Array.isArray(window.topicsData) || window.topicsData.length === 0) {
-                console.warn('[markLevelCompleted] window.topicsData is not an array or is empty. Length:', window.topicsData.length);
-            } else {
-                console.log('[markLevelCompleted] window.topicsData seems loaded. Length:', window.topicsData.length);
-            }
             
+            console.log(`[markLevelCompleted] Marking level as completed: Topic ${topicId}, SubLevel ${subLevelId}, Passed: ${passed}`);
+            
+            // Save to completedLevels in localStorage
             const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
+            
+            // Check if this level is already marked as completed
             const alreadyCompleted = completedLevels.some(level => 
                 parseInt(level.topicId) === topicId && parseFloat(level.subLevelId) === subLevelId
             );
@@ -984,81 +1007,55 @@
                     subLevelId: subLevelId,
                     timestamp: new Date().getTime()
                 });
+                
                 localStorage.setItem('completedLevels', JSON.stringify(completedLevels));
                 console.log(`[markLevelCompleted] Level saved to completedLevels, total completed: ${completedLevels.length}`);
                 
-                let newLastCompletedTopicExam = null;
+                // Check if this is an exam level
+                const topic = window.topicsData.find(t => parseInt(t.id) === topicId);
+                const isExam = topic && topic.subLevels.some(sl => 
+                    parseFloat(sl.id) === subLevelId && sl.isExam === true
+                );
                 
-                // Detailed logging for isExam determination
-                console.log('[markLevelCompleted] Attempting to find topicData for topicId:', topicId);
-                const topicData = window.topicsData && Array.isArray(window.topicsData) ? window.topicsData.find(t => parseInt(t.id) === topicId) : null;
-                
-                if (!topicData) {
-                    console.warn('[markLevelCompleted] Could not find topicData for topicId:', topicId, 'in window.topicsData.');
-                } else {
-                    console.log('[markLevelCompleted] Found topicData:', JSON.parse(JSON.stringify(topicData)));
-                    console.log('[markLevelCompleted] Checking subLevels for subLevelId:', subLevelId, 'with isExam: true');
-                }
-
-                const isExam = topicData && topicData.subLevels && Array.isArray(topicData.subLevels) ? topicData.subLevels.some(sl => {
-                    const subLevelMatches = parseFloat(sl.id) === subLevelId;
-                    const isMarkedAsExam = sl.isExam === true;
-                    // Log each sublevel check for the target sublevel
-                    if (subLevelMatches) {
-                        console.log(`[markLevelCompleted] Checking subLevel in topic ${topicId}: sl.id=${sl.id} (parsed: ${parseFloat(sl.id)}), sl.isExam=${sl.isExam}. Match for id ${subLevelId}: ${subLevelMatches}, Is Exam: ${isMarkedAsExam}`);
-                    }
-                    return subLevelMatches && isMarkedAsExam;
-                }) : false;
-                
-                console.log('[markLevelCompleted] Determined isExam:', isExam);
-
+                // If it's an exam, add to completedExams
                 if (isExam) {
-                    console.log(`[markLevelCompleted] Exam ${topicId}.${subLevelId} completed.`);
-                    // We update last_completed_topic_exam to the current topicId, 
-                    // as this topic's exam is now done.
-                    newLastCompletedTopicExam = topicId;
-                    // The old completedExams array in localStorage is no longer needed for unlocking logic
-                    // localStorage.removeItem('completedExams'); // Optionally clear it, or let it be overwritten by server if server still sends it
+                    const examKey = `${topicId}.${subLevelId}`;
+                    const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+                    if (!completedExams.includes(examKey)) {
+                        completedExams.push(examKey);
+                        localStorage.setItem('completedExams', JSON.stringify(completedExams));
+                        console.log(`[markLevelCompleted] Exam ${examKey} added to completedExams`);
+                    }
                 }
                 
+                // Get completedExams data to send to server as well
+                const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+                
+                // Save to server if available
                 if (window.ConnectionHelper && typeof window.ConnectionHelper.updateXP === 'function') {
-                    window.ConnectionHelper.getUserXP().then(xpResult => {
-                        const currentXP = xpResult.xp || 0;
-                        let existingLastCompleted = parseInt(localStorage.getItem('lastCompletedTopicExam') || '0');
-                        
-                        // Ensure we only send a higher topic number or the one just completed
-                        let finalLastCompletedTopicExamToSend = existingLastCompleted;
-                        if (newLastCompletedTopicExam !== null && newLastCompletedTopicExam > existingLastCompleted) {
-                            finalLastCompletedTopicExamToSend = newLastCompletedTopicExam;
-                        }
-                        // If newLastCompletedTopicExam is for an earlier topic (e.g. replaying), don't rewind server value, but still send it if it's not null for this specific update.
-                        // However, the critical part is that an exam for topic X means X should be recorded.
-                        // The server should ideally take Math.max(current_server_value, value_from_client)
-                        // For now, client sends the topicId of the exam just passed if it was an exam.
-                        const paramForServer = (newLastCompletedTopicExam !== null) ? newLastCompletedTopicExam : null; 
-
-                        console.log('[markLevelCompleted] paramForServer for lastCompletedTopicExam:', paramForServer);
-                        console.log('[markLevelCompleted] About to update XP on server with:', {
-                            currentXP,
-                            completedLevels,
-                            lastCompletedTopicExam: paramForServer 
+                    // First get current XP to avoid overwriting with null
+                    window.ConnectionHelper.getUserXP()
+                        .then(result => {
+                            const currentXP = result.xp || 0;
+                            console.log('[markLevelCompleted] About to update XP on server with:', {
+                                currentXP,
+                                completedLevels,
+                                completedExams
+                            });
+                            // Update with both completed levels and exams
+                            return window.ConnectionHelper.updateXP(currentXP, completedLevels, completedExams);
+                        })
+                        .then(result => {
+                            console.log('[markLevelCompleted] Saved to server:', result);
+                        })
+                        .catch(error => {
+                            console.error('[markLevelCompleted] Error saving to server:', error);
                         });
-                        // Send null for completedExams array as it's deprecated client-side for unlocking
-                        return window.ConnectionHelper.updateXP(currentXP, completedLevels, [], paramForServer);
-                    })
-                    .then(updateResult => {
-                        console.log('[markLevelCompleted] Saved to server:', updateResult);
-                        if (updateResult.success && updateResult.hasOwnProperty('last_completed_topic_exam')){
-                            localStorage.setItem('lastCompletedTopicExam', updateResult.last_completed_topic_exam.toString());
-                            console.log('[DEBUG] Updated local lastCompletedTopicExam from server POST response:', updateResult.last_completed_topic_exam);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('[markLevelCompleted] Error saving to server:', error);
-                    });
                 }
+                
                 return true;
             }
+            
             return false;
         };
 
@@ -1293,7 +1290,7 @@
                     topicContainer.className = 'topic-container';
 
                     // Check if this topic is unlocked based on previous topic completion
-                    const isTopicLocked = !isTopicUnlocked(topic.id);
+                    const isTopicLocked = !isTopicUnlocked(topic.id, totalXP);
                     
                     // DEBUG LOG: Show topic lock status
                     console.log(`[DEBUG] Topic ${topic.id}: ${topic.title} - Locked: ${isTopicLocked}`);
@@ -1440,17 +1437,6 @@
                             });
                         }
 
-                        // Also update lastCompletedTopicExam from the data fetched by loadUserXP
-                        if (data.hasOwnProperty('last_completed_topic_exam') && typeof data.last_completed_topic_exam === 'number') {
-                            localStorage.setItem('lastCompletedTopicExam', data.last_completed_topic_exam.toString());
-                            console.log('[DEBUG] (loadUserXP) Updated local lastCompletedTopicExam with server data:', data.last_completed_topic_exam);
-                        } else if (data.success && !data.hasOwnProperty('last_completed_topic_exam')) {
-                            // If field is missing on a successful response, means it's 0 on server (or new user)
-                            localStorage.setItem('lastCompletedTopicExam', '0');
-                            console.log('[DEBUG] (loadUserXP) last_completed_topic_exam missing from server, set local to 0.');
-                        } else if (data.hasOwnProperty('last_completed_topic_exam')) {
-                             console.warn('[DEBUG] (loadUserXP) Server sent last_completed_topic_exam, but it was not a number. Local value preserved. Server value:', data.last_completed_topic_exam);
-                        }
 
                             renderTopicsWithXP(xp);
                             
