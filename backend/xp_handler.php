@@ -46,6 +46,7 @@ $userData = [
     'level' => 1,
     'completed_levels' => [],
     'completed_exams' => [],
+    'last_completed_topic_exam' => 0,
     'last_updated' => date('Y-m-d H:i:s')
 ];
 
@@ -54,7 +55,9 @@ switch ($_SERVER['REQUEST_METHOD']) {
     case 'GET':
         // Retrieve user data if it exists
         if (file_exists($userDataFile)) {
-            $userData = json_decode(file_get_contents($userDataFile), true);
+            $fileData = json_decode(file_get_contents($userDataFile), true);
+            // Merge with defaults to ensure new fields are present
+            $userData = array_merge($userData, $fileData);
         }
         
         // Return response
@@ -62,8 +65,9 @@ switch ($_SERVER['REQUEST_METHOD']) {
             'success' => true,
             'xp' => (int)$userData['xp'],
             'level' => (int)$userData['level'],
-            'completed_levels' => $userData['completed_levels'],
-            'completed_exams' => $userData['completed_exams'],
+            'completed_levels' => $userData['completed_levels'] ?? [],
+            'completed_exams' => $userData['completed_exams'] ?? [],
+            'last_completed_topic_exam' => (int)($userData['last_completed_topic_exam'] ?? 0),
             'message' => 'User data retrieved'
         ]);
         break;
@@ -73,7 +77,7 @@ switch ($_SERVER['REQUEST_METHOD']) {
         $input = file_get_contents('php://input');
         $data = json_decode($input, true);
         
-        // Validate input
+        // Validate input for xp
         if (!isset($data['xp']) || !is_numeric($data['xp'])) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Invalid XP value']);
@@ -84,13 +88,28 @@ switch ($_SERVER['REQUEST_METHOD']) {
         if (file_exists($userDataFile)) {
             $existingData = json_decode(file_get_contents($userDataFile), true);
             if (is_array($existingData)) {
-                $userData = array_merge($userData, $existingData);
+                $userData = array_merge($userData, $existingData); // Merge existing with defaults first
             }
         }
         
         // Update with new data
         $userData['xp'] = (int)$data['xp'];
         $userData['last_updated'] = date('Y-m-d H:i:s');
+        
+        // Update completed levels if provided
+        if (isset($data['completed_levels']) && is_array($data['completed_levels'])) {
+            $userData['completed_levels'] = $data['completed_levels'];
+        }
+        
+        // Update completed_exams if provided (keeping for now, though new logic won't rely on it)
+        if (isset($data['completed_exams']) && is_array($data['completed_exams'])) {
+            $userData['completed_exams'] = $data['completed_exams'];
+        }
+
+        // Update last_completed_topic_exam if provided
+        if (isset($data['last_completed_topic_exam']) && is_numeric($data['last_completed_topic_exam'])) {
+            $userData['last_completed_topic_exam'] = (int)$data['last_completed_topic_exam'];
+        }
         
         // Calculate level based on XP
         $xpThresholds = [
@@ -101,20 +120,13 @@ switch ($_SERVER['REQUEST_METHOD']) {
             5 => 700
         ];
         
+        $currentLevel = 1; // Renamed to avoid conflict with $userData['level']
         foreach ($xpThresholds as $lvl => $threshold) {
             if ($userData['xp'] >= $threshold) {
-                $userData['level'] = $lvl;
+                $currentLevel = $lvl;
             }
         }
-        
-        // Update completed levels and exams if provided
-        if (isset($data['completed_levels']) && is_array($data['completed_levels'])) {
-            $userData['completed_levels'] = $data['completed_levels'];
-        }
-        
-        if (isset($data['completed_exams']) && is_array($data['completed_exams'])) {
-            $userData['completed_exams'] = $data['completed_exams'];
-        }
+        $userData['level'] = $currentLevel; // Assign calculated level
         
         // Save to file
         file_put_contents($userDataFile, json_encode($userData, JSON_PRETTY_PRINT));
@@ -124,8 +136,9 @@ switch ($_SERVER['REQUEST_METHOD']) {
             'success' => true,
             'xp' => (int)$userData['xp'],
             'level' => (int)$userData['level'],
-            'completed_levels' => $userData['completed_levels'],
-            'completed_exams' => $userData['completed_exams'],
+            'completed_levels' => $userData['completed_levels'] ?? [],
+            'completed_exams' => $userData['completed_exams'] ?? [], // Kept for now
+            'last_completed_topic_exam' => (int)($userData['last_completed_topic_exam'] ?? 0),
             'message' => 'User data updated'
         ]);
         break;
