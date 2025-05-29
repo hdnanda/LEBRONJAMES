@@ -954,12 +954,24 @@
 
         // Mark a level as completed
         window.markLevelCompleted = function(currentLevel, passed) {
-            if (!currentLevel || !passed) return false;
+            console.log('[markLevelCompleted] Called with currentLevel:', JSON.parse(JSON.stringify(currentLevel)), 'passed:', passed);
+
+            if (!currentLevel || !passed) {
+                console.log('[markLevelCompleted] Exiting: currentLevel is null or passed is false.');
+                return false;
+            }
 
             const topicId = parseInt(currentLevel.topicId);
             const subLevelId = parseFloat(currentLevel.subLevelId);
-            
-            console.log(`[markLevelCompleted] Marking level as completed: Topic ${topicId}, SubLevel ${subLevelId}, Passed: ${passed}`);
+            console.log(`[markLevelCompleted] Parsed topicId: ${topicId}, subLevelId: ${subLevelId}`);
+
+            if (typeof window.topicsData === 'undefined' || !window.topicsData) {
+                console.error('[markLevelCompleted] CRITICAL: window.topicsData is undefined or null!');
+            } else if (!Array.isArray(window.topicsData) || window.topicsData.length === 0) {
+                console.warn('[markLevelCompleted] window.topicsData is not an array or is empty. Length:', window.topicsData.length);
+            } else {
+                console.log('[markLevelCompleted] window.topicsData seems loaded. Length:', window.topicsData.length);
+            }
             
             const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
             const alreadyCompleted = completedLevels.some(level => 
@@ -976,11 +988,30 @@
                 console.log(`[markLevelCompleted] Level saved to completedLevels, total completed: ${completedLevels.length}`);
                 
                 let newLastCompletedTopicExam = null;
-                const topicData = window.topicsData.find(t => parseInt(t.id) === topicId);
-                const isExam = topicData && topicData.subLevels.some(sl => 
-                    parseFloat(sl.id) === subLevelId && sl.isExam === true
-                );
                 
+                // Detailed logging for isExam determination
+                console.log('[markLevelCompleted] Attempting to find topicData for topicId:', topicId);
+                const topicData = window.topicsData && Array.isArray(window.topicsData) ? window.topicsData.find(t => parseInt(t.id) === topicId) : null;
+                
+                if (!topicData) {
+                    console.warn('[markLevelCompleted] Could not find topicData for topicId:', topicId, 'in window.topicsData.');
+                } else {
+                    console.log('[markLevelCompleted] Found topicData:', JSON.parse(JSON.stringify(topicData)));
+                    console.log('[markLevelCompleted] Checking subLevels for subLevelId:', subLevelId, 'with isExam: true');
+                }
+
+                const isExam = topicData && topicData.subLevels && Array.isArray(topicData.subLevels) ? topicData.subLevels.some(sl => {
+                    const subLevelMatches = parseFloat(sl.id) === subLevelId;
+                    const isMarkedAsExam = sl.isExam === true;
+                    // Log each sublevel check for the target sublevel
+                    if (subLevelMatches) {
+                        console.log(`[markLevelCompleted] Checking subLevel in topic ${topicId}: sl.id=${sl.id} (parsed: ${parseFloat(sl.id)}), sl.isExam=${sl.isExam}. Match for id ${subLevelId}: ${subLevelMatches}, Is Exam: ${isMarkedAsExam}`);
+                    }
+                    return subLevelMatches && isMarkedAsExam;
+                }) : false;
+                
+                console.log('[markLevelCompleted] Determined isExam:', isExam);
+
                 if (isExam) {
                     console.log(`[markLevelCompleted] Exam ${topicId}.${subLevelId} completed.`);
                     // We update last_completed_topic_exam to the current topicId, 
@@ -1006,6 +1037,7 @@
                         // For now, client sends the topicId of the exam just passed if it was an exam.
                         const paramForServer = (newLastCompletedTopicExam !== null) ? newLastCompletedTopicExam : null; 
 
+                        console.log('[markLevelCompleted] paramForServer for lastCompletedTopicExam:', paramForServer);
                         console.log('[markLevelCompleted] About to update XP on server with:', {
                             currentXP,
                             completedLevels,
