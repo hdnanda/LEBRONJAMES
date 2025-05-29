@@ -931,29 +931,27 @@
                 
                 if (result.success) {
                     // DEBUG LOG: Show server response data
-                    console.log('[DEBUG] Server returned user data:', {
-                        xp: result.xp,
-                        level: result.level,
-                        completed_levels: result.completed_levels,
-                        completed_exams: result.completed_exams
-                    });
+                    console.log('[DEBUG] Server returned user data:', result);
                 
-                    // Update local storage with server data. Prioritize server data.
-                    if (result.hasOwnProperty('completed_levels') && Array.isArray(result.completed_levels)) {
-                        localStorage.setItem('completedLevels', JSON.stringify(result.completed_levels));
-                        console.log('[DEBUG] Overwrote local completedLevels with server data:', result.completed_levels);
-                    } else if (result.success) { // If success but field is missing or not an array, means empty on server or bad format
-                        localStorage.setItem('completedLevels', '[]');
-                        console.log('[DEBUG] Server data for completedLevels missing, not an array, or null; reset local to empty.');
-                    }
+                    // Handle completed_levels
+                    if (result.hasOwnProperty('completed_levels')) { 
+                        if (Array.isArray(result.completed_levels)) {
+                            localStorage.setItem('completedLevels', JSON.stringify(result.completed_levels));
+                            console.log('[DEBUG] Overwrote local completedLevels with server data:', result.completed_levels);
+                        } else {
+                            console.warn('[DEBUG] Server sent completed_levels, but it was not an array. Local completedLevels preserved. Server value:', result.completed_levels);
+                        }
+                    } 
 
-                    if (result.hasOwnProperty('completed_exams') && Array.isArray(result.completed_exams)) {
-                        localStorage.setItem('completedExams', JSON.stringify(result.completed_exams));
-                        console.log('[DEBUG] Overwrote local completedExams with server data:', result.completed_exams);
-                    } else if (result.success) { // If success but field is missing or not an array, means empty on server or bad format
-                        localStorage.setItem('completedExams', '[]');
-                        console.log('[DEBUG] Server data for completedExams missing, not an array, or null; reset local to empty.');
-                    }
+                    // Handle completed_exams
+                    if (result.hasOwnProperty('completed_exams')) { 
+                        if (Array.isArray(result.completed_exams)) {
+                            localStorage.setItem('completedExams', JSON.stringify(result.completed_exams));
+                            console.log('[DEBUG] Overwrote local completedExams with server data:', result.completed_exams);
+                        } else {
+                            console.warn('[DEBUG] Server sent completed_exams, but it was not an array. Local completedExams preserved. Server value:', result.completed_exams);
+                        }
+                    } 
                     
                     return true;
                 } else {
