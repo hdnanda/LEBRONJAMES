@@ -883,37 +883,6 @@ function showCompletionMessage() {
         if (window.markLevelCompleted) {
             window.markLevelCompleted(currentLevel, true);
         }
-
-        // If this is an exam, save the completed exam status
-        if (window.examManager && window.examManager.isExamActive) {
-            // Get existing completedExams from localStorage
-            const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
-            if (!completedExams.includes(currentLevel)) {
-                completedExams.push(currentLevel);
-                localStorage.setItem('completedExams', JSON.stringify(completedExams));
-                
-                // SYNC WITH SERVER: Save completedExams to server
-                if (window.ConnectionHelper && typeof window.ConnectionHelper.updateXP === 'function') {
-                    // Get completedLevels from localStorage for the full update
-                    const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
-                    
-                    // Get current XP first to avoid overwriting with null
-                    window.ConnectionHelper.getUserXP().then(result => {
-                        const currentXP = result.xp || 0;
-                        // Update server with both completed levels and exams
-                        window.ConnectionHelper.updateXP(currentXP, completedLevels, completedExams)
-                            .then(result => {
-                                console.log('[Exam Completion] Saved completedExams to server:', result);
-                            })
-                            .catch(error => {
-                                console.error('[Exam Completion] Error saving completedExams to server:', error);
-                            });
-                    });
-                }
-                // Add bonus XP for completing exam
-                addXP(20, { exam: true });
-            }
-        }
     } else {
         feedbackText.innerHTML = `
             <span class="feedback-message">Keep practicing! 💪</span>
