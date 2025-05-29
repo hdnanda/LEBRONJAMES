@@ -1408,6 +1408,17 @@
                             });
                         }
 
+                        // Also update lastCompletedTopicExam from the data fetched by loadUserXP
+                        if (data.hasOwnProperty('last_completed_topic_exam') && typeof data.last_completed_topic_exam === 'number') {
+                            localStorage.setItem('lastCompletedTopicExam', data.last_completed_topic_exam.toString());
+                            console.log('[DEBUG] (loadUserXP) Updated local lastCompletedTopicExam with server data:', data.last_completed_topic_exam);
+                        } else if (data.success && !data.hasOwnProperty('last_completed_topic_exam')) {
+                            // If field is missing on a successful response, means it's 0 on server (or new user)
+                            localStorage.setItem('lastCompletedTopicExam', '0');
+                            console.log('[DEBUG] (loadUserXP) last_completed_topic_exam missing from server, set local to 0.');
+                        } else if (data.hasOwnProperty('last_completed_topic_exam')) {
+                             console.warn('[DEBUG] (loadUserXP) Server sent last_completed_topic_exam, but it was not a number. Local value preserved. Server value:', data.last_completed_topic_exam);
+                        }
 
                             renderTopicsWithXP(xp);
                             
