@@ -929,6 +929,8 @@
             try {
                 const result = await window.ConnectionHelper.getUserXP();
                 
+                console.log('[DEBUG] Server returned user data:', result);
+                
                 if (result.success) {
                     // DEBUG LOG: Show server response data
                     console.log('[DEBUG] Server returned user data:', result);
@@ -1439,6 +1441,10 @@
 
         // Define the initialize function
         function initializeTopicsUI() {
+            // <<< ADDED DEBUG LOG >>>
+            console.log('[DEBUG] Local completedExams:', localStorage.getItem('completedExams'));
+            // <<< END ADDED DEBUG LOG >>>
+
             // Load user XP data which will render topics
             loadUserXP();
         }
