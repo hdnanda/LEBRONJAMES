@@ -235,20 +235,35 @@ const ConnectionHelper = {
             console.log('[ConnectionHelper] XP data received:', data);
             
             // Validate and standardize response
-            if (data && typeof data.xp !== 'undefined') {
+            if (data && data.success === true && typeof data.xp !== 'undefined') {
                 return {
                     success: true,
                     xp: parseInt(data.xp) || 0,
                     level: parseInt(data.level) || 1,
-                    message: data.message || 'XP retrieved successfully'
+                    message: data.message || 'XP retrieved successfully',
+                    completed_levels: data.completed_levels || [], // Ensure this is passed through
+                    completed_exams: data.completed_exams || []   // Ensure this is passed through
                 };
-            } else {
-                console.warn('[ConnectionHelper] Invalid XP response format:', data);
+            } else if (data && typeof data.xp !== 'undefined') { // Fallback for older format if success flag is missing but xp is there
+                 console.warn('[ConnectionHelper] XP response format is missing success flag but has XP. Processing partially.');
+                 return {
+                    success: true, // Assume success if XP is present
+                    xp: parseInt(data.xp) || 0,
+                    level: parseInt(data.level) || 1,
+                    message: data.message || 'XP retrieved successfully (assumed success)',
+                    completed_levels: data.completed_levels || [],
+                    completed_exams: data.completed_exams || []
+                };
+            }
+            else {
+                console.warn('[ConnectionHelper] Invalid XP response format or request failed:', data);
                 return {
                     success: false,
                     xp: 0,
                     level: 1,
-                    message: 'Invalid response format from server'
+                    message: data.message || 'Invalid response format from server or failed request',
+                    completed_levels: [], // Ensure these are present in failure cases too
+                    completed_exams: []
                 };
             }
         } catch (error) {
@@ -258,7 +273,9 @@ const ConnectionHelper = {
                 success: false,
                 xp: 0,
                 level: 1,
-                message: 'Could not connect to server: ' + (error.message || 'Unknown error')
+                message: 'Could not connect to server: ' + (error.message || 'Unknown error'),
+                completed_levels: [],
+                completed_exams: []
             };
         }
     },
