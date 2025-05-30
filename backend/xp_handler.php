@@ -34,10 +34,10 @@ $username = preg_replace('/[^a-zA-Z0-9_-]/', '', $username);
 $userDataDir = __DIR__ . '/user_data';
 $userDataFile = $userDataDir . '/' . $username . '.json';
 
-// Create directory if it doesn't exist
-if (!file_exists($userDataDir)) {
-    mkdir($userDataDir, 0755, true);
-}
+// Create directory if it doesn't exist - moved initial check for POST later
+// if (!file_exists($userDataDir)) {
+//     mkdir($userDataDir, 0755, true);
+// }
 
 // Default user data
 $userData = [
@@ -69,6 +69,28 @@ switch ($_SERVER['REQUEST_METHOD']) {
         break;
         
     case 'POST':
+        // Check user_data directory status before proceeding
+        if (!file_exists($userDataDir)) {
+            if (!mkdir($userDataDir, 0755, true)) {
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false, 
+                    'error' => 'Failed to create user data directory.',
+                    'message' => 'Server configuration error: Cannot create data storage.'
+                ]);
+                exit;
+            }
+        }
+        if (!is_writable($userDataDir)) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false, 
+                'error' => 'User data directory is not writable.',
+                'message' => 'Server configuration error: Cannot write to data storage.'
+            ]);
+            exit;
+        }
+
         // Update user data
         $input = file_get_contents('php://input');
         $data = json_decode($input, true);
