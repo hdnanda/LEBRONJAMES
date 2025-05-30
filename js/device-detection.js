@@ -86,16 +86,23 @@ function detectDevice() {
     }
     
     // Set device type as a data attribute on HTML for CSS targeting
+    // This can run early as documentElement is available.
     document.documentElement.setAttribute('data-device', isMobileDevice ? 'mobile' : 'desktop');
     
-    // Also set a class for backward compatibility
-    if (isMobileDevice) {
-        document.body.classList.add('mobile-device');
-        document.body.classList.remove('desktop-device');
-    } else {
-        document.body.classList.add('desktop-device');
-        document.body.classList.remove('mobile-device');
-    }
+    // Defer body class manipulation until DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        if (isMobileDevice) {
+            if (document.body) { // Extra safety check
+                document.body.classList.add('mobile-device');
+                document.body.classList.remove('desktop-device');
+            }
+        } else {
+            if (document.body) { // Extra safety check
+                document.body.classList.add('desktop-device');
+                document.body.classList.remove('mobile-device');
+            }
+        }
+    });
     
     return isMobileDevice;
 }
