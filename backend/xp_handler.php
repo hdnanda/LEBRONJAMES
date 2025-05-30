@@ -159,17 +159,30 @@ switch ($_SERVER['REQUEST_METHOD']) {
         }
         
         // Save to file
-        file_put_contents($userDataFile, json_encode($userData, JSON_PRETTY_PRINT));
+        $writeSuccess = file_put_contents($userDataFile, json_encode($userData, JSON_PRETTY_PRINT));
         
-        // Return response
-        echo json_encode([
-            'success' => true,
-            'xp' => (int)$userData['xp'],
-            'level' => (int)$userData['level'],
-            'completed_levels' => $userData['completed_levels'],
-            'completed_exams' => $userData['completed_exams'],
-            'message' => 'User data updated'
-        ]);
+        if ($writeSuccess === false) {
+            // Log error server-side (optional, not implemented here)
+            // Return a specific error response to the client
+            http_response_code(500); // Internal Server Error
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to save user data to file.',
+                'message' => 'User data update failed during file write.',
+                // Optionally include the data it attempted to save for debugging by the client
+                'attempted_data' => $userData 
+            ]);
+        } else {
+            // Return success response
+            echo json_encode([
+                'success' => true,
+                'xp' => (int)$userData['xp'],
+                'level' => (int)$userData['level'],
+                'completed_levels' => $userData['completed_levels'],
+                'completed_exams' => $userData['completed_exams'],
+                'message' => 'User data updated'
+            ]);
+        }
         break;
         
     default:
