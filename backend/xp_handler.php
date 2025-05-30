@@ -107,13 +107,55 @@ switch ($_SERVER['REQUEST_METHOD']) {
             }
         }
         
-        // Update completed levels and exams if provided
+        // Ensure existing arrays are initialized if not present from file
+        if (!isset($userData['completed_levels']) || !is_array($userData['completed_levels'])) {
+            $userData['completed_levels'] = [];
+        }
+        if (!isset($userData['completed_exams']) || !is_array($userData['completed_exams'])) {
+            $userData['completed_exams'] = [];
+        }
+
+        // Merge completed_levels
         if (isset($data['completed_levels']) && is_array($data['completed_levels'])) {
-            $userData['completed_levels'] = $data['completed_levels'];
+            $existingLevelsMap = [];
+            foreach ($userData['completed_levels'] as $level) {
+                if (isset($level['topicId']) && isset($level['subLevelId'])) {
+                    $key = $level['topicId'] . '-' . $level['subLevelId'];
+                    $existingLevelsMap[$key] = $level;
+                }
+            }
+
+            foreach ($data['completed_levels'] as $newLevel) {
+                if (isset($newLevel['topicId']) && isset($newLevel['subLevelId'])) {
+                    $key = $newLevel['topicId'] . '-' . $newLevel['subLevelId'];
+                    if (!isset($existingLevelsMap[$key])) {
+                        // Add new level if it doesn't exist
+                        $userData['completed_levels'][] = $newLevel;
+                    } else {
+                        // Optionally, update timestamp if new one is later
+                        if (isset($newLevel['timestamp']) && isset($existingLevelsMap[$key]['timestamp'])) {
+                            if ($newLevel['timestamp'] > $existingLevelsMap[$key]['timestamp']) {
+                                // Find and update the existing level's timestamp
+                                foreach ($userData['completed_levels'] as &$existingLvl) {
+                                    if (isset($existingLvl['topicId']) && isset($existingLvl['subLevelId']) &&
+                                        $existingLvl['topicId'] == $newLevel['topicId'] && 
+                                        $existingLvl['subLevelId'] == $newLevel['subLevelId']) {
+                                        $existingLvl['timestamp'] = $newLevel['timestamp'];
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         
+        // Merge completed_exams
         if (isset($data['completed_exams']) && is_array($data['completed_exams'])) {
-            $userData['completed_exams'] = $data['completed_exams'];
+            // Merge new exams with existing ones and ensure uniqueness
+            $mergedExams = array_merge($userData['completed_exams'], $data['completed_exams']);
+            $userData['completed_exams'] = array_values(array_unique($mergedExams));
         }
         
         // Save to file
