@@ -929,8 +929,14 @@
             try {
                 const result = await window.ConnectionHelper.getUserXP();
                 
-                console.log('[DEBUG] Server returned user data:', result);
-                
+                // MODIFIED DEBUG LOG
+                console.log('[DEBUG] syncCompletedDataFromServer received result:', JSON.stringify(result, null, 2));
+                console.log('[DEBUG] result.hasOwnProperty(\'completed_exams\')?:', result.hasOwnProperty('completed_exams'));
+                if (result.hasOwnProperty('completed_exams')) {
+                    console.log('[DEBUG] Array.isArray(result.completed_exams)?:', Array.isArray(result.completed_exams));
+                }
+                // END MODIFIED DEBUG LOG
+
                 if (result.success) {
                     // DEBUG LOG: Show server response data
                     console.log('[DEBUG] Server returned user data:', result);
