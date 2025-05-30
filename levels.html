@@ -1020,24 +1020,40 @@
                 console.log(`[markLevelCompleted] Level saved to completedLevels, total completed: ${completedLevels.length}`);
                 
                 // Check if this is an exam level
+                console.log(`[markLevelCompleted] Checking if level is exam: Topic ${topicId}, SubLevel ${subLevelId}`);
                 const topic = window.topicsData.find(t => parseInt(t.id) === topicId);
-                const isExam = topic && topic.subLevels.some(sl => 
-                    parseFloat(sl.id) === subLevelId && sl.isExam === true
-                );
+                if (!topic) {
+                    console.error(`[markLevelCompleted] Topic data not found for topicId: ${topicId}. Ensure topics.js is loaded and window.topicsData is populated.`);
+                }
+
+                const isExam = topic && topic.subLevels.some(sl => {
+                    const subLevelIdMatches = parseFloat(sl.id) === subLevelId;
+                    const isActualExamFlag = sl.isExam === true;
+                    // console.log(`[markLevelCompleted] SubLevel Check: sl.id=${sl.id} (parsed ${parseFloat(sl.id)}), sl.isExam=${sl.isExam}. Matches ID: ${subLevelIdMatches}, Is Exam: ${isActualExamFlag}`);
+                    return subLevelIdMatches && isActualExamFlag;
+                });
+                console.log(`[markLevelCompleted] Result of isExam check: ${isExam}. Topic found: ${!!topic}`);
                 
                 // If it's an exam, add to completedExams
                 if (isExam) {
                     const examKey = `${topicId}.${subLevelId}`;
-                    const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
-                    if (!completedExams.includes(examKey)) {
-                        completedExams.push(examKey);
-                        localStorage.setItem('completedExams', JSON.stringify(completedExams));
-                        console.log(`[markLevelCompleted] Exam ${examKey} added to completedExams`);
+                    console.log(`[markLevelCompleted] Level IS an exam. examKey: ${examKey}`);
+                    const completedExamsFromStorage = JSON.parse(localStorage.getItem('completedExams') || '[]');
+                    console.log(`[markLevelCompleted] Current completedExams from localStorage (before add):`, JSON.parse(JSON.stringify(completedExamsFromStorage)));
+                    if (!completedExamsFromStorage.includes(examKey)) {
+                        completedExamsFromStorage.push(examKey);
+                        localStorage.setItem('completedExams', JSON.stringify(completedExamsFromStorage));
+                        console.log(`[markLevelCompleted] Exam ${examKey} ADDED to completedExams in localStorage. New array:`, JSON.parse(JSON.stringify(completedExamsFromStorage)));
+                    } else {
+                        console.log(`[markLevelCompleted] Exam ${examKey} was ALREADY in completedExams in localStorage.`);
                     }
+                } else {
+                    console.log(`[markLevelCompleted] Level is NOT an exam (or topic/sublevel data issue prevented identification).`);
                 }
                 
                 // Get completedExams data to send to server as well
-                const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+                const completedExamsToServer = JSON.parse(localStorage.getItem('completedExams') || '[]');
+                console.log('[markLevelCompleted] completedExams being prepared to send to server:', JSON.parse(JSON.stringify(completedExamsToServer)));
                 
                 // Save to server if available
                 if (window.ConnectionHelper && typeof window.ConnectionHelper.updateXP === 'function') {
@@ -1048,10 +1064,10 @@
                             console.log('[markLevelCompleted] About to update XP on server with:', {
                                 currentXP,
                                 completedLevels,
-                                completedExams
+                                completedExams: completedExamsToServer
                             });
                             // Update with both completed levels and exams
-                            return window.ConnectionHelper.updateXP(currentXP, completedLevels, completedExams);
+                            return window.ConnectionHelper.updateXP(currentXP, completedLevels, completedExamsToServer);
                         })
                         .then(result => {
                             console.log('[markLevelCompleted] Saved to server:', result);
