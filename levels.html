@@ -1406,37 +1406,11 @@
                                 xpDisplay.textContent = xp;
                             }
 
-                            // IMPORTANT: Always sync completion data from server before rendering UI
-                            // This ensures we have the most up-to-date data about completed exams
-                        // This specific block might be redundant if syncCompletedDataFromServer already handles this robustly.
-                        // However, keeping it ensures that even a direct call to loadUserXP attempts to reconcile.
-                            if (data.completed_exams && Array.isArray(data.completed_exams)) {
-                                const localExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
-                            // Using the server's version directly after sync is preferred, 
-                            // but if loadUserXP is called independently, merging is safer.
-                                const mergedExams = [...new Set([...localExams, ...data.completed_exams])];
-                                localStorage.setItem('completedExams', JSON.stringify(mergedExams));
-                            console.log('[DEBUG] (loadUserXP) Updated localStorage completedExams from server:', {
-                                    fromServer: data.completed_exams,
-                                    merged: mergedExams
-                                });
-                            }
-                         if (data.completed_levels && Array.isArray(data.completed_levels)) {
-                            const localLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
-                            const serverLevels = data.completed_levels;
-                            const mergedLevelsMap = new Map();
-
-                            localLevels.forEach(level => mergedLevelsMap.set(`${level.topicId}-${level.subLevelId}`, level));
-                            serverLevels.forEach(level => mergedLevelsMap.set(`${level.topicId}-${level.subLevelId}`, level));
-                            
-                            const mergedLevels = Array.from(mergedLevelsMap.values());
-                            localStorage.setItem('completedLevels', JSON.stringify(mergedLevels));
-                             console.log('[DEBUG] (loadUserXP) Updated localStorage completedLevels from server:', {
-                                fromServer: serverLevels,
-                                merged: mergedLevels
-                            });
-                        }
-
+                            // IMPORTANT: syncCompletedDataFromServer is now responsible for updating
+                            // localStorage with completed_exams and completed_levels from the server.
+                            // The following blocks that update localStorage are removed from here
+                            // to avoid redundant updates and make syncCompletedDataFromServer the
+                            // single source of truth for this during the initial load/sync.
 
                             renderTopicsWithXP(xp);
                             
