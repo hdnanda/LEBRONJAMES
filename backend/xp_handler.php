@@ -52,18 +52,37 @@ $userData = [
 // Process request based on method
 switch ($_SERVER['REQUEST_METHOD']) {
     case 'GET':
-        // Retrieve user data if it exists
+        // $userData already holds default values.
+        // Retrieve user data from file if it exists.
         if (file_exists($userDataFile)) {
-            $userData = json_decode(file_get_contents($userDataFile), true);
+            $fileContents = file_get_contents($userDataFile);
+            $fileData = json_decode($fileContents, true);
+
+            // Check if decoding was successful and it's an array
+            if (is_array($fileData)) {
+                // Merge data from file into the default $userData structure.
+                // Keys in $fileData will overwrite corresponding keys in $userData.
+                // Keys present in $userData but not in $fileData will be preserved.
+                $userData = array_merge($userData, $fileData);
+            }
+            // Optional: Log error or handle case where file exists but JSON is invalid
+            // else { error_log("Invalid JSON in user data file: " . $userDataFile); }
         }
         
+        // Ensure essential fields are present and correctly typed for the response.
+        // This acts as a safeguard, especially if file data is incomplete or from an older version.
+        $response_xp = isset($userData['xp']) ? (int)$userData['xp'] : 0;
+        $response_level = isset($userData['level']) ? (int)$userData['level'] : 1;
+        $response_completed_levels = isset($userData['completed_levels']) && is_array($userData['completed_levels']) ? $userData['completed_levels'] : [];
+        $response_completed_exams = isset($userData['completed_exams']) && is_array($userData['completed_exams']) ? $userData['completed_exams'] : [];
+
         // Return response
         echo json_encode([
             'success' => true,
-            'xp' => (int)$userData['xp'],
-            'level' => (int)$userData['level'],
-            'completed_levels' => $userData['completed_levels'],
-            'completed_exams' => $userData['completed_exams'],
+            'xp' => $response_xp,
+            'level' => $response_level,
+            'completed_levels' => $response_completed_levels,
+            'completed_exams' => $response_completed_exams,
             'message' => 'User data retrieved'
         ]);
         break;
