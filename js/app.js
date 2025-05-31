@@ -1,5 +1,19 @@
 // Main application logic for Financial Literacy App
 
+// Helper function to check for guest mode (stubbed for now)
+function isGuestMode() {
+    // Replace with actual guest mode detection logic if available
+    // For example, check localStorage or a global variable set by auth.js
+    // console.log("[Debug] Checking guest mode...");
+    if (window.auth && typeof window.auth.isGuest === 'function') {
+        return window.auth.isGuest();
+    }
+    // Fallback: if no auth system or specific guest check, assume not guest
+    // or check a localStorage item if your app uses that for guests.
+    // return localStorage.getItem('username') === 'guest'; 
+    return false; // Default to not guest if no specific logic
+}
+
 // Ensure ConnectionHelper is available globally
 (function ensureConnectionHelper() {
     if (!window.ConnectionHelper && typeof ConnectionHelper !== 'undefined') {
