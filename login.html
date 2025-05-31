@@ -400,52 +400,63 @@
     <script>
         // Callback function for Google Sign-In
         function handleGoogleSignIn(response) {
-            console.log("Google ID Token: " + response.credential);
-            // Send this token to your backend for verification
+            console.log("[handleGoogleSignIn] Called. Token:", response.credential); // Log 1
+            const idToken = response.credential;
+
             fetch('backend/google_auth.php', { // Your backend endpoint
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ token: response.credential }),
+                body: JSON.stringify({ token: idToken }),
             })
             .then(res => {
+                console.log("[handleGoogleSignIn] Backend response received. Status:", res.status); // Log 2
                 if (!res.ok) {
                     // Try to get error message from backend if available
                     return res.json().then(errData => {
+                        console.error("[handleGoogleSignIn] Backend error response (JSON parsed):", errData); // Log 3a
                         throw new Error(errData.message || `HTTP error! status: ${res.status}`);
-                    }).catch(() => {
-                        // If backend doesn't send JSON error, use generic error
-                        throw new Error(`HTTP error! status: ${res.status}`);
+                    }).catch((jsonParseError) => {
+                        console.error("[handleGoogleSignIn] Backend error response (not JSON or JSON parse error). Status:", res.status, "Parse error:", jsonParseError); // Log 3b
+                        // Optionally try to get text response for more clues
+                        return res.text().then(textData => {
+                             console.error("[handleGoogleSignIn] Backend error response (text):", textData.substring(0, 500)); // Log 3c (limit length)
+                             throw new Error(`HTTP error! status: ${res.status}. Response preview: ${textData.substring(0,100)}`);
+                        });
                     });
                 }
                 return res.json();
             })
             .then(data => {
-                if (data.success) {
-                    // Store session info (username and email)
-                    localStorage.setItem('username', data.username); 
+                console.log("[handleGoogleSignIn] Data from backend:", data); // Log 4
+                if (data && data.success) {
+                    console.log("[handleGoogleSignIn] Backend reported success. Storing data and redirecting..."); // Log 5
+                    localStorage.setItem('username', data.username);
                     localStorage.setItem('userEmail', data.email);
                     localStorage.setItem('isLoggedIn', 'true'); // Flag for login status
                     
-                    // Potentially store a session token from backend if you implement that
-                    // localStorage.setItem('sessionToken', data.token);
-
-                    // Redirect to levels page or dashboard
-                    window.location.href = 'levels.html'; 
+                    console.log("[handleGoogleSignIn] Data stored. Username:", data.username, "Email:", data.email, "isLoggedIn:", localStorage.getItem('isLoggedIn')); // Log 6
+                    window.location.href = 'levels.html';
                 } else {
-                    // Display error message in the designated error div
+                    let errorMsg = 'Unknown error from backend.';
+                    if (data && data.message) {
+                        errorMsg = data.message;
+                    } else if (data === null || typeof data !== 'object') {
+                        errorMsg = 'Invalid response format from backend.';
+                    }
+                    console.error("[handleGoogleSignIn] Backend reported failure or data is malformed. Data:", data, "Generated error message:", errorMsg); // Log 7
                     const errorMessageDiv = document.getElementById('error-message');
                     if (errorMessageDiv) {
-                        errorMessageDiv.textContent = 'Google Sign-In failed: ' + (data.message || 'Unknown error from backend.');
+                        errorMessageDiv.textContent = 'Google Sign-In failed: ' + errorMsg;
                         errorMessageDiv.style.display = 'block';
                     } else {
-                        alert('Google Sign-In failed: ' + (data.message || 'Unknown error from backend.'));
+                        alert('Google Sign-In failed: ' + errorMsg);
                     }
                 }
             })
             .catch(error => {
-                console.error('Error sending token to backend or processing response:', error);
+                console.error('[handleGoogleSignIn] Error in fetch/processing chain:', error); // Log 8
                 const errorMessageDiv = document.getElementById('error-message');
                 if (errorMessageDiv) {
                     errorMessageDiv.textContent = 'An error occurred during sign-in: ' + error.message;
