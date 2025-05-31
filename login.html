@@ -1,4 +1,3 @@
-@@ -0,0 +1,384 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -326,9 +325,23 @@
         <div class="social-login">
             <p>Or login with</p>
             <div class="social-buttons">
-                <a href="/auth/google" class="social-btn" aria-label="Login with Google">
-                    <i class="fab fa-google"></i>
-                </a>
+                <!-- Google Sign-In Button -->
+                <div id="g_id_onload"
+                     data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com" 
+                     data-context="signin"
+                     data-ux_mode="popup"
+                     data-callback="handleGoogleSignIn"
+                     data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin social-btn" <!-- Added social-btn for styling consistency -->
+                     data-type="standard"
+                     data-shape="pill" <!-- Changed from rectangular to pill to better match -->
+                     data-theme="outline"
+                     data-text="continue_with" <!-- Changed from signin_with -->
+                     data-size="large"
+                     data-logo_alignment="left">
+                </div>
+                <!-- Removed old Google link, keeping others for now -->
                 <a href="/auth/facebook" class="social-btn" aria-label="Login with Facebook">
                     <i class="fab fa-facebook-f"></i>
                 </a>
@@ -381,5 +394,92 @@
     <!-- Scripts -->
     <script src="js/login.js"></script>
     <script src="js/navigation.js"></script>
+
+    <!-- Google Identity Services Library -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+        // Callback function for Google Sign-In
+        function handleGoogleSignIn(response) {
+            console.log("Google ID Token: " + response.credential);
+            // Send this token to your backend for verification
+            fetch('backend/google_auth.php', { // Your backend endpoint
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ token: response.credential }),
+            })
+            .then(res => {
+                if (!res.ok) {
+                    // Try to get error message from backend if available
+                    return res.json().then(errData => {
+                        throw new Error(errData.message || `HTTP error! status: ${res.status}`);
+                    }).catch(() => {
+                        // If backend doesn't send JSON error, use generic error
+                        throw new Error(`HTTP error! status: ${res.status}`);
+                    });
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Store session info (username and email)
+                    localStorage.setItem('username', data.username); 
+                    localStorage.setItem('userEmail', data.email);
+                    localStorage.setItem('isLoggedIn', 'true'); // Flag for login status
+                    
+                    // Potentially store a session token from backend if you implement that
+                    // localStorage.setItem('sessionToken', data.token);
+
+                    // Redirect to levels page or dashboard
+                    window.location.href = 'levels.html'; 
+                } else {
+                    // Display error message in the designated error div
+                    const errorMessageDiv = document.getElementById('error-message');
+                    if (errorMessageDiv) {
+                        errorMessageDiv.textContent = 'Google Sign-In failed: ' + (data.message || 'Unknown error from backend.');
+                        errorMessageDiv.style.display = 'block';
+                    } else {
+                        alert('Google Sign-In failed: ' + (data.message || 'Unknown error from backend.'));
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error sending token to backend or processing response:', error);
+                const errorMessageDiv = document.getElementById('error-message');
+                if (errorMessageDiv) {
+                    errorMessageDiv.textContent = 'An error occurred during sign-in: ' + error.message;
+                    errorMessageDiv.style.display = 'block';
+                } else {
+                    alert('An error occurred during sign-in: ' + error.message);
+                }
+            });
+        }
+
+        // Theme toggle function (if not already in navigation.js or login.js)
+        function toggleTheme() {
+            const root = document.documentElement;
+            const currentTheme = root.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            const themeIcon = document.querySelector('.theme-toggle i');
+            if (themeIcon) {
+                themeIcon.className = newTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            }
+        }
+        
+        // Initialize theme on load
+        (function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            const themeIcon = document.querySelector('.theme-toggle i');
+            if (themeIcon) {
+                themeIcon.className = savedTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            }
+        })();
+
+    </script>
 </body>
 </html> 
