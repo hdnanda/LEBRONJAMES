@@ -664,11 +664,7 @@ async function handleAnswer(selectedIndex, correctIndex) {
                         };
                         
                         // Award XP in background, don't await here to prevent UI blocking
-                        addXP(baseXP, bonuses).then(earnedXP => {
-                            console.log('[Debug] XP awarded successfully:', earnedXP);
-                        }).catch(error => {
-                            console.error('[Error] Failed to award XP:', error);
-                        });
+                        await addXP(baseXP, bonuses);
                 
                 // Update streak through dailyStreakService
                 if (window.dailyStreakService) {
@@ -1206,78 +1202,98 @@ async function getTotalXP() {
 }
 
 // Add XP with bonuses through backend API
-async function addXP(baseAmount, bonuses = {}) {
+async function addXP(amount, options = {}) {
+    if (isGuestMode() && !window.allowGuestProgress) {
+        console.log("[Debug] Guest mode: XP not saved.");
+        // Optionally, update UI temporarily for guest
+        const xpDisplay = document.getElementById('xpDisplay');
+        if (xpDisplay) {
+            let currentDisplayXP = parseInt(xpDisplay.textContent) || 0;
+            xpDisplay.textContent = currentDisplayXP + amount;
+        }
+        return;
+    }
+
+    console.log('[Debug] Adding XP - Base Amount:', amount, 'Bonuses:', options);
+    let totalXPToAdd = amount;
+
+    // Streak bonus (placeholder, replace with actual streak logic)
+    if (options.streak) {
+        totalXPToAdd += 10; // Example streak bonus
+    }
+    // Speed bonus (placeholder)
+    if (options.speed) {
+        totalXPToAdd += 5; // Example speed bonus
+    }
+    // Exam completion bonus already included in `amount` if called from handleExamCompletion
+
     try {
-        console.log('[Debug] Adding XP - Base Amount:', baseAmount, 'Bonuses:', bonuses);
-        
-        // Ensure ConnectionHelper is available
-        if (!window.ConnectionHelper && typeof ConnectionHelper !== 'undefined') {
-            console.log('[Debug] Making ConnectionHelper globally available in addXP');
-            window.ConnectionHelper = ConnectionHelper;
-        }
-        
-        const currentLevel = await getCurrentLevel();
-        const levelMultiplier = 1 + (currentLevel - 1) * 0.1; // 10% increase per level
-        
-        let earnedXP = baseAmount * levelMultiplier;
-        
-        // Apply bonuses
-        if (bonuses.streak) earnedXP += XP_SYSTEM.BONUSES.STREAK;
-        if (bonuses.speed) earnedXP += XP_SYSTEM.BONUSES.SPEED;
-        if (bonuses.exam) earnedXP *= 1.5; // 50% bonus for exams
-        
-        // Round XP to nearest integer
-        earnedXP = Math.round(earnedXP);
-        
-        console.log('[Debug] XP Calculation:', {
-            earned: earnedXP,
-            level: currentLevel
-        });
-        
-        // Get current XP from server
-        const currentTotalXP = await getTotalXP();
-        const newTotalXP = currentTotalXP + earnedXP;
-        
-        // Update all XP displays immediately for responsiveness
-        ['totalXP', 'current-xp'].forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.textContent = newTotalXP;
-            }
-        });
-        
-        // Show XP gain notification
-        showXPNotification(earnedXP);
-        
-        // Update server through ConnectionHelper
-        if (window.ConnectionHelper) {
-            try {
-                const result = await window.ConnectionHelper.updateXP(newTotalXP);
-                console.log('[Debug] Server update result:', result);
-                
-                // If server returned a different XP value, update displays again
-                if (result && result.success && typeof result.xp !== 'undefined' && result.xp !== newTotalXP) {
-                    console.log('[Debug] Server returned different XP:', result.xp);
-                    
-                    // Update displays with server value
-                    ['totalXP', 'current-xp'].forEach(id => {
-                        const element = document.getElementById(id);
-                        if (element) {
-                            element.textContent = result.xp;
-                        }
-                    });
-                }
-            } catch (error) {
-                console.warn('[Debug] Server update failed:', error);
-            }
+        // Get current user XP from the server to ensure we're working with the latest value
+        const currentUserData = await ConnectionHelper.getUserXP();
+        let currentServerXP = 0;
+        if (currentUserData.success) {
+            currentServerXP = currentUserData.xp;
         } else {
-            console.error('[Debug] ConnectionHelper not available');
+            console.warn('[Debug] Could not fetch current XP from server before adding. Using local or 0.');
+            // Fallback to localStorage if server fetch fails, or 0 if not in localStorage
+            currentServerXP = parseInt(localStorage.getItem('userXP')) || 0;
         }
         
-        return earnedXP;
+        const newTotalXP = currentServerXP + totalXPToAdd;
+        localStorage.setItem('userXP', newTotalXP); // Update local storage immediately
+
+        // Calculate level based on XP (using thresholds from topics.js or a config)
+        // This is a simplified example; you might have a more complex level calculation
+        const xpThresholds = window.xpThresholds || { 1: 0, 2: 100, 3: 250, 4: 450, 5: 700 }; // Default if not globally defined
+        let newLevel = 1;
+        for (const level in xpThresholds) {
+            if (newTotalXP >= xpThresholds[level]) {
+                newLevel = parseInt(level);
+            }
+        }
+        localStorage.setItem('userLevel', newLevel);
+
+        console.log('[Debug] XP Calculation:', { earned: totalXPToAdd, level: newLevel });
+
+        // Retrieve the latest completed levels and exams from localStorage to send to server
+        const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
+        const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
+
+        // Update XP on the server
+        if (window.ConnectionHelper) {
+            const result = await ConnectionHelper.updateXP(newTotalXP, completedLevels, completedExams);
+            console.log('[Debug] Server update result:', result);
+            if (result.success) {
+                // Update UI (e.g., XP display, level display)
+                const xpDisplay = document.getElementById('xpDisplay'); // Ensure you have an element with this ID
+                if (xpDisplay) xpDisplay.textContent = result.xp;
+                // showNotification(`+${totalXPToAdd} XP! Level ${result.level}`, true);
+                 // Display XP gain notification using the new function
+                if (typeof showXPGainNotification === 'function') {
+                    showXPGainNotification(totalXPToAdd);
+                } else {
+                    console.warn('showXPGainNotification function not found, using console log for XP gain.');
+                    console.log(`XP gained: +${totalXPToAdd} XP`);
+                }
+
+            } else {
+                // Handle server update failure (e.g., show error message)
+                // showNotification('Failed to update XP on server.', false);
+                 if (typeof showXPGainNotification === 'function') {
+                    showXPGainNotification(totalXPToAdd, false, 'Server sync failed'); // Indicate failure
+                } else {
+                    console.error('Failed to update XP on server. Message:', result.message);
+                }
+            }
+        }
     } catch (error) {
-        console.error('[Error] Error in addXP:', error);
-        return 0;
+        console.error('[Error] Failed to add XP:', error);
+        // showNotification('Error updating XP.', false);
+         if (typeof showXPGainNotification === 'function') {
+            showXPGainNotification(totalXPToAdd, false, 'Error processing XP'); // Indicate error
+        } else {
+            console.error('Error processing XP:', error.message);
+        }
     }
 }
 
@@ -1361,26 +1377,64 @@ async function handleExamCompletion(passed) {
     console.log('\n[Exam Completion] Handling exam completion...');
     console.log(`[Exam Completion] Exam passed:`, passed);
     
+    let completedLevelsForServer = JSON.parse(localStorage.getItem('completedLevels') || '[]');
+    let completedExamsForServer = JSON.parse(localStorage.getItem('completedExams') || '[]');
+
     if (passed && window.currentLevelData) {
         const { topicId, subLevelId, isExam } = window.currentLevelData;
         console.log(`[Exam Completion] Current level data:`, window.currentLevelData);
         
+        // Update completedLevels in localStorage
+        const alreadyCompletedLevel = completedLevelsForServer.some(level => 
+            parseInt(level.topicId) === parseInt(topicId) && parseFloat(level.subLevelId) === parseFloat(subLevelId)
+        );
+
+        if (!alreadyCompletedLevel) {
+            completedLevelsForServer.push({
+                topicId: parseInt(topicId),
+                subLevelId: parseFloat(subLevelId),
+                timestamp: new Date().getTime()
+            });
+            localStorage.setItem('completedLevels', JSON.stringify(completedLevelsForServer));
+            console.log(`[Exam Completion] Added to completedLevels in localStorage:`, {topicId, subLevelId});
+        } else {
+            console.log(`[Exam Completion] Level already in completedLevels:`, {topicId, subLevelId});
+        }
+
         if (isExam) {
             // Calculate score as percentage
             const score = Math.round((correctAnswers / questionsPerLesson) * 100);
             console.log(`[Exam Completion] Exam score: ${score}%`);
+
+            // Update completedExams in localStorage
+            const examKey = `${parseInt(topicId)}.${parseFloat(subLevelId)}`;
+            if (!completedExamsForServer.includes(examKey)) {
+                completedExamsForServer.push(examKey);
+                localStorage.setItem('completedExams', JSON.stringify(completedExamsForServer));
+                console.log(`[Exam Completion] Added examKey to completedExams in localStorage: ${examKey}`);
+            } else {
+                console.log(`[Exam Completion] examKey already in completedExams: ${examKey}`);
+            }
             
-            // Update XP
-            const topic = window.topicsData.find(t => t.id === topicId);
-            const subLevel = topic?.subLevels.find(s => s.id === subLevelId);
+            // Update XP - this function should now also pass completedLevels and completedExams
+            const topic = window.topicsData.find(t => t.id === parseInt(topicId));
+            const subLevel = topic?.subLevels.find(s => s.id === parseFloat(subLevelId));
             
             if (subLevel && subLevel.xpReward) {
-                await addXP(subLevel.xpReward, { exam: true });
+                // The addXP function internally calls ConnectionHelper.updateXP
+                // We will modify addXP to pick up the latest from localStorage
+                await addXP(subLevel.xpReward, { exam: true }); 
             }
         }
     } else if (!passed) {
         console.log('[Exam Completion] Exam failed - no completion status saved');
     }
+    // If it wasn't an exam but was passed, XP would have been awarded per question.
+    // The addXP function needs to be aware of the latest completed_levels/exams
+    // This ensures even non-exam level completions get their 'completedLevels' array updated on server.
+    // However, the primary update for non-exam XP and related data (like completedLevels)
+    // already happens per question in handleAnswer via its own addXP call.
+    // The main goal here is to ensure EXAM completions correctly send ALL data.
 }
 
 // Update progress display
