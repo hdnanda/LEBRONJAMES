@@ -101,21 +101,27 @@ document.addEventListener('DOMContentLoaded', function() {
  * If not logged in, redirects to login page
  */
 function checkAuthentication() {
+    const currentPage = window.location.pathname.split('/').pop();
+    const publicPages = ['login.html', 'signup.html', 'homepage.html', '']; // Add '' for root path if homepage is index.html
+
     console.log('[Auth DEBUG] Checking authentication...');
+    console.log('[Auth DEBUG] Current page for auth check:', currentPage);
     console.log('[Auth DEBUG] isLoggedIn value:', localStorage.getItem('isLoggedIn'));
     
     if (!localStorage.getItem('isLoggedIn')) {
-        // User is not logged in, redirect to homepage instead of login
-        console.log('[Auth DEBUG] User not authenticated. Redirecting to homepage...');
-        window.location.href = 'homepage.html';
+        // User is not logged in
+        // Only redirect if the current page is NOT one of the public/auth pages
+        if (!publicPages.includes(currentPage)) {
+            console.log('[Auth DEBUG] User not authenticated on a protected page. Redirecting to homepage...');
+            window.location.href = 'homepage.html';
+        }
     } else {
         // User is logged in
         
         // If on index.html without parameters, redirect to levels page
-        const currentPage = window.location.pathname.split('/').pop();
         const urlParams = new URLSearchParams(window.location.search);
         
-        console.log('[Auth DEBUG] Current page:', currentPage);
+        console.log('[Auth DEBUG] User authenticated. Current page:', currentPage);
         
         if ((currentPage === 'index.html' || currentPage === '') && 
             !urlParams.has('topic') && !urlParams.has('sublevel')) {
@@ -136,7 +142,7 @@ function checkAuthentication() {
             userEmailInPanel.textContent = userEmail;
         }
         
-        console.log('[Auth DEBUG] User authenticated:', username);
+        console.log('[Auth DEBUG] User authenticated details displayed for:', username);
     }
 }
 
