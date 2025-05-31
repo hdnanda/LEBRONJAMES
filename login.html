@@ -403,23 +403,31 @@
                 },
                 body: JSON.stringify({ token: idToken }),
             })
-            .then(res => {
-                console.log("[handleGoogleSignIn] Backend response received. Status:", res.status); // Log 2
+            .then(async res => { // Made async to use await
+                console.log("[handleGoogleSignIn] Backend response received. Status:", res.status, "Ok:", res.ok); // Log 2
+                const responseText = await res.text(); // Get response as text first
+                console.log("[handleGoogleSignIn] Backend raw response text: >>>", responseText, "<<<"); // Log raw text
+
                 if (!res.ok) {
-                    // Try to get error message from backend if available
-                    return res.json().then(errData => {
-                        console.error("[handleGoogleSignIn] Backend error response (JSON parsed):", errData); // Log 3a
+                    console.error("[handleGoogleSignIn] Backend error status triggered. Status:", res.status, "Response text:", responseText);
+                    // Try to parse as JSON for a structured error message from backend if possible
+                    try {
+                        const errData = JSON.parse(responseText);
                         throw new Error(errData.message || `HTTP error! status: ${res.status}`);
-                    }).catch((jsonParseError) => {
-                        console.error("[handleGoogleSignIn] Backend error response (not JSON or JSON parse error). Status:", res.status, "Parse error:", jsonParseError); // Log 3b
-                        // Optionally try to get text response for more clues
-                        return res.text().then(textData => {
-                             console.error("[handleGoogleSignIn] Backend error response (text):", textData.substring(0, 500)); // Log 3c (limit length)
-                             throw new Error(`HTTP error! status: ${res.status}. Response preview: ${textData.substring(0,100)}`);
-                        });
-                    });
+                    } catch (e) {
+                        throw new Error(`HTTP error! status: ${res.status}. Response preview: ${responseText.substring(0,100)}`);
+                    }
                 }
-                return res.json();
+
+                // If res.ok, try to parse the text as JSON
+                try {
+                    const jsonData = JSON.parse(responseText);
+                    console.log("[handleGoogleSignIn] Successfully parsed JSON from backend text.");
+                    return jsonData;
+                } catch (e) {
+                    console.error("[handleGoogleSignIn] Failed to parse backend response text as JSON. Error:", e, "Raw response text was: >>>", responseText, "<<<");
+                    throw new Error("Failed to parse server response. Response preview: " + responseText.substring(0,100));
+                }
             })
             .then(data => {
                 console.log("[handleGoogleSignIn] Data from backend:", data); // Log 4
