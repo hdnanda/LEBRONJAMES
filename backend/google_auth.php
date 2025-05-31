@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // --- Configuration ---
-$GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com'; // <--- REPLACE THIS
+$GOOGLE_CLIENT_ID = '249981168777-andnjndtnj05p20e87gmo3oejos7pskd.apps.googleusercontent.com'; // <--- REPLACE THIS
 $userDataDir = __DIR__ . '/user_data';
 
 // --- Helper function to sanitize username ---
