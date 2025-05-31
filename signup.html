@@ -8,6 +8,9 @@
     <!-- Device detection (must be before other scripts) -->
     <script src="js/device-detection.js"></script>
     
+    <!-- Google Sign-In API script -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="css/device-specific.css">
     <style>
@@ -306,36 +309,47 @@
         </div>
         <div class="content">
             <h1>Create Your Account</h1>
-            <form id="signupForm">
+            <form id="signup-form">
                 <div class="form-group">
-                    <input type="text" id="username" name="username" placeholder="Username" required autocomplete="username">
+                    <input type="text" id="signup-username" placeholder="Username" required>
                     <i class="fas fa-user"></i>
-                    <div class="error-message" id="username-error"></div>
                 </div>
                 <div class="form-group">
-                    <input type="email" id="email" name="email" placeholder="Email" required autocomplete="email">
+                    <input type="email" id="signup-email" placeholder="Email" required>
                     <i class="fas fa-envelope"></i>
-                    <div class="error-message" id="email-error"></div>
                 </div>
                 <div class="form-group">
-                    <input type="password" id="password" name="password" placeholder="Password" required autocomplete="new-password">
+                    <input type="password" id="signup-password" placeholder="Password" required>
                     <i class="fas fa-lock"></i>
-                    <div class="password-requirements">
-                        Password must be at least 8 characters long and include numbers and special characters
-                    </div>
-                    <div class="error-message" id="password-error"></div>
                 </div>
                 <div class="form-group">
-                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm Password" required autocomplete="new-password">
+                    <input type="password" id="confirm-password" placeholder="Confirm Password" required>
                     <i class="fas fa-lock"></i>
-                    <div class="error-message" id="confirm-password-error"></div>
                 </div>
-                <button type="submit" class="btn btn-primary">Create Account</button>
-                <div class="error-message" id="signup-error"></div>
-                <div class="success-message" id="signup-success"></div>
+                <div class="password-requirements">
+                    Password must be at least 8 characters long.
+                </div>
+                <button type="submit" class="btn btn-primary" id="signup-btn">Sign Up</button>
+                <div id="signup-error-message" class="error-message" style="display: none;"></div>
             </form>
+
+            <!-- Google Sign-In button -->
+            <div id="g_id_onload"
+                 data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+                 data-callback="handleGoogleSignUp"
+                 data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin"
+                 data-type="standard"
+                 data-size="large"
+                 data-theme="outline"
+                 data-text="sign_up_with"
+                 data-shape="rectangular"
+                 data-logo_alignment="left">
+            </div>
+
             <div class="login-link">
-                Already have an account? <a href="login.html">Log in</a>
+                Already have an account? <a href="login.html">Login here</a>
             </div>
         </div>
     </main>
@@ -381,7 +395,7 @@
             );
         }
 
-        document.getElementById('signupForm').addEventListener('submit', async (e) => {
+        document.getElementById('signup-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             // Reset error messages
@@ -389,34 +403,28 @@
             document.getElementById('signup-success').style.display = 'none';
             
             // Get form values
-            const username = document.getElementById('username').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirm_password').value;
+            const username = document.getElementById('signup-username').value.trim();
+            const email = document.getElementById('signup-email').value.trim();
+            const password = document.getElementById('signup-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
             
             // Validate all fields are filled
             if (!username || !email || !password || !confirmPassword) {
-                document.getElementById('signup-error').textContent = 'All fields are required';
-                document.getElementById('signup-error').style.display = 'block';
+                document.getElementById('signup-error-message').textContent = 'All fields are required';
+                document.getElementById('signup-error-message').style.display = 'block';
                 return;
             }
             
             // Validate password
             if (password.length < 8) {
-                document.getElementById('password-error').textContent = 'Password must be at least 8 characters long';
-                document.getElementById('password-error').style.display = 'block';
-                return;
-            }
-            
-            if (!/\d/.test(password) || !/[!@#$%^&*]/.test(password)) {
-                document.getElementById('password-error').textContent = 'Password must include numbers and special characters';
-                document.getElementById('password-error').style.display = 'block';
+                document.getElementById('signup-error-message').textContent = 'Password must be at least 8 characters long';
+                document.getElementById('signup-error-message').style.display = 'block';
                 return;
             }
             
             if (password !== confirmPassword) {
-                document.getElementById('confirm-password-error').textContent = 'Passwords do not match';
-                document.getElementById('confirm-password-error').style.display = 'block';
+                document.getElementById('signup-error-message').textContent = 'Passwords do not match';
+                document.getElementById('signup-error-message').style.display = 'block';
                 return;
             }
             
@@ -471,13 +479,53 @@
                 
             } catch (error) {
                 console.error('Error:', error);
-                document.getElementById('signup-error').textContent = error.message;
-                document.getElementById('signup-error').style.display = 'block';
+                document.getElementById('signup-error-message').textContent = error.message;
+                document.getElementById('signup-error-message').style.display = 'block';
             }
         });
+
+        // Google Sign-Up Handler
+        function handleGoogleSignUp(response) {
+            // The response object contains the credential (JWT token)
+            const credential = response.credential;
+
+            // Decode JWT to get user information (optional, for frontend display)
+            // You might need a library for this, or send it to your backend for decoding and processing
+            // For simplicity, we'll assume the backend handles JWT verification and user creation
+            console.log("Google Sign-Up successful, credential:", credential);
+
+            // Send the credential to your backend for verification and user creation/login
+            fetch(`${API_BASE_URL}/google-signup.php`, { // You'll need to create this backend endpoint
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ token: credential })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Store auth data (similar to your existing handleSignup)
+                    localStorage.setItem(AUTH_KEYS.IS_LOGGED_IN, 'true');
+                    localStorage.setItem(AUTH_KEYS.USERNAME, data.user.username); // Ensure your backend returns username
+                    localStorage.setItem(AUTH_KEYS.USER_EMAIL, data.user.email);   // Ensure your backend returns email
+                    localStorage.setItem(AUTH_KEYS.LAST_LOGIN, new Date().toISOString());
+                    redirectToMainApp();
+                } else {
+                    showError(data.message || 'Google Sign-Up failed.');
+                }
+            })
+            .catch(error => {
+                console.error('Google Sign-Up Error:', error);
+                showError('An error occurred during Google Sign-Up.');
+            });
+        }
+
     </script>
     <script src="js/config.js"></script>
     <script src="js/xpService.js"></script>
     <script src="js/navigation.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/login.js"></script>
 </body>
 </html> 
