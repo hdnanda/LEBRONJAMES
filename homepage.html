@@ -60,11 +60,6 @@
             font-weight: bold;
         }
         
-        .language-selector {
-            color: #777;
-            font-size: 14px;
-        }
-        
         .hero {
             display: flex;
             align-items: center;
@@ -262,6 +257,14 @@
             .heading-large {
                 font-size: 48px;
             }
+
+            .logo h1 {
+                font-size: 16.8px; /* Roughly 30% smaller than 24px */
+            }
+
+            .logo-icon {
+                display: none; /* Hide the dollar icon on mobile */
+            }
         }
         
         footer {
@@ -308,9 +311,6 @@
                 <div class="logo" onclick="window.location.href='homepage.html'">
                     <i class="fas fa-dollar-sign logo-icon"></i>
                     <h1>TheMoneyOlympics</h1>
-                </div>
-                <div class="language-selector">
-                    SITE LANGUAGE: ENGLISH
                 </div>
             </div>
         </div>
