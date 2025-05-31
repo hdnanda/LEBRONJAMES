@@ -486,39 +486,97 @@
 
         // Google Sign-Up Handler
         function handleGoogleSignUp(response) {
-            // The response object contains the credential (JWT token)
+            console.log("[handleGoogleSignUp] Called. Token:", response.credential); // Log 1
             const credential = response.credential;
 
-            // Decode JWT to get user information (optional, for frontend display)
-            // You might need a library for this, or send it to your backend for decoding and processing
             // For simplicity, we'll assume the backend handles JWT verification and user creation
-            console.log("Google Sign-Up successful, credential:", credential);
+            console.log("[handleGoogleSignUp] Google Sign-Up successful on front-end, credential:", credential);
 
-            // Send the credential to your backend for verification and user creation/login
-            fetch(`${API_BASE_URL}/google-signup.php`, { // You'll need to create this backend endpoint
+            // Determine the correct backend URL
+            const backendSignupUrl = (typeof API_BASE_URL !== 'undefined' && API_BASE_URL ? API_BASE_URL : (ConnectionHelper && ConnectionHelper.API_CONFIG ? ConnectionHelper.API_CONFIG.BACKEND_URL : '')) + '/google_auth.php'; // Assuming google_auth.php handles both login and signup with Google for now, or change to google-signup.php if it exists
+            console.log("[handleGoogleSignUp] Attempting to POST to URL:", backendSignupUrl); // Log URL
+
+            if (!backendSignupUrl || backendSignupUrl === '/google_auth.php') { // Check if URL is just the endpoint name
+                console.error("[handleGoogleSignUp] API_BASE_URL or ConnectionHelper.API_CONFIG.BACKEND_URL is not properly defined!");
+                showError('Configuration error: Backend URL not set for Google Sign-Up.');
+                return;
+            }
+
+            fetch(backendSignupUrl, { 
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ token: credential })
             })
-            .then(res => res.json())
+            .then(res => {
+                console.log("[handleGoogleSignUp] Backend response received. Status:", res.status); // Log 2
+                if (!res.ok) {
+                    return res.json().then(errData => {
+                        console.error("[handleGoogleSignUp] Backend error response (JSON parsed):", errData); // Log 3a
+                        throw new Error(errData.message || `HTTP error! status: ${res.status}`);
+                    }).catch((jsonParseError) => {
+                        console.error("[handleGoogleSignUp] Backend error response (not JSON or JSON parse error). Status:", res.status, "Parse error:", jsonParseError); // Log 3b
+                        return res.text().then(textData => {
+                             console.error("[handleGoogleSignUp] Backend error response (text):", textData.substring(0, 500)); // Log 3c
+                             throw new Error(`HTTP error! status: ${res.status}. Response preview: ${textData.substring(0,100)}`);
+                        });
+                    });
+                }
+                return res.json();
+            })
             .then(data => {
-                if (data.success) {
-                    // Store auth data (similar to your existing handleSignup)
-                    localStorage.setItem(AUTH_KEYS.IS_LOGGED_IN, 'true');
-                    localStorage.setItem(AUTH_KEYS.USERNAME, data.user.username); // Ensure your backend returns username
-                    localStorage.setItem(AUTH_KEYS.USER_EMAIL, data.user.email);   // Ensure your backend returns email
-                    localStorage.setItem(AUTH_KEYS.LAST_LOGIN, new Date().toISOString());
-                    redirectToMainApp();
+                console.log("[handleGoogleSignUp] Data from backend:", data); // Log 4
+                if (data && data.success) {
+                    console.log("[handleGoogleSignUp] Backend reported success. Storing data and redirecting..."); // Log 5
+                    // Ensure AUTH_KEYS are defined, or use string literals as fallback
+                    const isLoggedInKey = window.AUTH_KEYS ? window.AUTH_KEYS.IS_LOGGED_IN : 'isLoggedIn';
+                    const usernameKey = window.AUTH_KEYS ? window.AUTH_KEYS.USERNAME : 'username';
+                    const emailKey = window.AUTH_KEYS ? window.AUTH_KEYS.USER_EMAIL : 'userEmail';
+                    const lastLoginKey = window.AUTH_KEYS ? window.AUTH_KEYS.LAST_LOGIN : 'lastLogin';
+
+                    localStorage.setItem(isLoggedInKey, 'true');
+                    localStorage.setItem(usernameKey, data.username); // Ensure your backend returns username
+                    localStorage.setItem(emailKey, data.email);   // Ensure your backend returns email
+                    localStorage.setItem(lastLoginKey, new Date().toISOString());
+                    
+                    console.log("[handleGoogleSignUp] Data stored. Username:", data.username, "Email:", data.email); // Log 6
+                    // Ensure redirectToMainApp is defined, or use a fallback
+                    if (typeof redirectToMainApp === 'function') {
+                        redirectToMainApp();
+                    } else {
+                        console.warn("[handleGoogleSignUp] redirectToMainApp function not found, redirecting to levels.html as fallback.");
+                        window.location.href = 'levels.html';
+                    }
                 } else {
-                    showError(data.message || 'Google Sign-Up failed.');
+                    let errorMsg = 'Unknown error from backend.';
+                    if (data && data.message) {
+                        errorMsg = data.message;
+                    } else if (data === null || typeof data !== 'object') {
+                        errorMsg = 'Invalid response format from backend.';
+                    }
+                    console.error("[handleGoogleSignUp] Backend reported failure or data is malformed. Data:", data, "Generated error message:", errorMsg); // Log 7
+                    showError(errorMsg || 'Google Sign-Up failed.');
                 }
             })
             .catch(error => {
-                console.error('Google Sign-Up Error:', error);
-                showError('An error occurred during Google Sign-Up.');
+                console.error('[handleGoogleSignUp] Error in fetch/processing chain:', error); // Log 8
+                showError('An error occurred during Google Sign-Up: ' + error.message);
             });
+        }
+
+        // Ensure showError is defined or provide a basic fallback
+        if (typeof showError !== 'function') {
+            window.showError = function(message) {
+                console.error("[showError Fallback]", message);
+                const errorDiv = document.getElementById('signup-error-message');
+                if (errorDiv) {
+                    errorDiv.textContent = message;
+                    errorDiv.style.display = 'block';
+                } else {
+                    alert(message);
+                }
+            }
         }
 
     </script>
