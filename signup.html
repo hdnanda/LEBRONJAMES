@@ -331,6 +331,7 @@
                 </div>
                 <button type="submit" class="btn btn-primary" id="signup-btn">Sign Up</button>
                 <div id="signup-error-message" class="error-message" style="display: none;"></div>
+                <div id="signup-success" class="success-message" style="display: none;"></div>
             </form>
 
             <!-- Google Sign-In button -->
@@ -467,11 +468,6 @@
                 document.getElementById('signup-success').textContent = 'Account created successfully! Redirecting to levels...';
                 document.getElementById('signup-success').style.display = 'block';
                 
-                // Initialize XP for the new user
-                if (window.xpService) {
-                    window.xpService.init();
-                }
-                
                 // Redirect after a delay
                 setTimeout(() => {
                     window.location.href = 'levels.html';
@@ -581,7 +577,6 @@
 
     </script>
     <script src="js/config.js"></script>
-    <script src="js/xpService.js"></script>
     <script src="js/navigation.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/login.js"></script>
