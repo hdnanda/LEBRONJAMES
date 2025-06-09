@@ -20,8 +20,7 @@
 
         // Detect environment
         const isDevelopment = window.location.hostname === 'localhost' || 
-                            window.location.hostname === '127.0.0.1' ||
-                            window.location.hostname.includes('financial-frontend-3xkp.onrender.com');
+                            window.location.hostname === '127.0.0.1';
 
         // Log environment
         console.log(`Running in ${isDevelopment ? 'DEVELOPMENT' : 'PRODUCTION'} mode`);
