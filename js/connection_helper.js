@@ -15,6 +15,7 @@ const API_CONFIG = {
 
 // Connection Helper object
 const ConnectionHelper = {
+    API_CONFIG: API_CONFIG,
     /**
      * Make an API request with error handling and fallback
      * @param {string} endpoint - API endpoint (e.g., 'xp_handler.php')
@@ -171,13 +172,13 @@ const ConnectionHelper = {
      */
     testConnection: async function() {
         try {
-            console.log('[ConnectionHelper] Testing connection...');
-            // For testing, return mock successful response
-            return {
-                success: true,
-                message: 'Mock connection successful (actual backend unavailable)',
-                server_info: 'Mock Server'
-            };
+            const response = await fetch(`${this.API_CONFIG.BACKEND_URL}/connection_test.php`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            console.log('[ConnectionHelper] Connection test successful:', data);
+            return data;
         } catch (error) {
             console.error('[ConnectionHelper] Connection test failed:', error);
             return {
@@ -215,7 +216,7 @@ const ConnectionHelper = {
             }
             
             // Force direct backend URL for xp_handler.php - use query param instead of header
-            const directUrl = `${API_CONFIG.BACKEND_URL}/xp_handler.php?username=${encodeURIComponent(username)}`;
+            const directUrl = `${this.API_CONFIG.BACKEND_URL}/xp_handler.php?username=${encodeURIComponent(username)}`;
             console.log(`[ConnectionHelper] Using direct backend URL: ${directUrl}`);
             
             const response = await fetch(directUrl, {
@@ -318,7 +319,7 @@ const ConnectionHelper = {
             };
             
             // Force direct backend URL for xp_handler.php
-            const directUrl = `${API_CONFIG.BACKEND_URL}/xp_handler.php`;
+            const directUrl = `${this.API_CONFIG.BACKEND_URL}/xp_handler.php`;
             console.log(`[ConnectionHelper] Using direct backend URL: ${directUrl}`);
             
             const response = await fetch(directUrl, {
@@ -404,7 +405,7 @@ const ConnectionHelper = {
             return { success: false, error: 'Guest user data is not saved to the server.' };
         }
         
-        const endpoint = `${API_CONFIG.BACKEND_URL}/xp_handler.php`;
+        const endpoint = `${this.API_CONFIG.BACKEND_URL}/xp_handler.php`;
         const body = {
             username: username,
             xp: xp,
