@@ -78,18 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.ConnectionHelper) {
         console.log('[Auth] ConnectionHelper is available');
     } else {
-        console.error('[Auth] ConnectionHelper is not available, attempting to load it');
-        
-        // Try to load connection_helper.js if not already loaded
-        const script = document.createElement('script');
-        script.src = 'js/connection_helper.js';
-        script.onload = function() {
-            console.log('[Auth] ConnectionHelper loaded dynamically');
-        };
-        script.onerror = function() {
-            console.error('[Auth] Failed to load ConnectionHelper dynamically');
-        };
-        document.head.appendChild(script);
+        console.error('[Auth] ConnectionHelper is not available, this might cause issues.');
     }
     
     // Log the current user for debugging
