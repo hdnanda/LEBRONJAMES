@@ -9,6 +9,7 @@
     
     <!-- Device detection (must be before other scripts) -->
     <script src="js/device-detection.js"></script>
+    <script src="js/config.js"></script>
     
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/device-specific.css">
@@ -1577,7 +1578,7 @@
                 document.getElementById('current-level').textContent = level;
             } else {
                 // Fallback to API call
-                fetch('https://financial-backend1.onrender.com/backend/dummy_xp.php', {
+                fetch(`${API_CONFIG.BACKEND_URL}/backend/dummy_xp.php`, {
                     method: 'GET',
                     credentials: 'include',
                     headers: {
