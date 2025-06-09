@@ -1276,97 +1276,38 @@ async function getTotalXP() {
 
 // Add XP with bonuses through backend API
 async function addXP(amount, options = {}) {
-    if (isGuestMode() && !window.allowGuestProgress) {
-        console.log("[Debug] Guest mode: XP not saved.");
-        // Optionally, update UI temporarily for guest
-        const xpDisplay = document.getElementById('xpDisplay');
-        if (xpDisplay) {
-            let currentDisplayXP = parseInt(xpDisplay.textContent) || 0;
-            xpDisplay.textContent = currentDisplayXP + amount;
-        }
-        return;
+    if (isGuestMode()) {
+        console.log('[XP] Guest mode is active. XP will not be saved to the server.');
     }
 
-    console.log('[Debug] Adding XP - Base Amount:', amount, 'Bonuses:', options);
-    let totalXPToAdd = amount;
+    const currentXP = parseInt(localStorage.getItem('userXP')) || 0;
+    const newXP = currentXP + amount;
+    localStorage.setItem('userXP', newXP);
 
-    // Streak bonus (placeholder, replace with actual streak logic)
-    if (options.streak) {
-        totalXPToAdd += 10; // Example streak bonus
-    }
-    // Speed bonus (placeholder)
-    if (options.speed) {
-        totalXPToAdd += 5; // Example speed bonus
-    }
-    // Exam completion bonus already included in `amount` if called from handleExamCompletion
+    console.log(`[XP] Added ${amount} XP. New total: ${newXP}`);
+    showXPNotification(amount);
+    await updateProgressDisplay();
 
+    // After updating locally, sync with the server.
     try {
-        // Get current user XP from the server to ensure we're working with the latest value
-        const currentUserData = await ConnectionHelper.getUserXP();
-        let currentServerXP = 0;
-        if (currentUserData.success) {
-            currentServerXP = currentUserData.xp;
-        } else {
-            console.warn('[Debug] Could not fetch current XP from server before adding. Using local or 0.');
-            // Fallback to localStorage if server fetch fails, or 0 if not in localStorage
-            currentServerXP = parseInt(localStorage.getItem('userXP')) || 0;
-        }
+        const completedLevels = JSON.parse(localStorage.getItem('completedLevels')) || [];
+        const completedExams = JSON.parse(localStorage.getItem('completedExams')) || [];
         
-        const newTotalXP = currentServerXP + totalXPToAdd;
-        localStorage.setItem('userXP', newTotalXP); // Update local storage immediately
+        console.log('[XP] Syncing new XP and progress with server...');
+        const response = await ConnectionHelper.updateUserXP(newXP, completedLevels, completedExams);
 
-        // Calculate level based on XP (using thresholds from topics.js or a config)
-        // This is a simplified example; you might have a more complex level calculation
-        const xpThresholds = window.xpThresholds || { 1: 0, 2: 100, 3: 250, 4: 450, 5: 700 }; // Default if not globally defined
-        let newLevel = 1;
-        for (const level in xpThresholds) {
-            if (newTotalXP >= xpThresholds[level]) {
-                newLevel = parseInt(level);
+        if (response && response.success) {
+            console.log('[XP] Server sync successful.', response);
+            // Optionally, update local storage again with server-validated data
+            if (response.xp !== undefined) localStorage.setItem('userXP', response.xp);
+            if (response.level !== undefined) {
+                 // You might want to update a local 'userLevel' item if you use one
             }
-        }
-        localStorage.setItem('userLevel', newLevel);
-
-        console.log('[Debug] XP Calculation:', { earned: totalXPToAdd, level: newLevel });
-
-        // Retrieve the latest completed levels and exams from localStorage to send to server
-        const completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
-        const completedExams = JSON.parse(localStorage.getItem('completedExams') || '[]');
-
-        // Update XP on the server
-        if (window.ConnectionHelper) {
-            const result = await ConnectionHelper.updateXP(newTotalXP, completedLevels, completedExams);
-            console.log('[Debug] Server update result:', result);
-            if (result.success) {
-                // Update UI (e.g., XP display, level display)
-                const xpDisplay = document.getElementById('xpDisplay'); // Ensure you have an element with this ID
-                if (xpDisplay) xpDisplay.textContent = result.xp;
-                // showNotification(`+${totalXPToAdd} XP! Level ${result.level}`, true);
-                 // Display XP gain notification using the new function
-                if (typeof showXPGainNotification === 'function') {
-                    showXPGainNotification(totalXPToAdd);
-                } else {
-                    console.warn('showXPGainNotification function not found, using console log for XP gain.');
-                    console.log(`XP gained: +${totalXPToAdd} XP`);
-                }
-
-            } else {
-                // Handle server update failure (e.g., show error message)
-                // showNotification('Failed to update XP on server.', false);
-                 if (typeof showXPGainNotification === 'function') {
-                    showXPGainNotification(totalXPToAdd, false, 'Server sync failed'); // Indicate failure
-                } else {
-                    console.error('Failed to update XP on server. Message:', result.message);
-                }
-            }
+        } else {
+            console.warn('[XP] Server sync failed or returned an error.', response ? response.error : 'No response');
         }
     } catch (error) {
-        console.error('[Error] Failed to add XP:', error);
-        // showNotification('Error updating XP.', false);
-         if (typeof showXPGainNotification === 'function') {
-            showXPGainNotification(totalXPToAdd, false, 'Error processing XP'); // Indicate error
-        } else {
-            console.error('Error processing XP:', error.message);
-        }
+        console.error('[XP] An error occurred during server sync:', error);
     }
 }
 
