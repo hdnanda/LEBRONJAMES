@@ -1,13 +1,12 @@
 <?php
-// Enable error reporting
+// Enable error reporting for debugging
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Set CORS headers for browser access
-header('Access-Control-Allow-Origin: *');
+// Set common headers
+header('Access-Control-Allow-Origin: *'); // Be more specific in production
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Accept');
-header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
 header('Content-Type: application/json');
 
 // Handle preflight requests
@@ -16,219 +15,180 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-// Get username from query parameter, POST data, or default to 'test'
-// Try GET parameter first
-if (isset($_GET['username'])) {
-    $username = $_GET['username'];
-} else {
-    // Try POST data
-    $input = file_get_contents('php://input');
-    $data = json_decode($input, true);
-    $username = isset($data['username']) ? $data['username'] : 'test';
+// Include database configuration
+require_once __DIR__ . '/config.php';
+
+// Function to get user ID from username
+function get_user_id_by_username($pdo, $username) {
+    // Basic validation
+    if (empty($username)) {
+        return null;
+    }
+    try {
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = :username");
+        $stmt->execute([':username' => $username]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $user ? (int)$user['id'] : null;
+    } catch (PDOException $e) {
+        error_log("Database error in get_user_id_by_username: " . $e->getMessage());
+        return null;
+    }
 }
 
-// Sanitize username to prevent directory traversal or invalid filenames
-$username = preg_replace('/[^a-zA-Z0-9_-]/', '', $username);
+// Get username from query parameter or POST data
+$username = $_GET['username'] ?? $_POST['username'] ?? null;
+if (!$username) {
+    // Try getting from JSON body
+    $input = json_decode(file_get_contents('php://input'), true);
+    $username = $input['username'] ?? null;
+}
 
-// Simple file-based storage - each user gets their own JSON file
-$userDataDir = __DIR__ . '/user_data';
-$userDataFile = $userDataDir . '/' . $username . '.json';
+// Sanitize username
+$username = $username ? preg_replace('/[^a-zA-Z0-9_-]/', '', $username) : null;
 
-// Create directory if it doesn't exist - moved initial check for POST later
-// if (!file_exists($userDataDir)) {
-//     mkdir($userDataDir, 0755, true);
-// }
+if (!$username) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => 'Username not provided.']);
+    exit;
+}
 
-// Default user data
-$userData = [
-    'username' => $username,
-    'xp' => 0,
-    'level' => 1,
-    'completed_levels' => [],
-    'completed_exams' => [],
-    'last_updated' => date('Y-m-d H:i:s')
+// Establish database connection
+try {
+    $pdo = get_db_connection();
+} catch (PDOException $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Database connection failed.']);
+    exit;
+}
+
+// Get user ID
+$user_id = get_user_id_by_username($pdo, $username);
+if (!$user_id) {
+    http_response_code(404);
+    echo json_encode(['success' => false, 'error' => 'User not found.']);
+    exit;
+}
+
+// Default user progress data
+$default_progress = [
+    'user_id' => $user_id,
+    'total_xp' => 0,
+    'current_level' => 1,
+    'completed_levels' => '[]',
+    'completed_exams' => '[]',
+    'learning_progress' => '{}'
 ];
 
 // Process request based on method
 switch ($_SERVER['REQUEST_METHOD']) {
     case 'GET':
-        // $userData already holds default values.
-        // Retrieve user data from file if it exists.
-        if (file_exists($userDataFile)) {
-            $fileContents = file_get_contents($userDataFile);
-            $fileData = json_decode($fileContents, true);
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM user_progress WHERE user_id = :user_id");
+            $stmt->execute([':user_id' => $user_id]);
+            $progress = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            // Check if decoding was successful and it's an array
-            if (is_array($fileData)) {
-                // Merge data from file into the default $userData structure.
-                // Keys in $fileData will overwrite corresponding keys in $userData.
-                // Keys present in $userData but not in $fileData will be preserved.
-                $userData = array_merge($userData, $fileData);
-            }
-            // Optional: Log error or handle case where file exists but JSON is invalid
-            // else { error_log("Invalid JSON in user data file: " . $userDataFile); }
-        }
-        
-        // Ensure essential fields are present and correctly typed for the response.
-        // This acts as a safeguard, especially if file data is incomplete or from an older version.
-        $response_xp = isset($userData['xp']) ? (int)$userData['xp'] : 0;
-        $response_level = isset($userData['level']) ? (int)$userData['level'] : 1;
-        $response_completed_levels = isset($userData['completed_levels']) && is_array($userData['completed_levels']) ? $userData['completed_levels'] : [];
-        $response_completed_exams = isset($userData['completed_exams']) && is_array($userData['completed_exams']) ? $userData['completed_exams'] : [];
-        
-        // Return response
-        echo json_encode([
-            'success' => true,
-            'xp' => $response_xp,
-            'level' => $response_level,
-            'completed_levels' => $response_completed_levels,
-            'completed_exams' => $response_completed_exams,
-            'message' => 'User data retrieved'
-        ]);
-        break;
-        
-    case 'POST':
-        // Check user_data directory status before proceeding
-        if (!file_exists($userDataDir)) {
-            if (!mkdir($userDataDir, 0755, true)) {
-                http_response_code(500);
-                echo json_encode([
-                    'success' => false, 
-                    'error' => 'Failed to create user data directory.',
-                    'message' => 'Server configuration error: Cannot create data storage.'
-                ]);
-                exit;
-            }
-        }
-        if (!is_writable($userDataDir)) {
-            http_response_code(500);
-            echo json_encode([
-                'success' => false, 
-                'error' => 'User data directory is not writable.',
-                'message' => 'Server configuration error: Cannot write to data storage.'
-            ]);
-            exit;
-        }
-
-        // Update user data
-        $input = file_get_contents('php://input');
-        $data = json_decode($input, true);
-        
-        // Validate input
-        if (!isset($data['xp']) || !is_numeric($data['xp'])) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Invalid XP value']);
-            exit;
-        }
-        
-        // Get existing data if it exists
-        if (file_exists($userDataFile)) {
-            $existingData = json_decode(file_get_contents($userDataFile), true);
-            if (is_array($existingData)) {
-                $userData = array_merge($userData, $existingData);
-            }
-        }
-        
-        // Update with new data
-        $userData['xp'] = (int)$data['xp'];
-        $userData['last_updated'] = date('Y-m-d H:i:s');
-        
-        // Calculate level based on XP
-        $xpThresholds = [
-            1 => 0,
-            2 => 100,
-            3 => 250,
-            4 => 450,
-            5 => 700
-        ];
-        
-        foreach ($xpThresholds as $lvl => $threshold) {
-            if ($userData['xp'] >= $threshold) {
-                $userData['level'] = $lvl;
-            }
-        }
-        
-        // Ensure existing arrays are initialized if not present from file
-        if (!isset($userData['completed_levels']) || !is_array($userData['completed_levels'])) {
-            $userData['completed_levels'] = [];
-        }
-        if (!isset($userData['completed_exams']) || !is_array($userData['completed_exams'])) {
-            $userData['completed_exams'] = [];
-        }
-
-        // Merge completed_levels
-        if (isset($data['completed_levels']) && is_array($data['completed_levels'])) {
-            $existingLevelsMap = [];
-            foreach ($userData['completed_levels'] as $level) {
-                if (isset($level['topicId']) && isset($level['subLevelId'])) {
-                    $key = $level['topicId'] . '-' . $level['subLevelId'];
-                    $existingLevelsMap[$key] = $level;
-                }
+            if (!$progress) {
+                // If no progress, insert default and return it
+                $stmt = $pdo->prepare("INSERT INTO user_progress (user_id, total_xp, current_level, completed_levels, completed_exams, learning_progress) VALUES (:user_id, :total_xp, :current_level, :completed_levels, :completed_exams, :learning_progress)");
+                $stmt->execute($default_progress);
+                $progress = $default_progress;
             }
 
-            foreach ($data['completed_levels'] as $newLevel) {
-                if (isset($newLevel['topicId']) && isset($newLevel['subLevelId'])) {
-                    $key = $newLevel['topicId'] . '-' . $newLevel['subLevelId'];
-                    if (!isset($existingLevelsMap[$key])) {
-                        // Add new level if it doesn't exist
-                        $userData['completed_levels'][] = $newLevel;
-                    } else {
-                        // Optionally, update timestamp if new one is later
-                        if (isset($newLevel['timestamp']) && isset($existingLevelsMap[$key]['timestamp'])) {
-                            if ($newLevel['timestamp'] > $existingLevelsMap[$key]['timestamp']) {
-                                // Find and update the existing level's timestamp
-                                foreach ($userData['completed_levels'] as &$existingLvl) {
-                                    if (isset($existingLvl['topicId']) && isset($existingLvl['subLevelId']) &&
-                                        $existingLvl['topicId'] == $newLevel['topicId'] && 
-                                        $existingLvl['subLevelId'] == $newLevel['subLevelId']) {
-                                        $existingLvl['timestamp'] = $newLevel['timestamp'];
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Merge completed_exams
-        if (isset($data['completed_exams']) && is_array($data['completed_exams'])) {
-            // Merge new exams with existing ones and ensure uniqueness
-            $mergedExams = array_merge($userData['completed_exams'], $data['completed_exams']);
-            $userData['completed_exams'] = array_values(array_unique($mergedExams));
-        }
-        
-        // Save to file
-        $writeSuccess = file_put_contents($userDataFile, json_encode($userData, JSON_PRETTY_PRINT));
-        
-        if ($writeSuccess === false) {
-            // Log error server-side (optional, not implemented here)
-            // Return a specific error response to the client
-            http_response_code(500); // Internal Server Error
-            echo json_encode([
-                'success' => false,
-                'error' => 'Failed to save user data to file.',
-                'message' => 'User data update failed during file write.',
-                // Optionally include the data it attempted to save for debugging by the client
-                'attempted_data' => $userData 
-            ]);
-        } else {
-            // Return success response
+            // Decode JSON fields for the response
             echo json_encode([
                 'success' => true,
-                'xp' => (int)$userData['xp'],
-                'level' => (int)$userData['level'],
-                'completed_levels' => $userData['completed_levels'],
-                'completed_exams' => $userData['completed_exams'],
-                'message' => 'User data updated'
+                'xp' => (int)$progress['total_xp'],
+                'level' => (int)$progress['current_level'],
+                'completed_levels' => json_decode($progress['completed_levels'], true),
+                'completed_exams' => json_decode($progress['completed_exams'], true),
+                'message' => 'User data retrieved successfully.'
             ]);
+
+        } catch (PDOException $e) {
+            error_log("GET request failed: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Failed to retrieve user data.']);
         }
         break;
-        
+
+    case 'POST':
+        $input = json_decode(file_get_contents('php://input'), true);
+
+        if (!isset($input['xp']) || !is_numeric($input['xp'])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Invalid or missing XP value.']);
+            exit;
+        }
+
+        try {
+            // Fetch current progress
+            $stmt = $pdo->prepare("SELECT * FROM user_progress WHERE user_id = :user_id");
+            $stmt->execute([':user_id' => $user_id]);
+            $current_progress = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$current_progress) {
+                // If no progress record, use defaults
+                $current_progress = $default_progress;
+            }
+
+            // Update XP and level
+            $new_xp = (int)$input['xp'];
+            $new_level = $current_progress['current_level'];
+
+            $xpThresholds = [1 => 0, 2 => 100, 3 => 250, 4 => 450, 5 => 700];
+            foreach ($xpThresholds as $lvl => $threshold) {
+                if ($new_xp >= $threshold) {
+                    $new_level = $lvl;
+                }
+            }
+
+            // Merge completed levels and exams
+            $completed_levels = isset($current_progress['completed_levels']) ? json_decode($current_progress['completed_levels'], true) : [];
+            $completed_exams = isset($current_progress['completed_exams']) ? json_decode($current_progress['completed_exams'], true) : [];
+
+            if (isset($input['completed_levels']) && is_array($input['completed_levels'])) {
+                 $completed_levels = array_values(array_unique(array_merge($completed_levels, $input['completed_levels']), SORT_REGULAR));
+            }
+            if (isset($input['completed_exams']) && is_array($input['completed_exams'])) {
+                $completed_exams = array_values(array_unique(array_merge($completed_exams, $input['completed_exams'])));
+            }
+
+            // Prepare for database update/insert
+            $sql = "INSERT INTO user_progress (user_id, total_xp, current_level, completed_levels, completed_exams, learning_progress) VALUES (:user_id, :total_xp, :current_level, :completed_levels, :completed_exams, :learning_progress) ON DUPLICATE KEY UPDATE total_xp = VALUES(total_xp), current_level = VALUES(current_level), completed_levels = VALUES(completed_levels), completed_exams = VALUES(completed_exams)";
+            
+            // Note: ON DUPLICATE KEY UPDATE is MySQL-specific. For PostgreSQL, use ON CONFLICT...DO UPDATE.
+            // This example assumes MySQL based on local dev config.
+            
+            $stmt = $pdo->prepare($sql);
+            $params = [
+                ':user_id' => $user_id,
+                ':total_xp' => $new_xp,
+                ':current_level' => $new_level,
+                ':completed_levels' => json_encode($completed_levels),
+                ':completed_exams' => json_encode($completed_exams),
+                ':learning_progress' => $current_progress['learning_progress'] // Not updated in this version
+            ];
+            $stmt->execute($params);
+
+            echo json_encode([
+                'success' => true,
+                'xp' => $new_xp,
+                'level' => $new_level,
+                'completed_levels' => $completed_levels,
+                'completed_exams' => $completed_exams,
+                'message' => 'User data updated successfully.'
+            ]);
+
+        } catch (PDOException $e) {
+            error_log("POST request failed: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Failed to update user data.']);
+        }
+        break;
+
     default:
         http_response_code(405);
-        echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+        echo json_encode(['success' => false, 'error' => 'Method not allowed.']);
         break;
 }
 ?> 
