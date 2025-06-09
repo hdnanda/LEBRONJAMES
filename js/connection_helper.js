@@ -380,6 +380,68 @@ const ConnectionHelper = {
             console.error('[ConnectionHelper] Login failed:', error);
             throw error;
         }
+    },
+    
+    /**
+     * Update user XP on the server.
+     * @param {number} xp - The new XP value.
+     * @param {Array} completedLevels - Array of completed level objects.
+     * @param {Array} completedExams - Array of completed exam IDs.
+     * @returns {Promise} - Promise resolving to the server's response.
+     */
+    updateUserXP: async function(xp, completedLevels = [], completedExams = []) {
+        let username = 'guest';
+        if (window.auth && typeof window.auth.getCurrentUser === 'function') {
+            const authUsername = window.auth.getCurrentUser();
+            if (authUsername) username = authUsername;
+        } else if (localStorage.getItem('username')) {
+            username = localStorage.getItem('username');
+        }
+
+        console.log(`[ConnectionHelper] Updating XP for user: ${username}`);
+        if (username === 'guest') {
+            console.warn('[ConnectionHelper] Cannot update XP for guest user on the server.');
+            return { success: false, error: 'Guest user data is not saved to the server.' };
+        }
+        
+        const endpoint = `${API_CONFIG.BACKEND_URL}/xp_handler.php`;
+        const body = {
+            username: username,
+            xp: xp,
+            completed_levels: completedLevels,
+            completed_exams: completedExams
+        };
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body),
+                mode: 'cors'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('[ConnectionHelper] XP update response:', data);
+            return data;
+        } catch (error) {
+            console.error(`[ConnectionHelper] Failed to update user XP:`, error);
+            throw error;
+        }
+    },
+    
+    /**
+     * Get CSRF token
+     * @returns {Promise}
+     */
+    getCSRFToken: async function() {
+        // Implementation of getCSRFToken function
     }
 };
 
