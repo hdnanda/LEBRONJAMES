@@ -51,8 +51,7 @@ async function handleSignup(event) {
         }
         
         // This relies on ConnectionHelper being available from connection_helper.js
-        const connection = await ConnectionHelper.getInstance();
-        const response = await connection.signup(username, email, password);
+        const response = await ConnectionHelper.signup(username, email, password);
 
         if (!response.success) {
             throw new Error(response.message || 'Signup failed');
