@@ -1,17 +1,19 @@
-/**
- * Connection Helper for TheMoneyOlympics
- * This file provides utility functions to simplify API calls with proper error handling
- */
+if (typeof API_CONFIG === 'undefined') {
+    /**
+     * Connection Helper for TheMoneyOlympics
+     * This file provides utility functions to simplify API calls with proper error handling
+     */
 
-// API configuration
-const API_CONFIG = {
-    // Use relative paths for local development
-    BASE_URL: '',
-    FALLBACK_URL: 'https://financial-frontend-3xkp.onrender.com',
-    BACKEND_URL: 'https://financial-backend1.onrender.com',
-    // Timeout for API requests in milliseconds
-    TIMEOUT_MS: 10000
-};
+    // API configuration
+    const API_CONFIG = {
+        // Use relative paths for local development
+        BASE_URL: '',
+        FALLBACK_URL: 'https://financial-frontend-3xkp.onrender.com',
+        BACKEND_URL: 'https://financial-backend1.onrender.com',
+        // Timeout for API requests in milliseconds
+        TIMEOUT_MS: 10000
+    };
+}
 
 // Connection Helper object
 const ConnectionHelper = {
