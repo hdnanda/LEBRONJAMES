@@ -28,8 +28,7 @@ const ConnectionHelper = {
             credentials: 'omit', // Changed from 'include' to avoid CORS preflight issues
             headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-Username': 'test' // Add default username for testing
+                'Content-Type': 'application/json'
             },
             mode: 'cors' // Explicitly request CORS mode
         };
