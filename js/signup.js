@@ -54,13 +54,13 @@ async function handleSignup(event) {
         const response = await ConnectionHelper.signup(username, email, password);
 
         if (!response.success) {
-            throw new Error(response.message || 'Signup failed');
+            throw new Error(response.error || 'Signup failed');
         }
 
         // Store auth data
         localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('username', response.user.username);
-        localStorage.setItem('userEmail', response.user.email);
+        localStorage.setItem('username', response.data.username);
+        localStorage.setItem('userEmail', response.data.email);
         localStorage.setItem('lastLogin', new Date().toISOString());
 
         // Redirect to main app
