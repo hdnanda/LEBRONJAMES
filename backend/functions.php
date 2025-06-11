@@ -27,28 +27,18 @@ function is_logged_in() {
  */
 function check_login_attempts($username, $conn) {
     try {
-        $timeout_minutes = LOGIN_TIMEOUT_MINUTES;
+        $timeout_minutes = defined('LOGIN_TIMEOUT_MINUTES') ? LOGIN_TIMEOUT_MINUTES : 30;
         
-        $stmt = $conn->prepare("SELECT COUNT(*) as attempts FROM login_logs 
-                               WHERE (username = ? OR email = ?) 
-                               AND success = 0 
-                               AND login_time > DATE_SUB(NOW(), INTERVAL ? MINUTE)");
+        $sql = "SELECT COUNT(*) as attempts FROM login_logs 
+                WHERE (username = :username OR email = :email) 
+                AND success = 0 
+                AND login_time > NOW() - INTERVAL '{$timeout_minutes} minutes'";
         
-        if (!$stmt) {
-            error_log("Failed to prepare statement: " . $conn->error);
-            return false;
-        }
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([':username' => $username, ':email' => $username]);
         
-        $stmt->bind_param("ssi", $username, $username, $timeout_minutes);
-        
-        if (!$stmt->execute()) {
-            error_log("Failed to execute statement: " . $stmt->error);
-            return false;
-        }
-        
-        $result = $stmt->get_result();
-        $row = $result->fetch_assoc();
-        return isset($row['attempts']) && $row['attempts'] >= MAX_LOGIN_ATTEMPTS;
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return isset($result['attempts']) && $result['attempts'] >= MAX_LOGIN_ATTEMPTS;
         
     } catch (Exception $e) {
         error_log("Error in check_login_attempts: " . $e->getMessage());
@@ -210,12 +200,9 @@ function is_ajax_request() {
  * @return array|null User data or null if not found
  */
 function get_user_by_id($user_id, $conn) {
-    $stmt = $conn->prepare("SELECT id, username, email, created_at FROM users WHERE id = ?");
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    return $result->num_rows > 0 ? $result->fetch_assoc() : null;
+    $stmt = $conn->prepare("SELECT id, username, email, created_at FROM users WHERE id = :id");
+    $stmt->execute([':id' => $user_id]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
 /**
@@ -226,12 +213,9 @@ function get_user_by_id($user_id, $conn) {
  */
 function validate_remember_token($token, $conn) {
     $stmt = $conn->prepare("SELECT id, username, email FROM users 
-                           WHERE remember_token = ? AND token_expiry > NOW()");
-    $stmt->bind_param("s", $token);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    return $result->num_rows > 0 ? $result->fetch_assoc() : null;
+                           WHERE remember_token = :token AND token_expiry > NOW()");
+    $stmt->execute([':token' => $token]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
 /**
@@ -253,10 +237,9 @@ function get_current_user_data() {
     }
     
     global $conn;
-    $stmt = $conn->prepare("SELECT id, username, email FROM users WHERE id = ?");
-    $stmt->bind_param("i", $_SESSION['user_id']);
-    $stmt->execute();
-    return $stmt->get_result()->fetch_assoc();
+    $stmt = $conn->prepare("SELECT id, username, email FROM users WHERE id = :id");
+    $stmt->execute([':id' => $_SESSION['user_id']]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
 /**
