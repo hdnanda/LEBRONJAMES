@@ -1,5 +1,6 @@
 <?php
 require_once 'config.php';
+require_once 'functions.php';
 
 // Get data from the request body
 $data = json_decode(file_get_contents('php://input'), true);
@@ -55,10 +56,5 @@ try {
     error_log('Session data: ' . print_r($_SESSION, true));
     error_log('Headers: ' . print_r(getallheaders(), true));
     send_json_response(false, 'An error occurred during signup: ' . $e->getMessage(), null, 500);
-} finally {
-    // Close database connection
-    $conn = null;
-    // Clean output buffer
-    ob_end_flush();
 }
 ?> 
