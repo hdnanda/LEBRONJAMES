@@ -256,6 +256,7 @@ function send_json_response($response_data, $status_code = 200) {
             $response_data['message'] = 'Request succeeded but generated unexpected output.';
         }
         $response_data['success'] = false;
+        $status_code = 500;
     }
 
     // Always send a JSON response
