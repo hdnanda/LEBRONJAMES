@@ -134,9 +134,19 @@ function send_password_reset_email($email, $token) {
 function log_activity($user_id, $activity_type, $details = '') {
     global $conn;
     
-    $stmt = $conn->prepare("INSERT INTO activity_logs (user_id, activity_type, details, created_at) VALUES (?, ?, ?, NOW())");
-    $stmt->bind_param("iss", $user_id, $activity_type, $details);
-    return $stmt->execute();
+    try {
+        $stmt = $conn->prepare("INSERT INTO activity_logs (user_id, action, details) VALUES (:user_id, :action, :details)");
+        $stmt->execute([
+            ':user_id' => $user_id,
+            ':action' => $activity_type,
+            ':details' => $details
+        ]);
+        return true;
+    } catch (Exception $e) {
+        // Log error to file but don't output it to the client
+        error_log("Failed to log activity: " . $e->getMessage());
+        return false;
+    }
 }
 
 /**
