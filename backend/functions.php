@@ -265,4 +265,22 @@ function get_db_connection() {
     
     return $conn;
 }
+
+/**
+ * Send a JSON response back to the client
+ * @param bool $success - Whether the request was successful
+ * @param string $message - A message to send back
+ * @param array|null $data - Optional data payload
+ * @param int $status_code - The HTTP status code to send
+ */
+function send_json_response($success, $message, $data = null, $status_code = 200) {
+    http_response_code($status_code);
+    header('Content-Type: application/json');
+    $response = ['success' => $success, 'message' => $message];
+    if ($data) {
+        $response['data'] = $data;
+    }
+    echo json_encode($response);
+    exit;
+}
 ?> 
