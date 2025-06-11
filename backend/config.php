@@ -1,4 +1,11 @@
 <?php
+// Handle CORS preflight requests
+require_once __DIR__ . '/cors.php';
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
 // Database configuration
 $db_url = getenv('DATABASE_URL');
 $is_production = !empty($db_url);
