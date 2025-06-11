@@ -1,4 +1,8 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // Ensure session is started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -7,8 +11,11 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once 'config.php';
 require_once 'functions.php';
 
-// Get data from the request body
-$data = json_decode(file_get_contents('php://input'), true);
+// Debug logs
+$data_raw = file_get_contents('php://input');
+error_log('Raw signup input: ' . $data_raw);
+$data = json_decode($data_raw, true);
+error_log('Parsed signup input: ' . print_r($data, true));
 
 // Validate input
 if (!isset($data['username']) || !isset($data['email']) || !isset($data['password'])) {
