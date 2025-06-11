@@ -1,69 +1,78 @@
 <?php
 // --- FILENAME: backend/signup.php ---
-// This is a temporary, self-contained script for isolation testing.
-// It has ZERO dependencies.
+// Advanced Debugging with Output Buffering
 
-// Use the centralized bootstrap file for all initialization.
-require_once __DIR__ . '/bootstrap.php';
+// Start capturing all output.
+ob_start();
 
-// Get data from the request body
-$data = json_decode(file_get_contents('php://input'), true);
-
-// Validate input
-if (!isset($data['username']) || !isset($data['email']) || !isset($data['password'])) {
-    send_json_response(false, 'Missing required fields', null, 400);
-}
-
-$username = $data['username'];
-$email = $data['email'];
-$password = $data['password'];
-
-// Hash the password
-$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+// We will manually include the files to see where the error occurs.
+$response = [];
+$debug_output = '';
 
 try {
-    $sql = "INSERT INTO users (username, email, password_hash) VALUES (:username, :email, :password)";
+    // --- STAGE 1: Bootstrap ---
+    require_once __DIR__ . '/bootstrap.php';
+
+    // --- STAGE 2: Get Input ---
+    $data = json_decode(file_get_contents('php://input'), true);
+
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        throw new Exception("Invalid JSON received. Error: " . json_last_error_msg());
+    }
+
+    // --- STAGE 3: Process Data ---
+    if (!isset($data['username']) || !isset($data['email']) || !isset($data['password'])) {
+        throw new Exception("Missing required fields.");
+    }
+
+    $username = $data['username'];
+    $email = $data['email'];
+    $password = $data['password'];
+    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
     
-    // Use RETURNING id for PostgreSQL to get the new user's ID
+    // --- STAGE 4: Database Insert ---
+    $sql = "INSERT INTO users (username, email, password_hash) VALUES (:username, :email, :password)";
     if ($db_config['type'] === 'pgsql') {
         $sql .= " RETURNING id";
     }
     
     $stmt = $conn->prepare($sql);
-    $stmt->execute([
-        'username' => $username,
-        'email' => $email,
-        'password' => $hashedPassword
-    ]);
-    
-    // Get the new user's ID
-    if ($db_config['type'] === 'pgsql') {
-        $user_id = $stmt->fetchColumn();
-    } else {
-        $user_id = $conn->lastInsertId();
-    }
-    
-    // Log the signup activity
-    log_activity($user_id, 'signup', 'User account created');
-    
-    // Generate new CSRF token
-    if (session_status() === PHP_SESSION_ACTIVE) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    
-    // Return success response
-    send_json_response(true, 'Account created successfully', [
-        'username' => $username,
-        'email' => $email
-    ], 201);
+    $stmt->execute(['username' => $username, 'email' => $email, 'password' => $hashedPassword]);
+
+    // --- STAGE 5: Success ---
+    $response['success'] = true;
+    $response['message'] = "Signup logic completed successfully.";
+    $response['data'] = ['username' => $username];
     
 } catch (Exception $e) {
-    // Check for duplicate entry error (error code 23505 for PostgreSQL, 23000 for MySQL)
-    if (in_array($e->getCode(), ['23505', '23000'])) {
-        error_log('Signup error: Duplicate entry for username or email. ' . $e->getMessage());
-        send_json_response(false, 'Username or email already exists.', null, 409);
-    } else {
-        error_log('Signup error: ' . $e->getMessage());
-        send_json_response(false, 'An error occurred during signup.', null, 500);
-    }
+    // If any exception occurs, we catch it here.
+    $response['success'] = false;
+    $response['message'] = "An exception occurred.";
+    $response['error_message'] = $e->getMessage();
+    $response['error_trace'] = $e->getTraceAsString();
 }
+
+// --- STAGE 6: Final Response Preparation ---
+// Get any content that was output unexpectedly.
+$debug_output = ob_get_clean();
+
+// We always send a JSON response now.
+header("Content-Type: application/json; charset=UTF-8");
+
+// If there was stray output, it means something is wrong.
+if (!empty($debug_output)) {
+    $response['success'] = false; // Override success if there was junk output
+    $response['message'] = "The script produced unexpected output, which indicates a PHP warning or error.";
+    $response['unexpected_output'] = $debug_output;
+}
+
+// If we are here and the response is still empty, it means the script exited silently.
+if (empty($response)) {
+     $response['success'] = false;
+     $response['message'] = "The script exited silently without success or exception.";
+     $response['unexpected_output'] = $debug_output;
+}
+
+http_response_code($response['success'] ? 200 : 500);
+echo json_encode($response);
+exit();
