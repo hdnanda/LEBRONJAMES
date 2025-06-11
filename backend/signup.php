@@ -19,7 +19,7 @@ $password = $data['password'];
 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
 try {
-    $stmt = $conn->prepare("INSERT INTO users (username, email, password) VALUES (:username, :email, :password)");
+    $stmt = $conn->prepare("INSERT INTO users (username, email, password_hash) VALUES (:username, :email, :password)");
     $stmt->execute([
         'username' => $username,
         'email' => $email,
