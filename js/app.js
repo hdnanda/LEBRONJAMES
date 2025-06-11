@@ -426,44 +426,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Helper function to proceed with initialization after attempting server sync
 function proceedWithInitialization(topicId, subLevelId) {
-    if (topicId && subLevelId) {
-        // Ensure topics.js is loaded before trying to access topic data
-        if (!window.topicsData || !Array.isArray(window.topicsData) || window.topicsData.length === 0) {
-            console.warn('Topics data not loaded yet, loading dynamically...');
-            let topicsScript = document.createElement('script');
-            topicsScript.src = 'js/topics.js';
-            topicsScript.onload = function() {
-                console.log('Topics.js loaded successfully via dynamic load');
-                // Ensure questions.js is loaded too
-                if (!window.questions || !Array.isArray(window.questions)) {
-                    let questionsScript = document.createElement('script');
-                    questionsScript.src = 'js/questions.js';
-                    questionsScript.onload = function() {
-                        console.log('Questions.js loaded successfully via dynamic load');
-                        // Once both are loaded, proceed
-                        setTimeout(() => loadQuestionsForSubLevel(topicId, subLevelId), 500);
-                    };
-                    document.head.appendChild(questionsScript);
-                } else {
-                    // If questions already loaded, just load questions for sublevel
-                    loadQuestionsForSubLevel(topicId, subLevelId);
-                }
-            };
-            document.head.appendChild(topicsScript);
-        } else {
-            // Load questions for the selected topic and sublevel
-            loadQuestionsForSubLevel(topicId, subLevelId);
-        }
-    } else {
-        // If no topic/sublevel specified, redirect back to levels.html
-        window.location.href = 'levels.html';
+    console.log('[App Initialization] Proceeding with initialization...');
+
+    // Restore animations
+    resetAnimations();
+
+    // Hide main menu and show app container
+    const mainMenu = document.getElementById('main-menu');
+    const appContainer = document.querySelector('.app-container');
+    if (mainMenu) mainMenu.style.display = 'none';
+    if (appContainer) appContainer.style.display = 'block';
+
+    // Log the current user for debugging
+    if (window.auth) {
+        console.log('[App Initialization] Current user:', window.auth.getCurrentUser());
     }
 
-    // Initialize settings panel
-    initializeSettingsPanel();
+    // Initialize UI components that don't depend on user data
+    initializeUI();
+    
+    // Initialize settings panel - THIS FUNCTION DOES NOT EXIST
+    // initializeSettingsPanel();
     
     // Add a fallback timer to force check UI state after 3 seconds
     setTimeout(forceCheckUIState, 3000);
+
+    // Load the questions for the current level
+    loadQuestionsForSubLevel(topicId, subLevelId);
 }
 
 /**
