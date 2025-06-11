@@ -34,135 +34,79 @@ const ConnectionHelper = {
         };
         
         // Merge options
-        const fetchOptions = {...defaultOptions, ...options};
+        const baseFetchOptions = {...defaultOptions, ...options};
         
-        // Create AbortController for timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT_MS);
-        fetchOptions.signal = controller.signal;
-        
+        const cleanEndpoint = endpoint.replace('backend/', '');
+        let lastError = null;
+
+        // 1. Try direct backend URL
         try {
-            // Remove 'backend/' prefix when using the fallback URL since the paths are already at root
-            const cleanEndpoint = endpoint.replace('backend/', '');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), this.API_CONFIG.TIMEOUT_MS);
+            const fetchOptions = { ...baseFetchOptions, signal: controller.signal };
             
-            // Try several backends in sequence if needed
-            let response = null;
-            let error = null;
+            const directUrl = `${this.API_CONFIG.BACKEND_URL}/${cleanEndpoint}`;
+            console.log(`[ConnectionHelper] Trying direct URL: ${directUrl}`);
             
-            console.log('[ConnectionHelper] Attempting to fetch data...');
-            
-            // For dummy_xp.php, only try the backend URL and don't fall back
-            if (cleanEndpoint === 'dummy_xp.php') {
-                const directUrl = `${API_CONFIG.BACKEND_URL}/${cleanEndpoint}`;
-                console.log(`[ConnectionHelper] Using only backend URL for dummy_xp: ${directUrl}`);
-                
-                try {
-                    response = await fetch(directUrl, fetchOptions);
-                    if (response.ok) {
-                        console.log(`[ConnectionHelper] Backend URL succeeded: ${directUrl}`);
-                        const contentType = response.headers.get('content-type');
-                        if (contentType && contentType.includes('application/json')) {
-                            const data = await response.json();
-                            return data;
-                        } else {
-                            console.warn(`[ConnectionHelper] Response not JSON: ${contentType}`);
-                            // Handle non-JSON response
-                            const text = await response.text();
-                            throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}...`);
-                        }
-                    }
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                } catch (e) {
-                    console.error(`[ConnectionHelper] Backend URL failed: ${e.message}`);
-                    throw e; // Don't fall back for dummy_xp.php
-                }
-            }
-            
-            // For other endpoints, use normal fallback mechanism
-            // Try direct URL first (backend URL + endpoint)
-            try {
-                const directUrl = `${API_CONFIG.BACKEND_URL}/${cleanEndpoint}`;
-                console.log(`[ConnectionHelper] Trying direct URL: ${directUrl}`);
-                
-                response = await fetch(directUrl, fetchOptions);
-                if (response.ok) {
-                    console.log(`[ConnectionHelper] Direct URL succeeded: ${directUrl}`);
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        const data = await response.json();
-                        return data;
-                    } else {
-                        console.warn(`[ConnectionHelper] Response not JSON: ${contentType}`);
-                        // Handle non-JSON response
-                        const text = await response.text();
-                        throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}...`);
-                    }
-                }
-                error = `HTTP error! status: ${response.status}`;
-            } catch (e) {
-                console.error(`[ConnectionHelper] Direct URL failed: ${e.message}`);
-                error = e.message;
-            }
-            
-            // Try alternative URL (frontend URL + endpoint)
-            try {
-                const alternativeUrl = `${API_CONFIG.FALLBACK_URL}/${cleanEndpoint}`;
-                console.log(`[ConnectionHelper] Trying alternative URL: ${alternativeUrl}`);
-                
-                response = await fetch(alternativeUrl, fetchOptions);
-                if (response.ok) {
-                    console.log(`[ConnectionHelper] Alternative URL succeeded: ${alternativeUrl}`);
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        const data = await response.json();
-                        return data;
-                    } else {
-                        console.warn(`[ConnectionHelper] Response not JSON: ${contentType}`);
-                        // Handle non-JSON response
-                        const text = await response.text();
-                        throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}...`);
-                    }
-                }
-                error = `HTTP error! status: ${response.status}`;
-            } catch (e) {
-                console.error(`[ConnectionHelper] Alternative URL failed: ${e.message}`);
-                error = e.message;
-            }
-            
-            // Try relative URL as last resort
-            try {
-                const relativeUrl = cleanEndpoint;
-                console.log(`[ConnectionHelper] Trying relative URL: ${relativeUrl}`);
-                
-                response = await fetch(relativeUrl, fetchOptions);
-                if (response.ok) {
-                    console.log(`[ConnectionHelper] Relative URL succeeded: ${relativeUrl}`);
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        const data = await response.json();
-                        return data;
-                    } else {
-                        console.warn(`[ConnectionHelper] Response not JSON: ${contentType}`);
-                        // Handle non-JSON response
-                        const text = await response.text();
-                        throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}...`);
-                    }
-                }
-                error = `HTTP error! status: ${response.status}`;
-            } catch (e) {
-                console.error(`[ConnectionHelper] Relative URL failed: ${e.message}`);
-                error = e.message;
-            }
-            
-            // If we get here, all attempts failed
-            throw new Error(`All connection attempts failed. Last error: ${error}`);
-        } catch (error) {
-            console.error(`[ConnectionHelper] Request failed:`, error);
-            // Rethrow for caller to handle
-            throw error;
-        } finally {
+            const response = await fetch(directUrl, fetchOptions);
             clearTimeout(timeoutId);
+
+            if (response.ok) {
+                console.log(`[ConnectionHelper] Direct URL succeeded: ${directUrl}`);
+                return await response.json();
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        } catch (error) {
+            console.error(`[ConnectionHelper] Direct URL failed: ${error.message}`);
+            lastError = error;
         }
+
+        // 2. Try alternative frontend URL
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), this.API_CONFIG.TIMEOUT_MS);
+            const fetchOptions = { ...baseFetchOptions, signal: controller.signal };
+
+            const alternativeUrl = `${this.API_CONFIG.FALLBACK_URL}/${cleanEndpoint}`;
+            console.log(`[ConnectionHelper] Trying alternative URL: ${alternativeUrl}`);
+            
+            const response = await fetch(alternativeUrl, fetchOptions);
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+                console.log(`[ConnectionHelper] Alternative URL succeeded: ${alternativeUrl}`);
+                return await response.json();
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        } catch (error) {
+            console.error(`[ConnectionHelper] Alternative URL failed: ${error.message}`);
+            lastError = error;
+        }
+
+        // 3. Try relative URL as last resort
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), this.API_CONFIG.TIMEOUT_MS);
+            const fetchOptions = { ...baseFetchOptions, signal: controller.signal };
+
+            console.log(`[ConnectionHelper] Trying relative URL: ${cleanEndpoint}`);
+
+            const response = await fetch(cleanEndpoint, fetchOptions);
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+                console.log(`[ConnectionHelper] Relative URL succeeded: ${cleanEndpoint}`);
+                return await response.json();
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        } catch (error) {
+            console.error(`[ConnectionHelper] Relative URL failed: ${error.message}`);
+            lastError = error;
+        }
+
+        // If all attempts failed
+        console.error(`[ConnectionHelper] All connection attempts failed.`);
+        throw new Error(`All connection attempts failed. Last error: ${lastError.message}`);
     },
     
     /**
