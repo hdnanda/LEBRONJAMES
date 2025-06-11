@@ -1,60 +1,25 @@
 <?php
-// Use the centralized bootstrap file for all initialization.
-require_once __DIR__ . '/bootstrap.php';
+// --- FILENAME: backend/signup.php ---
+// This is a temporary, self-contained script for isolation testing.
+// It has ZERO dependencies.
 
-// Get data from the request body
-$data = json_decode(file_get_contents('php://input'), true);
+// Set headers to ensure a clean JSON response.
+header("Access-Control-Allow-Origin: *"); // Allow all origins for this test
+header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-// Validate input
-if (!isset($data['username']) || !isset($data['email']) || !isset($data['password'])) {
-    send_json_response(false, 'Missing required fields', null, 400);
+// Handle preflight OPTIONS request
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    http_response_code(200);
+    exit();
 }
 
-$username = $data['username'];
-$email = $data['email'];
-$password = $data['password'];
-
-// Hash the password
-$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-
-try {
-    $sql = "INSERT INTO users (username, email, password_hash) VALUES (:username, :email, :password)";
-    
-    // Use RETURNING id for PostgreSQL to get the new user's ID
-    if ($db_config['type'] === 'pgsql') {
-        $sql .= " RETURNING id";
-    }
-    
-    $stmt = $conn->prepare($sql);
-    $stmt->execute([
-        'username' => $username,
-        'email' => $email,
-        'password' => $hashedPassword
-    ]);
-    
-    // Get the new user's ID
-    if ($db_config['type'] === 'pgsql') {
-        $user_id = $stmt->fetchColumn();
-    } else {
-        $user_id = $conn->lastInsertId();
-    }
-    
-    // Log the signup activity
-    log_activity($user_id, 'signup', 'User account created');
-    
-    // Generate new CSRF token
-    if (session_status() === PHP_SESSION_ACTIVE) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    
-    // Return success response
-    send_json_response(true, 'Account created successfully', [
-        'username' => $username,
-        'email' => $email
-    ], 201);
-    
-} catch (Exception $e) {
-    error_log('Signup error: ' . $e->getMessage());
-    send_json_response(false, 'An error occurred during signup.', null, 500);
-}
-?>
+// Just return a simple, valid JSON object.
+http_response_code(200);
+echo json_encode([
+    'success' => true,
+    'message' => 'This is a successful JSON response from the test script.',
+    'test_id' => 12345
+]);
+exit();
