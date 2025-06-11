@@ -154,10 +154,25 @@ switch ($_SERVER['REQUEST_METHOD']) {
             }
 
             // Prepare for database update/insert
-            $sql = "INSERT INTO user_progress (user_id, total_xp, current_level, completed_levels, completed_exams, learning_progress) VALUES (:user_id, :total_xp, :current_level, :completed_levels, :completed_exams, :learning_progress) ON DUPLICATE KEY UPDATE total_xp = VALUES(total_xp), current_level = VALUES(current_level), completed_levels = VALUES(completed_levels), completed_exams = VALUES(completed_exams)";
-            
-            // Note: ON DUPLICATE KEY UPDATE is MySQL-specific. For PostgreSQL, use ON CONFLICT...DO UPDATE.
-            // This example assumes MySQL based on local dev config.
+            // Use the correct syntax based on the database type from config
+            global $db_config;
+            if ($db_config['type'] === 'pgsql') {
+                $sql = "INSERT INTO user_progress (user_id, total_xp, current_level, completed_levels, completed_exams, learning_progress) 
+                        VALUES (:user_id, :total_xp, :current_level, :completed_levels, :completed_exams, :learning_progress) 
+                        ON CONFLICT (user_id) DO UPDATE SET 
+                            total_xp = EXCLUDED.total_xp, 
+                            current_level = EXCLUDED.current_level, 
+                            completed_levels = EXCLUDED.completed_levels, 
+                            completed_exams = EXCLUDED.completed_exams";
+            } else {
+                $sql = "INSERT INTO user_progress (user_id, total_xp, current_level, completed_levels, completed_exams, learning_progress) 
+                        VALUES (:user_id, :total_xp, :current_level, :completed_levels, :completed_exams, :learning_progress) 
+                        ON DUPLICATE KEY UPDATE 
+                            total_xp = VALUES(total_xp), 
+                            current_level = VALUES(current_level), 
+                            completed_levels = VALUES(completed_levels), 
+                            completed_exams = VALUES(completed_exams)";
+            }
             
             $stmt = $pdo->prepare($sql);
             $params = [
