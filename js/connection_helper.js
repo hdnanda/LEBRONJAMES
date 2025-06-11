@@ -55,52 +55,11 @@ const ConnectionHelper = {
                 console.log(`[ConnectionHelper] Direct URL succeeded: ${directUrl}`);
                 return await response.json();
             }
-            throw new Error(`HTTP error! status: ${response.status}`);
+            // Throw a more detailed error for non-OK responses
+            const errorText = await response.text();
+            throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
         } catch (error) {
-            console.error(`[ConnectionHelper] Direct URL failed: ${error.message}`);
-            lastError = error;
-        }
-
-        // 2. Try alternative frontend URL
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), this.API_CONFIG.TIMEOUT_MS);
-            const fetchOptions = { ...baseFetchOptions, signal: controller.signal };
-
-            const alternativeUrl = `${this.API_CONFIG.FALLBACK_URL}/${cleanEndpoint}`;
-            console.log(`[ConnectionHelper] Trying alternative URL: ${alternativeUrl}`);
-            
-            const response = await fetch(alternativeUrl, fetchOptions);
-            clearTimeout(timeoutId);
-
-            if (response.ok) {
-                console.log(`[ConnectionHelper] Alternative URL succeeded: ${alternativeUrl}`);
-                return await response.json();
-            }
-            throw new Error(`HTTP error! status: ${response.status}`);
-        } catch (error) {
-            console.error(`[ConnectionHelper] Alternative URL failed: ${error.message}`);
-            lastError = error;
-        }
-
-        // 3. Try relative URL as last resort
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), this.API_CONFIG.TIMEOUT_MS);
-            const fetchOptions = { ...baseFetchOptions, signal: controller.signal };
-
-            console.log(`[ConnectionHelper] Trying relative URL: ${cleanEndpoint}`);
-
-            const response = await fetch(cleanEndpoint, fetchOptions);
-            clearTimeout(timeoutId);
-
-            if (response.ok) {
-                console.log(`[ConnectionHelper] Relative URL succeeded: ${cleanEndpoint}`);
-                return await response.json();
-            }
-            throw new Error(`HTTP error! status: ${response.status}`);
-        } catch (error) {
-            console.error(`[ConnectionHelper] Relative URL failed: ${error.message}`);
+            console.error(`[ConnectionHelper] Request to backend failed: ${error.message}`);
             lastError = error;
         }
 
