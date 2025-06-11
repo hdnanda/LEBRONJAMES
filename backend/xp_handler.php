@@ -197,7 +197,8 @@ switch ($_SERVER['REQUEST_METHOD']) {
         } catch (PDOException $e) {
             error_log("POST request failed: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Failed to update user data.']);
+            // Return the actual database error message for debugging
+            echo json_encode(['success' => false, 'error' => 'Failed to update user data.', 'db_error' => $e->getMessage()]);
         }
         break;
 
