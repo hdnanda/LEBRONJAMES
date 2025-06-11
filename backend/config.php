@@ -1,14 +1,14 @@
 <?php
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Handle CORS preflight requests
 require_once __DIR__ . '/cors.php';
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
-}
-
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
 }
 
 // Database configuration
