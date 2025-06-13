@@ -2,17 +2,6 @@
 // Use the centralized bootstrap file for all initialization.
 require_once __DIR__ . '/bootstrap.php';
 
-// Function to send JSON response and exit
-function send_json_response($success, $message, $data = null, $status_code = 200) {
-    http_response_code($status_code);
-    echo json_encode([
-        'success' => $success,
-        'message' => $message,
-        'data' => $data
-    ]);
-    exit();
-}
-
 try {
     // The bootstrap file already starts the session.
 
