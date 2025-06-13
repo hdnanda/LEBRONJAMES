@@ -118,12 +118,6 @@ if (typeof window.ConnectionHelper === 'undefined') {
                     console.warn('[ConnectionHelper] No username available, using guest account');
                 }
                 
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => {
-                    controller.abort();
-                    console.error('[ConnectionHelper] getUserXP request timed out after 8 seconds.');
-                }, 8000);
-
                 // Force direct backend URL for xp_handler.php - use query param instead of header
                 const directUrl = `${this.API_CONFIG.BACKEND_URL}/xp_handler.php?username=${encodeURIComponent(username)}`;
                 console.log(`[ConnectionHelper] Using direct backend URL: ${directUrl}`);
@@ -134,11 +128,8 @@ if (typeof window.ConnectionHelper === 'undefined') {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json'
                     },
-                    mode: 'cors',
-                    signal: controller.signal
+                    mode: 'cors'
                 });
-
-                clearTimeout(timeoutId);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
