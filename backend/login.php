@@ -14,100 +14,72 @@ function send_json_response($success, $message, $data = null, $status_code = 200
 }
 
 try {
-    // Start secure session
-    secure_session_start();
+    // The bootstrap file already starts the session.
 
-    // Initialize database connection
-    $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
-    if ($conn->connect_error) {
-        error_log('Database connection failed: ' . $conn->connect_error);
-        send_json_response(false, 'Database connection failed', null, 500);
+    // The bootstrap file establishes the database connection.
+    // We can access it via the global $conn variable.
+    global $conn;
+    
+    // Verify CSRF token from headers.
+    $csrf_token = get_csrf_token_from_header();
+    if (!validate_csrf_token($csrf_token)) {
+        return send_json_error_response('Invalid CSRF token.', 403);
     }
     
-    // Verify CSRF token
-    $headers = getallheaders();
-    $csrf_token = $headers['X-CSRF-Token'] ?? '';
+    // Get and decode JSON data from the request body.
+    $data = get_json_input();
     
-    if (empty($_SESSION['csrf_token']) || $csrf_token !== $_SESSION['csrf_token']) {
-        send_json_response(false, 'Invalid CSRF token', null, 403);
-    }
-    
-    // Get and decode JSON data
-    $json = file_get_contents('php://input');
-    if (empty($json)) {
-        send_json_response(false, 'No input received', null, 400);
-    }
-    
-    $data = json_decode($json, true);
-    if ($data === null) {
-        send_json_response(false, 'Invalid JSON data: ' . json_last_error_msg(), null, 400);
-    }
-    
-    // Validate required fields
+    // Validate required fields.
     if (empty($data['username']) || empty($data['password'])) {
-        send_json_response(false, 'Username and password are required', null, 400);
+        return send_json_error_response('Username and password are required.', 400);
     }
     
-    // Sanitize input
+    // Sanitize input.
     $username = sanitize_input($data['username']);
-    $password = $data['password']; // Don't sanitize password before hashing
+    $password = $data['password']; // Don't sanitize password before hashing.
     
-    // Check for too many login attempts
-    if (check_login_attempts($username, $conn)) {
-        send_json_response(false, 'Too many login attempts. Please try again later.', null, 429);
+    // Check for too many login attempts.
+    if (check_login_attempts($username)) {
+        return send_json_error_response('Too many login attempts. Please try again later.', 429);
     }
     
-    // Get user from database
-    $stmt = $conn->prepare("SELECT id, username, password_hash FROM users WHERE username = ?");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    // Get user from the database.
+    $stmt = $conn->prepare("SELECT id, username, password_hash, email FROM users WHERE username = :username");
+    $stmt->execute(['username' => $username]);
+    $user = $stmt->fetch();
     
-    if ($result->num_rows === 0) {
-        // Log failed attempt
-        log_login_attempt($username, false, 'User not found');
-        send_json_response(false, 'Invalid credentials, please check', null, 401);
+    // Verify user and password.
+    if (!$user || !password_verify($password, $user['password_hash'])) {
+        log_login_attempt($username, false, 'Invalid credentials');
+        return send_json_error_response('Invalid credentials, please check.', 401);
     }
     
-    $user = $result->fetch_assoc();
-    
-    // Verify password
-    if (!password_verify($password, $user['password_hash'])) {
-        // Log failed attempt
-        log_login_attempt($username, false, 'Invalid password');
-        send_json_response(false, 'Invalid credentials, please check', null, 401);
-    }
-    
-    // Log successful login
+    // Log successful login.
     log_login_attempt($username, true);
     
-    // Update last login time
-    $stmt = $conn->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
-    $stmt->bind_param("i", $user['id']);
-    $stmt->execute();
+    // Update last login time.
+    $update_stmt = $conn->prepare("UPDATE users SET last_login = NOW() WHERE id = :id");
+    $update_stmt->execute(['id' => $user['id']]);
     
-    // Set session variables
+    // Regenerate session ID and set session variables.
+    session_regenerate_id(true);
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['username'] = $user['username'];
     $_SESSION['last_activity'] = time();
     
-    // Generate new CSRF token
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    // Generate a new CSRF token for subsequent requests.
+    $_SESSION['csrf_token'] = generate_csrf_token();
     
-    // Return success response
-    send_json_response(true, 'Login successful', [
-        'username' => $username,
-        'email' => $data['email'] ?? null
-    ], 200);
+    // Return a success response with user data.
+    return send_json_success_response('Login successful', [
+        'username' => $user['username'],
+        'email' => $user['email']
+    ]);
     
 } catch (Exception $e) {
-    error_log('Login error: ' . $e->getMessage());
-    send_json_response(false, 'An error occurred during login', null, 500);
-} finally {
-    // Close database connection
-    if (isset($conn)) {
-        $conn->close();
-    }
+    // Log any unexpected errors and return a generic error message.
+    error_log('Login Exception: ' . $e->getMessage());
+    return send_json_error_response('An unexpected error occurred during login.', 500);
 }
 
 /**
