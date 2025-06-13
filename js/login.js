@@ -45,7 +45,7 @@
             
             // For production on Render
             console.log('Using production backend');
-            return 'https://financial-backend1.onrender.com/backend';
+            return 'https://financial-backend1.onrender.com';
         })();
 
         /**
