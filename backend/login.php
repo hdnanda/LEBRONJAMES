@@ -1,27 +1,6 @@
 <?php
-// Ensure no output before headers
-ob_start();
-
-// Set CORS headers for Render
-header('Access-Control-Allow-Origin: https://financial-literacy-app.onrender.com');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
-header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Max-Age: 1728000');
-header('Cache-Control: no-store, no-cache, must-revalidate');
-
-// Handle preflight requests
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-
-// Set JSON content type
-header('Content-Type: application/json');
-
-// Include required files
-require_once 'config.php';
-require_once 'functions.php';
+// Use the centralized bootstrap file for all initialization.
+require_once __DIR__ . '/bootstrap.php';
 
 // Function to send JSON response and exit
 function send_json_response($success, $message, $data = null, $status_code = 200) {
@@ -129,8 +108,6 @@ try {
     if (isset($conn)) {
         $conn->close();
     }
-    // Clean output buffer
-    ob_end_flush();
 }
 
 /**
